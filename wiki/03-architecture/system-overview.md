@@ -8,9 +8,9 @@
 
 ![시스템 아키텍처](../../docs/architecture.png)
 
-[SVG 원본](../../docs/architecture.svg). 실선은 현재 상태 점검·진단 연결, 점선은 향후 구현이다. 그림은 특정 클라우드 배포 완료를 뜻하지 않는다.
+[SVG 원본](../../docs/architecture.svg). 그림은 초기 상태 점검·진단 시점의 스냅샷이다. VIDEO-002의 최신 연결은 아래 설명과 실행 흐름 문서를 기준으로 한다. 그림은 특정 클라우드 배포 완료를 뜻하지 않는다.
 
-이 그림은 API·워커 서비스 연결 기준이다. 추가된 [로컬 영상 CLI](../05-development/video-extraction.md)는 별도로 `링크 → 다운로드 → FFmpeg → 검사 → 로컬 출력`을 실행한다. 영상 adapter가 구현되었어도 그림의 워커·객체 저장소 연결이 완료된 것은 아니다.
+이 그림은 API·워커 서비스 연결 기준이다. 추가된 [로컬 영상 CLI](../05-development/video-extraction.md)는 별도로 `링크 → 다운로드 → FFmpeg → 검사 → 로컬 출력`을 실행한다. VIDEO-002는 API·DB·Redis·Celery와 영상 서비스를 연결했다. 파일은 워커 쓰기/API 읽기 전용 공유 볼륨을 사용한다. 객체 저장소는 미구현이다.
 
 ## 역할과 데이터 소유권
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | 웹 UI | 입력·후보 비교·편집·상태 표시 | 비밀키 보관, 실제 완료 여부 추정 |
 | FastAPI | 요청 검증·향후 권한 확인·작업 등록·조회 | HTTP 요청 안에서 긴 인코딩 수행 |
-| PostgreSQL | 서비스 데이터·향후 작업 상태의 기준 | 큰 영상 파일 전달 |
+| PostgreSQL | 서비스 데이터·현재 video_jobs 상태의 기준 | 큰 영상 파일 전달 |
 | Redis | 워커에 작은 작업 메시지 전달 | 제품 작업의 유일한 이력 저장소 |
 | Celery 워커 | Python 업무 함수 실행·동시성 관리 | 추천 알고리즘 자체 제공 |
 | 분석·FFmpeg adapter | 모델·외부 도구 실행 | 사용자 접근 권한의 최종 결정 |
@@ -33,7 +33,7 @@
 | app/main.py | 상태 점검 HTTP API | 라우터 조립, HTTP 경계 |
 | app/config.py | 환경 변수 | 외부 설정 검증 |
 | app/db.py | SQLAlchemy 연결·Base | DB 세션·모델 기반 |
-| app/worker.py | Celery·진단 함수 | 작업 등록과 업무 함수 호출 |
+| app/worker.py | Celery·진단·영상 작업 | 작업 등록과 업무 함수 호출 |
 | app/domain/ | 10초 구간·출력 검사 규칙 | 점수·업무 상태 전이 규칙 |
 | app/services/ | 링크에서 영상 추출·결과 기록 | 분석·출력 사용 사례 조정 |
 | app/adapters/ | 다운로드·FFmpeg·FFprobe·프로세스 제어 | 모델·객체 저장소 연결 |

@@ -18,7 +18,10 @@ def get_engine():
         pool_size=2,
         max_overflow=2,
         pool_timeout=3,
-        connect_args={"connect_timeout": 3},
+        connect_args={
+            "connect_timeout": 3,
+            "options": "-c statement_timeout=15000 -c lock_timeout=10000",
+        },
     )
 
 

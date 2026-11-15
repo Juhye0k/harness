@@ -26,7 +26,13 @@ DB·Redis를 호출하지 않는다. 프로세스가 응답하는지 확인하�
 
 `터미널 → URL·시작 시간 검사 → 별도 다운로드 프로세스 → 원본 정보·구간 검사 → FFmpeg 추출 → 길이·트랙·전체 디코딩·원본 해시 검사 → 로컬 MP4·JSON`
 
-이 경로는 FastAPI·PostgreSQL·Redis·Celery를 사용하지 않는다. [실행 안내](../05-development/video-extraction.md)의 CLI 서비스만 구현한 상태이며, 아래 업무 작업 상태·웹 연결은 아직 없다.
+CLI는 FastAPI·PostgreSQL·Redis·Celery 없이 독립 실행한다.
+
+## 현재: 비동기 10초 추출
+
+`POST → pending 저장 → Redis 발행·queued 확정 → 202 → Celery 조건부 선점 → running → 기존 추출 서비스 → 검증 → succeeded/failed → GET 조회·다운로드`
+
+메시지를 배분하는 것은 Redis/Celery, 상태를 검증하는 것은 PostgreSQL이다. ID 행 잠금으로 발행과 소비 경쟁을 조정하고 인코딩 중에는 잠금을 유지하지 않는다. [상태 계약](data-and-jobs.md), [실행 안내](../05-development/async-video-jobs.md). 웹 화면·AI·객체 저장소는 아래 목표 범위다.
 
 ## 목표: 입력과 작업 등록 — 미구현
 
@@ -50,4 +56,4 @@ DB·Redis를 호출하지 않는다. 프로세스가 응답하는지 확인하�
 
 ## 실패를 숨기지 않는 흐름
 
-요청 거절, 작업 대기, 처리 실패, 출력 만료를 구분한다. 재시도는 실패 단계와 이미 완료된 산출물을 확인한 뒤 수행하도록 설계한다. 자세한 미결정 사항은 [데이터·작업 모델](data-and-jobs.md)에 있다.
+요청 거절, 작업 대기, 처리 실패, 출력 만료를 구분한다. 재시도는 실패 단계와 이미 완료된 산출물을 확인한 뒤 수행하도록 설계한다. 현재 상태와 후속 복구 범위는 [데이터·작업 모델](data-and-jobs.md)에 있다.

@@ -7,7 +7,7 @@
 | unit/ | 규칙·환경 설정·HTTP/downloader 대역·실패 결과 검사 | Python, 임시 파일; DB·네트워크·FFmpeg 실행 없음 |
 | process/ | 외부 프로세스 실패·시간 초과·자식 종료 | 실제 로컬 Python 하위 프로세스 |
 | media/ | 영상 추출 구간·길이·트랙·원본 보존·결과 저장 | 실제 FFmpeg·FFprobe, 테스트가 생성하는 영상 |
-| integration/ | DB·Redis 연결과 Celery 진단 작업 소비 | 전용 PostgreSQL·Redis·실제 진단 워커 |
+| integration/ | DB 선점·상태 경쟁, Redis·Celery 전달, 실제 영상·HTTP 다운로드 | 격리 Compose, 합성 영상, 실제 FFmpeg |
 
 저장소 루트에서 실행합니다.
 

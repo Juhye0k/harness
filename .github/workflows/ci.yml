@@ -27,42 +27,16 @@ jobs:
 
   integration:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:17-bookworm
-        env:
-          POSTGRES_DB: shortform
-          POSTGRES_USER: shortform
-          POSTGRES_PASSWORD: local-dev-only
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U shortform -d shortform"
-          --health-interval 5s --health-timeout 3s --health-retries 20
-      redis:
-        image: redis:7.4-bookworm
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s --health-timeout 3s --health-retries 20
-    env:
-      DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@localhost:5432/shortform
-      REDIS_URL: redis://localhost:6379/0
-      RUN_INTEGRATION: "1"
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.3.3
-        with:
-          version: "0.11.3"
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run alembic upgrade head
-      - name: Start diagnostic worker
-        run: |
-          uv run celery -A app.worker:celery_app --result-backend "$REDIS_URL" worker --loglevel=INFO --concurrency=1 > worker.log 2>&1 &
-      - run: uv run pytest -m integration -q
-      - name: Worker log on failure
-        if: failure()
-        run: cat worker.log
       - run: docker compose config --quiet
-      - run: docker build -t shortform-harness:ci .
+      - run: docker build --target production -t shortform-harness:ci .
+      - run: docker compose -f compose.integration.yaml up --build -d api worker
+      - run: docker compose -f compose.integration.yaml run --rm runner
+      - name: Integration logs on failure
+        if: failure()
+        run: docker compose -f compose.integration.yaml logs --tail=200
+      - name: Remove isolated test environment
+        if: always()
+        run: docker compose -f compose.integration.yaml down --volumes

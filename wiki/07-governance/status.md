@@ -6,7 +6,7 @@
 
 ## 현재 상태
 
-초기 하네스와 링크 기반 10초 추출 CLI 단계다. 실제 AI 추천이나 웹 서비스가 운영 중인 것으로 소개하지 않는다.
+링크 기반 10초 추출 CLI와 비동기 접수·조회·다운로드 API를 기능 브랜치에서 검증했다. 실제 AI 추천이나 공개 웹 서비스가 운영 중인 것으로 소개하지 않는다. 코드 기준은 `feat/video-002-async-extraction`이며 main 병합·운영 배포와 구분한다. 커밋·게시 근거는 [VIDEO-002 작업 기록](video-002-work-log.md)에 남긴다.
 
 | 항목 | 상태 | 근거 |
 |---|---|---|
@@ -14,15 +14,25 @@
 | DB 연결·migration 환경 | 구현 | [db.py](../../app/db.py), [migrations](../../migrations) |
 | Redis·Celery 진단 | 구현 | [worker.py](../../app/worker.py) |
 | Compose·CI·검사 | 구현 | [compose.yaml](../../compose.yaml), [CI](../../.github/workflows/ci.yml) |
-| 업무 테이블·API | 미구현 | 모델·명세 초안만 존재 |
+| 업무 테이블·API | 로컬 구현 | video_jobs, 접수·조회·다운로드 API |
 | 링크 입력·10초 추출 CLI | 로컬 구현 | [실행·계약](../05-development/video-extraction.md), [서비스](../../app/services/video.py) |
-| 웹 영상 업로드·업무 워커 연결 | 미구현 | 로컬 CLI와 분리 |
+| 링크 입력·업무 워커 연결 | 로컬 구현 | 기존 영상 서비스를 Celery에 연결; 웹 업로드 미구현 |
 | 실제 AI 분석·추천 | 미구현 | 실험 계획만 존재 |
-| 웹 편집·다운로드 연결 | 미구현 | 별도 기존 프로토타입과 미연결 |
+| 다운로드 API / 웹 편집 | API 로컬 구현 / 편집 미구현 | 기존 화면 프로토타입과 미연결 |
 | 인증·SNS·운영 배포·자동 복구 | 미구현 | 후속 결정 필요 |
 | 카테고리형 프로젝트 위키 | 작성 | [위키 홈](../README.md) |
 
 ## 확인된 검증 증거
+
+### VIDEO-002 — 비동기 영상 추출
+
+- 시작 커밋 `000fee0`, 작업 브랜치 `feat/video-002-async-extraction`. 아래는 로컬 작업 트리 검사이며 원격 CI 결과가 아니다.
+- `uv run python scripts/verify.py`: Ruff·서식·기본 검사 82개·Alembic 오프라인 SQL 통과, 통합 13개 제외.
+- `docker compose -f compose.integration.yaml run --rm runner`: 실제 PostgreSQL·Redis·Celery·FFmpeg 통합 검사 13개 통과. 동시 선점·발행 경쟁·수동 실패/완료 경쟁·재전달·실패·HTTP 다운로드 포함.
+- 일반 production 이미지 빌드와 마이그레이션·API·워커 실행 성공. 테스트 워커의 대역 없이 공개 MP4를 시작 5초부터 처리해 출력 10.0초·음성 유지·전체 디코딩·원본 보존을 확인하고 HTTP로 732,218바이트 다운로드했다.
+- 샌드박스에서 별도 실행한 DB 검사 1개는 pytest 공용 임시 경로 권한으로 실행되지 못했다. 이후 격리 Linux 컨테이너에서 동일 검사를 포함한 13개 전체 통과를 확인했다. 초기 통합 빌드에서 `.dockerignore`의 tests 제외를 발견하고 테스트 단계에서만 복사하도록 수정했다.
+- 기존 Starlette/httpx 경고와 로컬 pytest 캐시 권한 경고는 남아 있다. 원격 GitHub Actions, 실제 워커 강제 종료·hard timeout 실험, 자동 복구, 부하 검사는 수행하지 않았다. soft timeout 처리는 대역 예외로, 중단 후 상태 충돌은 실제 DB로 검사했다.
+- [실행 안내](../05-development/async-video-jobs.md), [요구사항·회귀 검사](../05-development/harness/video-002-requirements.md), [기술 결정](../04-decisions/adr-003-redis-celery.md).
 
 ### VIDEO-001 — 링크 기반 추출
 
@@ -61,4 +71,4 @@ CI 액션 런타임 경고를 정리하고 runner를 Ubuntu 24.04로 고정했�
 
 ## 다음 작업
 
-[2단계](../02-delivery/phase-02-video-jobs.md)의 업무 작업 모델·상태·복구 정책을 정한 뒤 CLI 서비스를 API·Celery에 연결한다. AI·자막·SNS는 아직 구현 범위가 아니다.
+다음 범위는 웹 입력·상태 표시·다운로드 연결을 별도 요구사항으로 정한다. 자동 복구·AI·자막·SNS는 이번 구현 범위가 아니다.

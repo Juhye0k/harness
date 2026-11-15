@@ -12,8 +12,8 @@
 | tests/unit | 생존/준비 점검·환경 설정·영상 규칙·링크·대역·오류 처리 | 실제 도구·DB·워커·YouTube 접근 가능성 |
 | tests/process | 실제 로컬 하위 프로세스 실패·시간 초과·종료 | 실제 영상 처리·원격 서버 |
 | 실제 FFmpeg 검사 | 합성 영상의 구간·길이·트랙·원본 보존·결과 저장 | 실제 AI 품질 |
-| 통합 검사 2개 | 실제 PostgreSQL·Redis 연결과 진단 작업 소비 | 영상·작업 복구 |
-| Alembic | 오프라인 설정·CI 실제 접속 | 업무 migration 정확성: 아직 없음 |
+| 통합 검사 | 실제 PostgreSQL·Redis·Celery·FFmpeg, 선점 경쟁, HTTP 다운로드 | 외부 영상 서버·자동 복구 |
+| Alembic | 오프라인 SQL·실제 video_jobs 테이블 생성 | 운영 데이터 마이그레이션 |
 | Docker 빌드 | 이미지 생성 | 운영 배포·고가용성 |
 
 최신 로컬 실행 결과와 미실행 검사는 [현황 기록](../../07-governance/status.md)에서 확인한다.
@@ -31,33 +31,22 @@ uv run python scripts/verify.py
 
 검사 파일의 배치와 선택 실행은 [tests 안내](../../../tests/README.md)를 참고한다. `pytest tests/unit`, `pytest tests/process`, `pytest tests/media`로 각각 실행할 수 있다. 전체 수집은 `uv run python -m pytest --collect-only -q`로 확인한다. `integration` 마커와 기본 검사 제외 규칙은 유지한다.
 
-## 실제 워커 통합 검사 — 로컬 개발 전용
-
-전용 테스트 환경에서 실행한다. 기존 worker를 잠시 중지해 진단 메시지가 결과 backend 없는 워커로 가지 않게 한다. 아래 finally는 검사 실패 시에도 진단 컨테이너와 환경 변수를 정리한다.
+## 실제 워커 통합 검사 — 격리 환경
 
 ```powershell
-docker compose up -d postgres redis
-docker compose build worker
-docker compose stop worker
-$previousIntegration = $env:RUN_INTEGRATION
-try {
-    docker compose run -d --name shortform-diagnostic-worker worker /app/.venv/bin/celery -A app.worker:celery_app --result-backend redis://redis:6379/0 worker --loglevel=INFO --concurrency=1
-    if ($LASTEXITCODE -ne 0) { throw '진단 워커 시작 실패' }
-    $env:RUN_INTEGRATION = '1'
-    uv run pytest -m integration -q
-    if ($LASTEXITCODE -ne 0) { throw '통합 검사 실패' }
-} finally {
-    $env:RUN_INTEGRATION = $previousIntegration
-    docker stop shortform-diagnostic-worker
-    docker rm shortform-diagnostic-worker
-}
+docker compose -f compose.integration.yaml up --build -d api worker
+docker compose -f compose.integration.yaml run --rm runner
+docker compose -f compose.integration.yaml logs --tail=200
+docker compose -f compose.integration.yaml down --volumes
 ```
 
-일반 워커가 필요하면 검사 후 `docker compose up -d worker`로 다시 실행한다. 같은 이름의 진단 컨테이너가 이미 있다면 먼저 로그·상태를 확인하고 정리한다. 테스트 중단 시 결과 키나 컨테이너가 남을 수 있다.
+마지막 명령은 `shortform-integration` 전용 테스트 볼륨만 정리한다. 일반 개발 Compose에 `down --volumes`를 실행하지 않는다. 테스트 환경은 호스트 포트를 열지 않고 개발 DB·Redis·영상 볼륨을 공유하지 않는다.
+
+통합 이미지에는 tests와 개발 의존성을 포함한다. 일반 production 이미지는 포함하지 않는다. 테스트 워커는 다운로드만 합성 영상 복사로 대체하며 실제 HTTP·DB·Redis·Celery·FFmpeg·다운로드를 검사한다. `RUN_INTEGRATION=1`은 DB/진단, `RUN_VIDEO_INTEGRATION=1`은 이 전용 워커가 필요한 영상 흐름을 활성화한다.
 
 ## CI와 검사 증거
 
-GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은 서비스 컨테이너·별도 워커를 띄우고 이미지도 빌드한다. 배포·유료 모델 호출은 없다. 통합 실패 시 worker.log가 로그에 출력된다.
+GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은 일반 이미지 빌드와 격리 Compose 검사를 수행한다. 배포·유료 모델 호출은 없다. 통합 실패 시 Compose 로그를 출력하고 종료 시 테스트 환경을 정리한다.
 
 코드를 바꾸지 않는 문서 변경은 링크·구현 일치 검토가 중심이다. 저장소 지침상 기본 검사는 실행하되 문서 변경을 이유로 새 업무 테스트를 만들지 않는다.
 

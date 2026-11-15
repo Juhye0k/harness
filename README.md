@@ -1,6 +1,6 @@
 # Shortform Harness
 
-FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. 현재 상태 점검·워커 진단과 **영상 링크에서 10초 MP4를 추출하는 로컬 CLI**를 구현했습니다. 영상 업무 API·AI·웹 편집·SNS 기능은 아직 없습니다.
+FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **링크에서 10초 MP4를 추출하는 CLI와 비동기 요청·조회·다운로드 API**를 구현했습니다. AI·웹 편집·SNS 기능은 아직 없습니다.
 
 **[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
@@ -36,6 +36,8 @@ curl.exe http://localhost:8000/health/ready
 
 API 문서: http://localhost:8000/docs
 
+영상 작업은 `POST /jobs/video-extractions`로 등록합니다. 요청·조회·다운로드와 중단 작업 처리 명령은 [비동기 실행 안내](wiki/05-development/async-video-jobs.md)를 따릅니다.
+
 준비 상태 점검은 PostgreSQL·Redis 연결만 확인합니다. 워커 실행은 별도 통합 검사로 확인합니다. Compose는 로컬 개발용이며 공개 배포 구성이 아닙니다.
 
 ## 상세 안내
@@ -54,7 +56,7 @@ API 문서: http://localhost:8000/docs
 
 ```text
 app/          # API·DB·Celery 설정, 영상 CLI·규칙·서비스·외부 도구
-migrations/   # Alembic 환경, 업무 테이블 없음
+migrations/   # Alembic 환경과 video_jobs 테이블
 tests/        # unit·process·media·integration 검사와 실행 안내
 scripts/      # 검사 진입점·다이어그램 생성
 wiki/         # 카테고리별 프로젝트 문서

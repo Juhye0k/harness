@@ -2,10 +2,12 @@ name: shortform-harness
 
 x-app: &app
   build: .
+  image: shortform-harness:local
   environment:
     DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
     REDIS_URL: redis://redis:6379/0
     APP_ENV: development
+    VIDEO_DATA_DIR: /data/jobs
   depends_on:
     postgres:
       condition: service_healthy
@@ -13,8 +15,16 @@ x-app: &app
       condition: service_healthy
 
 services:
+  migrate:
+    <<: *app
+    command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+
   api:
     <<: *app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["video_data:/data:ro"]
     ports: ["127.0.0.1:8000:8000"]
     healthcheck:
       test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=10)"]
@@ -25,8 +35,12 @@ services:
 
   worker:
     <<: *app
-    command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
-    mem_limit: 512m
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["video_data:/data"]
+    command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "shortform,video"]
+    mem_limit: 1g
 
   postgres:
     image: postgres:17-bookworm
@@ -56,3 +70,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  video_data:

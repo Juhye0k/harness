@@ -9,6 +9,8 @@
 - [AI와 함께 작업하는 절차](harness/workflow.md)
 - [검증 계층과 실행 방법](harness/verification.md)
 - [링크에서 10초 영상 추출](video-extraction.md)
+- [비동기 10초 추출과 중단 처리](async-video-jobs.md)
+- [VIDEO-002 요구사항과 검증](harness/video-002-requirements.md)
 - [코드 리뷰와 완료 기준](harness/review.md)
 - [요구사항과 검사 연결](harness/requirements-map.md)
 - [하네스 개선 기록](harness/changes/README.md)
