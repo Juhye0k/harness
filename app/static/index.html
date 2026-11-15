@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Shortform — 10초 영상 추출</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/">Shortform<span>STUDIO</span></a><span class="badge">10초 클립</span></header>
+  <main>
+    <div class="intro"><p class="eyebrow">영상의 한 장면을, 간단하게</p><h1>필요한 순간만<br> 10초로 담아보세요.</h1><p>영상 링크와 시작 시간을 입력하면<br> 추출한 영상을 확인하고 내려받을 수 있어요.</p></div>
+    <section class="card" aria-labelledby="form-title" id="input-panel">
+      <p class="eyebrow">01 · 영상 선택</p><h2 id="form-title">어디서부터 담을까요?</h2>
+      <form id="extract-form">
+        <label for="video-url">영상 링크</label>
+        <input id="video-url" name="url" type="url" required maxlength="4096" placeholder="https://…" aria-describedby="url-help">
+        <p class="hint" id="url-help">공개 YouTube 단일 영상 또는 MP4 직접 링크</p>
+        <label for="start">시작 시간 <span class="optional">초</span></label>
+        <div class="time-row"><input id="start" name="start" type="number" required min="0" step="0.1" value="0"><span>부터 <strong>10초</strong> 추출</span></div>
+        <p class="hint">예: 1분 5초부터 추출하려면 65를 입력하세요.</p>
+        <button id="submit" type="submit">10초 영상 만들기 <span aria-hidden="true">↗</span></button>
+        <p id="submit-message" role="alert" hidden></p>
+      </form>
+    </section>
+    <section class="card" id="job-panel" aria-labelledby="job-title" hidden>
+      <p class="eyebrow">02 · 추출 결과</p><div class="title-row"><h2 id="job-title">작업 조회 중</h2><span id="status-dot" aria-hidden="true"></span></div>
+      <p id="job-description" role="status" aria-live="polite">작업 상태를 확인하고 있어요.</p>
+      <p class="job-id">작업 번호 <span id="job-id"></span></p>
+      <div id="connection-message" role="alert" hidden></div>
+      <button id="retry" type="button" class="secondary" hidden>상태 다시 조회</button>
+      <div id="result" hidden>
+        <video id="preview" controls playsinline preload="metadata" aria-label="추출 영상 미리보기"></video>
+        <p class="hint" id="result-info"></p>
+        <button id="download" type="button">MP4 다운로드 <span aria-hidden="true">↓</span></button>
+        <p id="media-message" role="alert" hidden></p>
+      </div>
+      <a class="new-job" href="/">새 영상 추출하기 →</a>
+    </section>
+    <aside><span>01 입력</span><span>02 추출</span><span>03 다운로드</span><p>결과는 원본과 별도로 저장합니다.<br>현재는 지정 구간 추출만 제공하며 AI 하이라이트 추천은 준비 중입니다.</p></aside>
+    <noscript>영상을 추출하려면 브라우저에서 JavaScript를 활성화해 주세요.</noscript>
+  </main>
+  <footer>SHORTFORM STUDIO <span>로컬 개발용 · 외부 공개 전 인증 필요</span></footer>
+</body>
+</html>

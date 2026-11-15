@@ -34,6 +34,8 @@
 
 ## 게시와 후속 확인
 
+후속 기록: [PR #1](https://github.com/Juhye0k/short-form/pull/1)이 main에 병합됐다. 아래 항목은 최초 기능 브랜치 게시 당시의 검증 기록이다.
+
 기능 브랜치에 코드·검사·문서 원본을 함께 게시하고, GitHub Wiki는 별도로 동기화한다.
 
 - 구현 커밋: [32e992c — 비동기 영상 추출 API와 작업 검증 하네스 구현](https://github.com/Juhye0k/short-form/commit/32e992cdefccb9668bcbc2af38499486961da89c).
