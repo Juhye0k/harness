@@ -47,3 +47,8 @@ DB와 Redis는 원자적 트랜잭션이 아니다. 메시지 전달 후 API가 
 ## 파일과 확장
 
 검증된 결과만 succeeded로 표시한다. 파일 생성 뒤 DB 기록이 실패하면 파일이 남아도 다운로드를 허용하지 않는다. 파일 정리 작업은 아직 없다. 다중 호스트·자동 재시도 전에는 객체 저장소·시도 ID·오래된 작업의 부작용 방지를 함께 설계한다. [ADR-003](../04-decisions/adr-003-redis-celery.md)에 결정 근거를 기록한다.
+## VIDEO-004 데이터 추가
+
+`assets → transcripts`, `assets → analysis_jobs → highlight_candidates → video_jobs`로 연결한다. `provider_calls`는 분석·단계별 호출 기록이다. 원본·음성·결과 파일은 공유 볼륨, 상태·전사·점수는 PostgreSQL에 저장한다. [실행 계약](../05-development/highlight-recommendations.md)에 선점·재사용·비용 제어를 정리한다.
+
+분석 큐와 영상 큐를 분리하며 ID만 Redis로 전달한다. 후보별 video_jobs 고유 제약과 후보 행 잠금으로 동시 선택 시 하나의 출력 작업만 만든다. 후보·성공 상태를 원자적으로 저장하고 running 조건부 완료로 늦은 결과가 운영자 실패 확정을 덮어쓰지 못하게 한다. 외부 호출 동안 DB 트랜잭션을 유지하지 않는다.

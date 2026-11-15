@@ -293,3 +293,18 @@ video {
     gap:5px
   }
 }
+select {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 18px;
+  border: 1px solid #d3d9d0;
+  border-radius: 10px;
+  background: #fff;
+  color: #223e31;
+  font: inherit;
+}
+.candidate { border-top: 1px solid #d3d9d0; padding: 24px 0; overflow-wrap: anywhere; }
+.candidate h3 { font-size: 22px; }
+.candidate details { margin: 16px 0; }
+.candidate a { display: block; margin-top: 18px; }

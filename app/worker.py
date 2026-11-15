@@ -17,7 +17,7 @@ celery_app.conf.update(
     broker_pool_limit=0,
     task_publish_retry=False,
     broker_transport_options={
-        "visibility_timeout": 900,
+        "visibility_timeout": 1200,
         "socket_connect_timeout": 3,
         "socket_timeout": 3,
         "retry_on_timeout": False,
@@ -50,3 +50,22 @@ def extract_video(job_id: str) -> None:
     from app.services.jobs import process_job
 
     process_job(UUID(job_id), JobRepository(), get_settings().video_data_dir)
+
+
+@celery_app.task(
+    name="shortform.analysis.recommend",
+    queue="analysis",
+    acks_late=False,
+    autoretry_for=(),
+    max_retries=0,
+    soft_time_limit=960,
+    time_limit=1020,
+)
+def recommend_video(job_id: str) -> None:
+    from uuid import UUID
+
+    from app.adapters.analysis_repository import AnalysisRepository
+    from app.services.analysis import process_analysis
+
+    settings = get_settings()
+    process_analysis(UUID(job_id), AnalysisRepository(), settings.video_data_dir, settings)

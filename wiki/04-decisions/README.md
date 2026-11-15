@@ -7,3 +7,4 @@
 - [ADR-001 — Python과 FastAPI 선택](adr-001-python-runtime.md)
 - [ADR-002 — PostgreSQL과 파일 저장 분리](adr-002-postgresql-storage.md)
 - [ADR-003 — Redis 브로커와 Celery 워커](adr-003-redis-celery.md)
+- [ADR-004 — 전사 기반 추천과 제공자 분리](adr-004-transcript-recommendations.md)

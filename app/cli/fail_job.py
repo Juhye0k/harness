@@ -12,13 +12,20 @@ from app.adapters.job_repository import JobRepository
 def main():
     parser = argparse.ArgumentParser(description="실행 중단을 확인한 작업만 실패 확정합니다.")
     parser.add_argument("job_id", type=UUID)
+    parser.add_argument("--analysis", action="store_true")
     parser.add_argument("--confirmed-stopped", action="store_true", required=True)
     parser.add_argument("--reason", required=True)
     args = parser.parse_args()
     if not args.reason.strip() or len(args.reason) > 500:
         parser.error("사유는 1~500자로 입력하세요. 비밀값을 포함하지 마세요.")
     try:
-        changed = JobRepository().mark_interrupted(args.job_id, args.reason.strip())
+        if args.analysis:
+            from app.adapters.analysis_repository import AnalysisRepository
+
+            repository = AnalysisRepository()
+        else:
+            repository = JobRepository()
+        changed = repository.mark_interrupted(args.job_id, args.reason.strip())
     except SQLAlchemyError:
         print(json.dumps({"error": "DATABASE_UNAVAILABLE"}))
         return 1

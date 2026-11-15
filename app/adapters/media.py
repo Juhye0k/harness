@@ -74,12 +74,14 @@ def probe(path: Path, *, output: bool = False) -> MediaInfo:
         raise VideoError(code, "영상 트랙 또는 정확한 영상 길이를 확인할 수 없습니다.") from exc
 
 
-def extract(source: Path, target: Path, start: float) -> tuple[MediaInfo, dict]:
+def extract(
+    source: Path, target: Path, start: float, duration: float = 10
+) -> tuple[MediaInfo, dict]:
     source, target = source.resolve(), target.resolve()
     if source == target or target.exists():
         raise VideoError("OUTPUT_CONFLICT", "원본이나 기존 파일을 덮어쓸 수 없습니다.")
     info = probe(source)
-    validate_range(start, info)
+    validate_range(start, info, duration)
     target.parent.mkdir(parents=True, exist_ok=True)
     fd, filename = tempfile.mkstemp(suffix=".mp4", prefix=".render-", dir=target.parent)
     os.close(fd)
@@ -102,7 +104,7 @@ def extract(source: Path, target: Path, start: float) -> tuple[MediaInfo, dict]:
                 "-ss",
                 str(start),
                 "-t",
-                "10",
+                str(duration),
                 "-map",
                 "0:V:0",
                 "-map",
@@ -130,7 +132,7 @@ def extract(source: Path, target: Path, start: float) -> tuple[MediaInfo, dict]:
             120,
         )
         result = probe(staging, output=True)
-        checks = validate_output(result, info.has_audio)
+        checks = validate_output(result, info.has_audio, duration)
         run(
             [
                 executable("ffmpeg"),

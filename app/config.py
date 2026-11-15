@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://shortform:local-dev-only@localhost:5432/shortform"
     redis_url: str = "redis://localhost:6379/0"
     video_data_dir: Path = Path(".artifacts/jobs")
+    enable_paid_ai: bool = False
+    azure_speech_endpoint: str = ""
+    azure_speech_key: SecretStr = SecretStr("")
+    openai_api_key: SecretStr = SecretStr("")
+    recommendation_model: str = "gpt-5.6-terra"
 
 
 @lru_cache

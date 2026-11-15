@@ -10,13 +10,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.adapters.download import validate_url
 from app.adapters.job_repository import JobRepository
 from app.domain.jobs import JobError, output_file, public_result
-from app.domain.video import validate_start
+from app.domain.video import VideoError, validate_start
 from app.services.video import execute
 
 logger = logging.getLogger(__name__)
 
 # Messages are curated separately from potentially sensitive tool exceptions.
 ERROR_MESSAGES = {
+    "RESULT_UNAVAILABLE": "저장한 원본이나 출력 파일을 사용할 수 없습니다.",
     "INVALID_INPUT": "영상 입력이 유효하지 않습니다.",
     "INVALID_RANGE": "요청한 구간이 원본 범위를 넘습니다.",
     "INVALID_MEDIA": "영상 파일 또는 필수 정보를 확인할 수 없습니다.",
@@ -56,7 +57,16 @@ def process_job(job_id: UUID, repository: JobRepository, root: Path, extractor=N
         return  # Missing, already running or terminal; never execute again.
     extractor = extractor or execute
     try:
-        result = extractor(job.source_url, job.start_seconds, root=root / str(job.id))
+        if getattr(job, "asset_id", None):
+            from app.adapters.analysis_repository import AnalysisRepository
+            from app.services.asset_export import execute_asset
+
+            asset = AnalysisRepository(repository.engine).asset(job.asset_id)
+            result = execute_asset(
+                asset, job.start_seconds, job.duration_seconds, root / str(job.id), root
+            )
+        else:
+            result = extractor(job.source_url, job.start_seconds, root=root / str(job.id))
         if result.get("status") == "succeeded":
             public = public_result(result)
             required = {
@@ -86,6 +96,9 @@ def process_job(job_id: UUID, repository: JobRepository, root: Path, extractor=N
             code = result.get("error", {}).get("code", "INTERNAL_ERROR")
             code = code if code in ERROR_MESSAGES else "INTERNAL_ERROR"
             completion = dict(success=False, error_code=code, error_message=ERROR_MESSAGES[code])
+    except (VideoError, JobError) as exc:
+        code = exc.code if exc.code in ERROR_MESSAGES else "OUTPUT_INVALID"
+        completion = dict(success=False, error_code=code, error_message=ERROR_MESSAGES[code])
     except SoftTimeLimitExceeded:
         completion = dict(
             success=False, error_code="TIMEOUT", error_message=ERROR_MESSAGES["TIMEOUT"]

@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from redis import Redis
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.analyses import router as analysis_router
 from app.api.jobs import router
 from app.api.web import STATIC
 from app.api.web import router as web_router
@@ -18,6 +19,7 @@ from app.domain.video import VideoError
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Shortform Harness", version="0.1.0")
 app.include_router(router)
+app.include_router(analysis_router)
 app.include_router(web_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
