@@ -51,6 +51,7 @@ async function poll(version) {
       $("job-description").textContent = job.error?.message || description;
       resetResult();
     } else if (job.status === "succeeded") {
+      if (job.duration_seconds && job.duration_seconds !== 10) $("job-title").textContent = "추천 구간 영상이 준비됐어요";
       currentDownload = `/jobs/${jobId}/download`;
       $("preview").src = currentDownload;
       $("result").hidden = false;

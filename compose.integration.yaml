@@ -13,6 +13,7 @@ x-test: &test
     RUN_INTEGRATION: "1"
     RUN_VIDEO_INTEGRATION: "1"
     TEST_API_URL: http://api:8000
+    ENABLE_PAID_AI: "true" # Only test fixture worker; no keys or provider networking.
   volumes: ["test_video:/data"]
 
 services:
@@ -55,12 +56,18 @@ services:
     command: ["/app/.venv/bin/python", "-m", "tests.integration.fixture_worker"]
     depends_on:
       migrate: {condition: service_completed_successfully}
+  analysis-worker:
+    <<: *test
+    command: ["/app/.venv/bin/python", "-m", "tests.integration.fixture_analysis_worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
   runner:
     <<: *test
     command: ["/app/.venv/bin/python", "-m", "pytest", "-m", "integration", "-q", "-p", "no:cacheprovider"]
     depends_on:
       api: {condition: service_healthy}
       worker: {condition: service_started}
+      analysis-worker: {condition: service_started}
 
 volumes:
   test_video:

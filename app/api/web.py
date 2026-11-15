@@ -12,3 +12,8 @@ router = APIRouter()
 @router.get("/", include_in_schema=False)
 def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/recommendations", include_in_schema=False)
+def recommendations():
+    return FileResponse(STATIC / "recommendations.html", headers={"Cache-Control": "no-store"})

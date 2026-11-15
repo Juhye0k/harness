@@ -41,3 +41,15 @@
 영상 실패는 조회 HTTP 200 안의 status=failed와 error로 표현한다. 접수 HTTP 성공과 작업 성공을 구분한다. [실행 예시](../05-development/async-video-jobs.md), [상태 계약](data-and-jobs.md).
 
 웹 업로드·소유권·AI 추천·자막 편집·SNS API는 미구현이다. 파일 보존과 다운로드 인증은 외부 사용자 테스트 전에 확정한다.
+## VIDEO-004 추천 API 추가
+
+기존 API 계약에 아래 비동기 추천 흐름을 추가한다. [실행 계약](../05-development/highlight-recommendations.md)을 기준으로 한다.
+
+| 요청 | 입력·응답 |
+|---|---|
+| POST /analyses | url 또는 준비된 asset_id 중 하나, genre, purpose. 202와 analysis_id·status_url 반환. AI 비활성 시 503 |
+| GET /analyses/{id} | 상태·단계·분석 근거·후보·기존 export_job_id. 원본 URL·파일 경로·비밀값 제외 |
+| POST /analyses/{id}/candidates/{candidate_id}/exports | 저장된 후보 시간으로 추출 작업 생성. 반복 호출은 기존 작업 ID 반환 |
+| GET /jobs/{id}, /jobs/{id}/download | 기존 상태·검증된 출력 다운로드 계약 재사용 |
+
+추천 접수 발행 실패도 추적 가능한 202 리소스를 반환하며 조회 상태는 failed/DISPATCH_FAILED다. 같은 URL의 별도 분석 접수는 별도 자산을 만들며, 기존 파일 재사용은 asset_id를 명시한다. 인증·사용자별 소유권 검사는 아직 없으므로 로컬에서만 사용한다.

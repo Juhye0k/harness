@@ -3,11 +3,13 @@ name: shortform-harness
 x-app: &app
   build: .
   image: shortform-harness:local
-  environment:
+  environment: &app-environment
     DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
     REDIS_URL: redis://redis:6379/0
     APP_ENV: development
     VIDEO_DATA_DIR: /data/jobs
+    ENABLE_PAID_AI: ${ENABLE_PAID_AI:-false}
+    RECOMMENDATION_MODEL: ${RECOMMENDATION_MODEL:-gpt-5.6-terra}
   depends_on:
     postgres:
       condition: service_healthy
@@ -40,6 +42,20 @@ services:
         condition: service_completed_successfully
     volumes: ["video_data:/data"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "shortform,video"]
+    mem_limit: 1g
+
+  analysis-worker:
+    <<: *app
+    environment:
+      <<: *app-environment
+      AZURE_SPEECH_ENDPOINT: ${AZURE_SPEECH_ENDPOINT:-}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["video_data:/data"]
+    command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "analysis"]
     mem_limit: 1g
 
   postgres:

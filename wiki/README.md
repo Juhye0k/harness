@@ -4,7 +4,7 @@
 
 롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
 
-**링크 기반 10초 추출 CLI·비동기 API에 웹 입력·상태·미리보기·다운로드 화면을 연결했다.** 실제 AI·자막 편집·SNS·운영 배포·자동 복구는 아직 없다. [웹 실행 안내](05-development/web-video-extraction.md)와 [현황](07-governance/status.md)에서 사용 방법과 검증 범위를 확인한다.
+**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. 자막 편집·SNS·운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
 
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
