@@ -19,6 +19,7 @@ docs = ["resvg-py>=0.2,<1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["integration: requires local PostgreSQL, Redis and a Celery worker"]
 
 [tool.ruff]
