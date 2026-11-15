@@ -23,8 +23,8 @@
 
 ## 확인된 검증 증거
 
-- 기준 코드 커밋: [2989ee4](https://github.com/Juhye0k/harness/commit/2989ee45f27b8c26804058b7ce17458cd0d42d48).
-- [CI 실행 43672654952](https://github.com/Juhye0k/harness/actions/runs/43672654952): checks와 integration 성공.
+- 기준 코드 커밋: [2989ee4](https://github.com/Juhye0k/short-form/commit/2989ee45f27b8c26804058b7ce17458cd0d42d48).
+- [CI 실행 43672654952](https://github.com/Juhye0k/short-form/actions/runs/43672654952): checks와 integration 성공.
 - 기본 검사 6개, 실제 인프라 통합 검사 2개, Alembic 설정·접속, Compose 설정, Docker 빌드 확인.
 - 통합 실행은 GitHub Linux 환경의 결과다. 당시 로컬 Docker 엔진이 꺼져 있어 로컬 통합 성공 증거는 없다.
 

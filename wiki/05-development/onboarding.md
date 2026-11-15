@@ -17,7 +17,7 @@
 Git, uv, Python 3.12, Docker Desktop Linux 엔진을 준비한다. 설치된 패키지 버전은 uv.lock을 따른다. 아래 명령은 저장소 루트에서 실행한다. Windows는 PowerShell 기준이며 워커는 Linux 컨테이너를 사용한다.
 
 ```powershell
-git clone https://github.com/Juhye0k/harness.git
+git clone https://github.com/Juhye0k/short-form.git harness
 cd harness
 uv sync --locked
 uv run python scripts/verify.py
