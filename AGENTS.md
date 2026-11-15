@@ -7,7 +7,7 @@
 
 # 작업 방법
 
-1. README.md, docs/harness.md와 변경 대상 코드를 읽는다.
+1. README.md, wiki/README.md, wiki/05-development/harness-workflow.md와 변경 대상 코드를 읽는다.
 2. 필요한 범위만 수정하고 실패 상황을 검증한다.
 3. 의존성은 uv로 추가하고 uv.lock을 함께 갱신한다.
 4. `uv run python scripts/verify.py`를 실행한다.
@@ -29,3 +29,9 @@
 # 실제 권한
 
 이 문서는 행동 지침이며 샌드박스가 아니다. 파일 범위·네트워크·명령 승인 등은 사용하는 코딩 에이전트 실행 환경에서 설정한다. CI는 contents:read 권한만 부여하고 배포·SNS 권한을 갖지 않는다.
+
+# 문서 관리
+
+- 설계 문서는 wiki/ 카테고리에 나누고 각 README.md 목차를 갱신한다.
+- wiki/07-governance/document-guide.md의 상태·근거·링크 규칙을 따른다.
+- 구현 사실과 설계 초안을 구분하고 문서화 요청으로 후속 기능을 구현하지 않는다.
