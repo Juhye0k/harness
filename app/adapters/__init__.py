@@ -1,1 +1,1 @@
-"""Reserved for AI, storage and FFmpeg adapters. No external integrations yet."""
+"""External video download, process execution and media inspection adapters."""

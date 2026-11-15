@@ -10,6 +10,8 @@
 
 [SVG 원본](../../docs/architecture.svg). 실선은 현재 상태 점검·진단 연결, 점선은 향후 구현이다. 그림은 특정 클라우드 배포 완료를 뜻하지 않는다.
 
+이 그림은 API·워커 서비스 연결 기준이다. 추가된 [로컬 영상 CLI](../05-development/video-extraction.md)는 별도로 `링크 → 다운로드 → FFmpeg → 검사 → 로컬 출력`을 실행한다. 영상 adapter가 구현되었어도 그림의 워커·객체 저장소 연결이 완료된 것은 아니다.
+
 ## 역할과 데이터 소유권
 
 | 구성 | 책임 | 맡기지 않을 책임 |
@@ -32,9 +34,10 @@
 | app/config.py | 환경 변수 | 외부 설정 검증 |
 | app/db.py | SQLAlchemy 연결·Base | DB 세션·모델 기반 |
 | app/worker.py | Celery·진단 함수 | 작업 등록과 업무 함수 호출 |
-| app/domain/ | 빈 패키지 | 구간·점수·상태 전이 규칙 |
-| app/services/ | 빈 패키지 | 분석·출력 사용 사례 조정 |
-| app/adapters/ | 빈 패키지 | FFmpeg·모델·파일 저장소 연결 |
+| app/domain/ | 10초 구간·출력 검사 규칙 | 점수·업무 상태 전이 규칙 |
+| app/services/ | 링크에서 영상 추출·결과 기록 | 분석·출력 사용 사례 조정 |
+| app/adapters/ | 다운로드·FFmpeg·FFprobe·프로세스 제어 | 모델·객체 저장소 연결 |
+| app/cli/ | URL·시작 시간 입력과 JSON 응답 | 개발·수동 검증 진입점 |
 
 향후 domain은 FastAPI·Celery·외부 SDK를 직접 알지 않도록 설계한다. services가 필요한 기능을 조정하고 adapters가 외부 통신을 수행한다. 초기에 범용 추상화 프레임워크를 만들 필요는 없다.
 

@@ -1,1 +1,1 @@
-"""Reserved for use cases. No job orchestration implementation yet."""
+"""Synchronous use cases; business job orchestration is not implemented yet."""
