@@ -34,7 +34,12 @@
 
 ## 게시와 후속 확인
 
-기능 브랜치에 코드·검사·문서 원본을 함께 게시하고, GitHub Wiki는 별도로 동기화한다. 게시한 커밋과 해당 커밋의 CI 결과는 확인 후 이 문서에 연결한다.
+기능 브랜치에 코드·검사·문서 원본을 함께 게시하고, GitHub Wiki는 별도로 동기화한다.
+
+- 구현 커밋: [32e992c — 비동기 영상 추출 API와 작업 검증 하네스 구현](https://github.com/Juhye0k/short-form/commit/32e992cdefccb9668bcbc2af38499486961da89c).
+- 원격 브랜치: [feat/video-002-async-extraction](https://github.com/Juhye0k/short-form/tree/feat/video-002-async-extraction). main에는 병합하지 않았다.
+- 해당 구현 커밋의 [CI 실행 43694535440](https://github.com/Juhye0k/short-form/actions/runs/43694535440): checks와 integration 모두 성공. 로컬 검사 결과와 별도로 GitHub Linux 환경에서 확인했다.
+- Wiki는 작업 기록·목차·상태·실행 안내를 동기화하고 코드 링크를 게시된 구현 커밋으로 고정한다. 이후 문서 변경의 CI는 해당 변경 커밋의 실행을 별도로 확인하며, 위 실행 결과를 후속 커밋의 결과로 간주하지 않는다.
 
 ## 남은 한계
 

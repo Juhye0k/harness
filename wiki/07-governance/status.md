@@ -27,11 +27,12 @@
 ### VIDEO-002 — 비동기 영상 추출
 
 - 시작 커밋 `000fee0`, 작업 브랜치 `feat/video-002-async-extraction`. 아래는 로컬 작업 트리 검사이며 원격 CI 결과가 아니다.
+- 게시한 구현 커밋 [32e992c](https://github.com/Juhye0k/short-form/commit/32e992cdefccb9668bcbc2af38499486961da89c)의 [GitHub Actions 43694535440](https://github.com/Juhye0k/short-form/actions/runs/43694535440)에서 checks·integration 모두 성공했다. 아래 로컬 결과와 구분한다.
 - `uv run python scripts/verify.py`: Ruff·서식·기본 검사 82개·Alembic 오프라인 SQL 통과, 통합 13개 제외.
 - `docker compose -f compose.integration.yaml run --rm runner`: 실제 PostgreSQL·Redis·Celery·FFmpeg 통합 검사 13개 통과. 동시 선점·발행 경쟁·수동 실패/완료 경쟁·재전달·실패·HTTP 다운로드 포함.
 - 일반 production 이미지 빌드와 마이그레이션·API·워커 실행 성공. 테스트 워커의 대역 없이 공개 MP4를 시작 5초부터 처리해 출력 10.0초·음성 유지·전체 디코딩·원본 보존을 확인하고 HTTP로 732,218바이트 다운로드했다.
 - 샌드박스에서 별도 실행한 DB 검사 1개는 pytest 공용 임시 경로 권한으로 실행되지 못했다. 이후 격리 Linux 컨테이너에서 동일 검사를 포함한 13개 전체 통과를 확인했다. 초기 통합 빌드에서 `.dockerignore`의 tests 제외를 발견하고 테스트 단계에서만 복사하도록 수정했다.
-- 기존 Starlette/httpx 경고와 로컬 pytest 캐시 권한 경고는 남아 있다. 원격 GitHub Actions, 실제 워커 강제 종료·hard timeout 실험, 자동 복구, 부하 검사는 수행하지 않았다. soft timeout 처리는 대역 예외로, 중단 후 상태 충돌은 실제 DB로 검사했다.
+- 기존 Starlette/httpx 경고와 로컬 pytest 캐시 권한 경고는 남아 있다. 실제 워커 강제 종료·hard timeout 실험, 자동 복구, 부하 검사는 수행하지 않았다. soft timeout 처리는 대역 예외로, 중단 후 상태 충돌은 실제 DB로 검사했다.
 - [실행 안내](../05-development/async-video-jobs.md), [요구사항·회귀 검사](../05-development/harness/video-002-requirements.md), [기술 결정](../04-decisions/adr-003-redis-celery.md).
 
 ### VIDEO-001 — 링크 기반 추출
