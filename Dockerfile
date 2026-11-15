@@ -19,6 +19,10 @@ CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8
 FROM runtime AS integration
 USER root
 RUN uv sync --locked
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+    && /app/.venv/bin/python -m playwright install --with-deps chromium \
+    && chmod -R a+rX /opt/playwright
 COPY tests ./tests
 USER appuser
 

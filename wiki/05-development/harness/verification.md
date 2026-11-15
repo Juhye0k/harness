@@ -44,6 +44,8 @@ docker compose -f compose.integration.yaml down --volumes
 
 통합 이미지에는 tests와 개발 의존성을 포함한다. 일반 production 이미지는 포함하지 않는다. 테스트 워커는 다운로드만 합성 영상 복사로 대체하며 실제 HTTP·DB·Redis·Celery·FFmpeg·다운로드를 검사한다. `RUN_INTEGRATION=1`은 DB/진단, `RUN_VIDEO_INTEGRATION=1`은 이 전용 워커가 필요한 영상 흐름을 활성화한다.
 
+VIDEO-003부터 같은 runner가 Playwright Chromium 브라우저 검사도 실행한다. 테스트 이미지에 Chromium·시스템 라이브러리를 설치하며 production 이미지에는 추가하지 않는다. 실제 영상 흐름과 오류 응답 대역을 분리해 새로고침·중복 제출·통신 오류·미리보기·다운로드를 검증한다.
+
 ## CI와 검사 증거
 
 GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은 일반 이미지 빌드와 격리 Compose 검사를 수행한다. 배포·유료 모델 호출은 없다. 통합 실패 시 Compose 로그를 출력하고 종료 시 테스트 환경을 정리한다.

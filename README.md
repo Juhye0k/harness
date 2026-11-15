@@ -36,6 +36,8 @@ curl.exe http://localhost:8000/health/ready
 
 API 문서: http://localhost:8000/docs
 
+웹 화면: http://localhost:8000/ — 링크와 시작 시간을 입력하고 처리 상태·미리보기·다운로드를 확인합니다. [웹 사용·브라우저 검증 안내](wiki/05-development/web-video-extraction.md).
+
 영상 작업은 `POST /jobs/video-extractions`로 등록합니다. 요청·조회·다운로드와 중단 작업 처리 명령은 [비동기 실행 안내](wiki/05-development/async-video-jobs.md)를 따릅니다.
 
 준비 상태 점검은 PostgreSQL·Redis 연결만 확인합니다. 워커 실행은 별도 통합 검사로 확인합니다. Compose는 로컬 개발용이며 공개 배포 구성이 아닙니다.
