@@ -6,7 +6,7 @@
 
 **현재는 FastAPI·PostgreSQL·Redis·Celery 초기 설정만 구현되어 있다.** 업무 테이블·영상 처리·실제 AI·웹 연결·SNS 게시·운영 배포는 아직 없다. 후속 기능은 설계 초안으로 표시했다.
 
-이 문서는 본 저장소의 폴더형 위키이며 GitHub Wiki 탭과 별도로 관리한다.
+공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
 ## 처음 읽는 순서
 

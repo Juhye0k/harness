@@ -2,7 +2,7 @@
 
 FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스의 초기 개발 기반입니다. 현재는 상태 점검과 워커 진단만 구현했으며 영상·AI·웹 편집·SNS 기능은 아직 없습니다.
 
-**[프로젝트 위키 시작하기](wiki/README.md)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
+**[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
 ![시스템 아키텍처](docs/architecture.png)
 
