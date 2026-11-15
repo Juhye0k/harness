@@ -1,0 +1,58 @@
+name: shortform-harness
+
+x-app: &app
+  build: .
+  environment:
+    DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
+    REDIS_URL: redis://redis:6379/0
+    APP_ENV: development
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  api:
+    <<: *app
+    ports: ["127.0.0.1:8000:8000"]
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=10)"]
+      interval: 15s
+      timeout: 12s
+      retries: 5
+    mem_limit: 512m
+
+  worker:
+    <<: *app
+    command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    mem_limit: 512m
+
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: shortform
+      POSTGRES_USER: shortform
+      POSTGRES_PASSWORD: local-dev-only
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortform -d shortform"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-bookworm
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  redis_data:

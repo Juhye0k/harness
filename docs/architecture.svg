@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1320" viewBox="0 0 1640 1320" role="img" aria-labelledby="title desc">
+<title id="title">Shortform System Architecture</title>
+<desc id="desc">FastAPI, PostgreSQL, Redis, Celery 개발 기반과 향후 영상 분석 구조. 실선은 현재 점검 연결, 점선은 구현 예정.</desc>
+<defs><linearGradient id="pink" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FF6398"/><stop offset="1" stop-color="#FF005B"/></linearGradient></defs>
+<rect width="1640" height="1320" fill="white"/>
+<g font-family="Malgun Gothic, Noto Sans KR, sans-serif">
+<rect x="35" y="28" width="570" height="40" rx="20" fill="url(#pink)"/>
+<text x="320.0" y="55" fill="white" font-size="17" font-weight="700" text-anchor="middle">Shortform System Architecture</text>
+<text x="38" y="99" fill="#273347" font-size="24" font-weight="700" text-anchor="start">FastAPI + PostgreSQL + Redis + Celery</text>
+<text x="38" y="130" fill="#667386" font-size="18" font-weight="400" text-anchor="start">초기 개발 기반 · 현재 설정과 향후 제품 흐름을 구분한 설계</text>
+<polyline points="1080,42 1150,42" fill="none" stroke="#FF0866" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="1141,36 1150,42 1141,48" fill="none" stroke="#FF0866" stroke-width="2"/>
+<text x="1170" y="47" fill="#FF0866" font-size="14" font-weight="400" text-anchor="start">HTTP / 상태 점검</text>
+<polyline points="1080,77 1150,77" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="1141,71 1150,77 1141,83" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="1170" y="82" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">메시지 / 작업 실행</text>
+<polyline points="1080,112 1150,112" fill="none" stroke="#667386" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="1141,106 1150,112 1141,118" fill="none" stroke="#667386" stroke-width="2"/>
+<text x="1170" y="117" fill="#667386" font-size="14" font-weight="400" text-anchor="start">점선: 향후 구현 · 실선: 초기 연결</text>
+<rect x="250" y="170" width="1330" height="740" rx="22" fill="white" stroke="#273347" stroke-width="2.5" stroke-dasharray="7 6"/>
+<rect x="280" y="150" width="380" height="40" rx="20" fill="#273347"/>
+<text x="470.0" y="177" fill="white" font-size="17" font-weight="700" text-anchor="middle">Local Development · Docker Compose</text>
+<text x="1140" y="204" fill="#8452ED" font-size="14" font-weight="400" text-anchor="start">별도 프로세스 · 하나의 코드 저장소</text>
+<rect x="290" y="270" width="330" height="280" rx="22" fill="white" stroke="#80A51C" stroke-width="2.5"/>
+<rect x="310" y="250" width="180" height="40" rx="20" fill="#80A51C"/>
+<text x="400.0" y="277" fill="white" font-size="17" font-weight="700" text-anchor="middle">API / HTTP</text>
+<rect x="320" y="345" width="270" height="150" rx="22" fill="white" stroke="#EE7B00" stroke-width="2.5"/>
+<text x="455" y="383" fill="#EE7B00" font-size="27" font-weight="700" text-anchor="middle">FastAPI</text>
+<rect x="342" y="404" width="226" height="40" rx="20" fill="url(#pink)"/>
+<text x="455.0" y="431" fill="white" font-size="17" font-weight="700" text-anchor="middle">/health/live · /ready</text>
+<text x="455" y="474" fill="#667386" font-size="16" font-weight="400" text-anchor="middle">Pydantic · 환경 설정</text>
+<rect x="660" y="270" width="310" height="550" rx="22" fill="white" stroke="#8452ED" stroke-width="2.5"/>
+<rect x="680" y="250" width="230" height="40" rx="20" fill="#8452ED"/>
+<text x="795.0" y="277" fill="white" font-size="17" font-weight="700" text-anchor="middle">Data &amp; Broker</text>
+<rect x="690" y="345" width="250" height="150" rx="22" fill="white" stroke="#EE7B00" stroke-width="2.5"/>
+<text x="815" y="383" fill="#EE7B00" font-size="27" font-weight="700" text-anchor="middle">Redis</text>
+<rect x="720" y="404" width="190" height="40" rx="20" fill="#00A5AB"/>
+<text x="815.0" y="431" fill="white" font-size="17" font-weight="700" text-anchor="middle">Task Broker</text>
+<text x="815" y="474" fill="#667386" font-size="16" font-weight="400" text-anchor="middle">작은 메시지 전달</text>
+<rect x="690" y="640" width="250" height="135" rx="22" fill="white" stroke="#EE7B00" stroke-width="2.5"/>
+<text x="815" y="679" fill="#EE7B00" font-size="25" font-weight="700" text-anchor="middle">PostgreSQL</text>
+<text x="815" y="713" fill="#667386" font-size="17" font-weight="400" text-anchor="middle">SQLAlchemy · Alembic</text>
+<text x="815" y="745" fill="#667386" font-size="13" font-weight="400" text-anchor="middle">현재: 연결 설정 / 업무 테이블 없음</text>
+<rect x="1010" y="270" width="520" height="550" rx="22" fill="white" stroke="#00A5AB" stroke-width="2.5"/>
+<rect x="1030" y="250" width="250" height="40" rx="20" fill="#00A5AB"/>
+<text x="1155.0" y="277" fill="white" font-size="17" font-weight="700" text-anchor="middle">Processing Worker</text>
+<rect x="1040" y="345" width="460" height="150" rx="22" fill="white" stroke="#EE7B00" stroke-width="2.5"/>
+<text x="1270" y="383" fill="#EE7B00" font-size="27" font-weight="700" text-anchor="middle">Celery Worker</text>
+<rect x="1090" y="404" width="360" height="40" rx="20" fill="url(#pink)"/>
+<text x="1270.0" y="431" fill="white" font-size="17" font-weight="700" text-anchor="middle">현재: diagnostic ping · 동시 실행 1</text>
+<text x="1270" y="474" fill="#667386" font-size="16" font-weight="400" text-anchor="middle">업무 작업 / 자동 복구 미구현</text>
+<rect x="1040" y="565" width="460" height="210" rx="22" fill="#F5FCFC" stroke="#00A5AB" stroke-width="2.5" stroke-dasharray="7 6"/>
+<text x="1062" y="598" fill="#00A5AB" font-size="20" font-weight="700" text-anchor="start">영상 분석·생성 파이프라인  [예정]</text>
+<text x="1062" y="635" fill="#273347" font-size="18" font-weight="400" text-anchor="start">음성 + 영상 + 텍스트 특징</text>
+<text x="1062" y="670" fill="#273347" font-size="18" font-weight="400" text-anchor="start">점수 결합 → 후보 추천 → 자막 편집</text>
+<text x="1062" y="705" fill="#273347" font-size="18" font-weight="400" text-anchor="start">선택한 후보 → FFmpeg → 출력 검증</text>
+<text x="1062" y="747" fill="#667386" font-size="15" font-weight="400" text-anchor="start">분석 버전·중간 결과 재사용으로 비용 제한</text>
+<rect x="30" y="355" width="175" height="140" rx="22" fill="#FFF6FA" stroke="#FF0866" stroke-width="2.5"/>
+<text x="117" y="393" fill="#FF0866" font-size="25" font-weight="700" text-anchor="middle">Client</text>
+<text x="117" y="425" fill="#667386" font-size="14" font-weight="400" text-anchor="middle">브라우저 / API 문서</text>
+<text x="117" y="459" fill="#667386" font-size="14" font-weight="400" text-anchor="middle">제품 UI 연결 예정</text>
+<polyline points="205,390 320,390" fill="none" stroke="#FF0866" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="311,384 320,390 311,396" fill="none" stroke="#FF0866" stroke-width="2"/>
+<text x="220" y="374" fill="#FF0866" font-size="14" font-weight="400" text-anchor="start">HTTP</text>
+<polyline points="590,385 690,385" fill="none" stroke="#FF0866" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="681,379 690,385 681,391" fill="none" stroke="#FF0866" stroke-width="2"/>
+<text x="620" y="372" fill="#FF0866" font-size="14" font-weight="400" text-anchor="start">PING</text>
+<polyline points="590,460 690,460" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="681,454 690,460 681,466" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="621" y="445" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">작업 ID</text>
+<polyline points="940,415 1040,415" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="1031,409 1040,415 1031,421" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="956" y="398" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">진단 소비</text>
+<polyline points="455,495 455,706 690,706" fill="none" stroke="#FF0866" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="681,700 690,706 681,712" fill="none" stroke="#FF0866" stroke-width="2"/>
+<text x="475" y="689" fill="#FF0866" font-size="14" font-weight="400" text-anchor="start">SELECT 1 · 상태 점검</text>
+<polyline points="1040,706 940,706" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="949,700 940,706 949,712" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="976" y="689" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">결과</text>
+<polyline points="1270,495 1270,565" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="1264,556 1270,565 1276,556" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="1284" y="535" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">업무 함수 연결 예정</text>
+<text x="290" y="864" fill="#273347" font-size="18" font-weight="700" text-anchor="start">현재 실행 범위: 상태 점검 · 워커 진단 · 로컬 인프라 · CI</text>
+<text x="290" y="890" fill="#667386" font-size="16" font-weight="400" text-anchor="start">인증·업로드·AI 분석·렌더링·SNS 게시·업무 데이터 모델은 구현하지 않았습니다.</text>
+<rect x="290" y="960" width="310" height="130" rx="22" fill="#FAF8FF" stroke="#8452ED" stroke-width="2.5" stroke-dasharray="7 6"/>
+<text x="445" y="998" fill="#8452ED" font-size="22" font-weight="700" text-anchor="middle">Web UI  [예정]</text>
+<text x="445" y="1033" fill="#667386" font-size="15" font-weight="400" text-anchor="middle">후보 선택 · 자막 수정 · 다운로드</text>
+<text x="445" y="1064" fill="#667386" font-size="14" font-weight="400" text-anchor="middle">기존 화면과 API 연결은 후속 작업</text>
+<rect x="660" y="960" width="310" height="130" rx="22" fill="#FBFDF6" stroke="#80A51C" stroke-width="2.5" stroke-dasharray="7 6"/>
+<text x="815" y="998" fill="#80A51C" font-size="22" font-weight="700" text-anchor="middle">Object Storage  [예정]</text>
+<text x="815" y="1033" fill="#667386" font-size="15" font-weight="400" text-anchor="middle">S3 호환 · 원본 / 미리보기 / 결과</text>
+<text x="815" y="1064" fill="#667386" font-size="14" font-weight="400" text-anchor="middle">업로드·다운로드는 서명 URL</text>
+<rect x="1040" y="960" width="460" height="130" rx="22" fill="#F5FCFC" stroke="#00A5AB" stroke-width="2.5" stroke-dasharray="7 6"/>
+<text x="1270" y="998" fill="#00A5AB" font-size="22" font-weight="700" text-anchor="middle">AI Provider / Model  [예정]</text>
+<text x="1270" y="1033" fill="#667386" font-size="16" font-weight="400" text-anchor="middle">초기 외부 API · 이후 필요한 단계만 GPU</text>
+<text x="1270" y="1064" fill="#667386" font-size="15" font-weight="400" text-anchor="middle">분량·동시성·재시도·예산 제한</text>
+<polyline points="600,1030 660,1030" fill="none" stroke="#80A51C" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="651,1024 660,1030 651,1036" fill="none" stroke="#80A51C" stroke-width="2"/>
+<polyline points="1100,775 1100,930 815,930 815,960" fill="none" stroke="#80A51C" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="809,951 815,960 821,951" fill="none" stroke="#80A51C" stroke-width="2"/>
+<text x="840" y="951" fill="#80A51C" font-size="14" font-weight="400" text-anchor="start">영상 파일</text>
+<polyline points="1370,775 1370,960" fill="none" stroke="#00A5AB" stroke-width="2" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<polyline points="1364,951 1370,960 1376,951" fill="none" stroke="#00A5AB" stroke-width="2"/>
+<text x="1384" y="935" fill="#00A5AB" font-size="14" font-weight="400" text-anchor="start">모델 호출</text>
+<rect x="35" y="1150" width="1545" height="125" rx="22" fill="#FCFAFF" stroke="#8452ED" stroke-width="2.5"/>
+<rect x="60" y="1130" width="260" height="40" rx="20" fill="#8452ED"/>
+<text x="190.0" y="1157" fill="white" font-size="17" font-weight="700" text-anchor="middle">Development Harness</text>
+<text x="80" y="1198" fill="#8452ED" font-size="20" font-weight="700" text-anchor="start">AGENTS.md</text>
+<text x="390" y="1198" fill="#273347" font-size="20" font-weight="700" text-anchor="start">uv.lock + verify.py</text>
+<text x="790" y="1198" fill="#273347" font-size="20" font-weight="700" text-anchor="start">GitHub Actions</text>
+<text x="1220" y="1198" fill="#273347" font-size="20" font-weight="700" text-anchor="start">Review / Feedback</text>
+<polyline points="250,1191 365,1191" fill="none" stroke="#273347" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="356,1185 365,1191 356,1197" fill="none" stroke="#273347" stroke-width="2"/>
+<polyline points="610,1191 765,1191" fill="none" stroke="#273347" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="756,1185 765,1191 756,1197" fill="none" stroke="#273347" stroke-width="2"/>
+<polyline points="985,1191 1195,1191" fill="none" stroke="#273347" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="1186,1185 1195,1191 1186,1197" fill="none" stroke="#273347" stroke-width="2"/>
+<text x="80" y="1240" fill="#667386" font-size="16" font-weight="400" text-anchor="start">작업 범위·완료 조건</text>
+<text x="390" y="1240" fill="#667386" font-size="16" font-weight="400" text-anchor="start">Ruff · pytest · migration 설정 검사</text>
+<text x="790" y="1240" fill="#667386" font-size="16" font-weight="400" text-anchor="start">단위·통합 검사 · Docker 빌드</text>
+<text x="1220" y="1240" fill="#667386" font-size="16" font-weight="400" text-anchor="start">AI 리뷰 기준 · 사람의 검토</text>
+<text x="1580" y="1304" fill="#667386" font-size="13" font-weight="400" text-anchor="end">Architecture v0.1 · Setup only · 자동 배포 없음</text>
+</g></svg>
