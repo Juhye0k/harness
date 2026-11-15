@@ -1,42 +1,52 @@
-# ADR-003 — Redis 브로커와 Celery 워커
+# ADR-003 — Celery + Redis 채택과 Redis Streams 비교
 
-> 상태: 초기 구성 채택 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+> 상태: 채택 · VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
 
-## 배경
+## 결정과 판단 기준
 
-분석·인코딩은 긴 작업이다. HTTP 응답을 기다리게 하지 않고 작업 실행 수를 조절하며, 이후 워커를 별도 호스트로 옮길 수 있어야 한다.
+Python 영상 작업은 **Celery + Redis 브로커**로 전달한다. PostgreSQL에는 제품 상태를 저장하고 워커가 실행 직전에 조건부 선점을 요청한다. Redis Streams로 직접 작업 실행기를 만들지 않는다. 1인 개발에서는 메시지 처리기보다 영상 품질과 실패 검증에 개발 시간을 쓰는 것이 우선이다.
 
-## 결정
+Celery는 작업 실행 프레임워크이고 Redis Streams는 로그 형태의 Redis 자료구조다. 비교 대상은 'Celery + Redis 전송 방식'과 'Streams + 직접 구현한 소비자/실행기'다. 현재 Celery Redis 전송은 Streams consumer group을 사용하지 않는다.
 
-Redis는 작은 작업 메시지를 전달하는 broker(중개자), Celery는 Python 함수를 실행하는 작업 프레임워크로 사용한다. 워커 프로세스는 Redis에서 작업을 받아 실행한다. Redis와 Celery는 대체 관계가 아니다.
+## 대안과 트레이드오프
 
-## 대안
-
-| 대안 | 활용 조건 | 초기 선택에서의 판단 |
+| 항목 | Celery + Redis — 채택 | Streams + 직접 만든 워커 |
 |---|---|---|
-| RabbitMQ + Celery | 전달 확인·라우팅 정책을 명시적으로 관리 | 충분히 적합. 초기 구성 단순성을 우선해 Redis 선택 |
-| Kafka | 이벤트 보관·재생과 여러 독립 소비자 | 현재 작업 전달 요구에 비해 추가 운영 범위가 큼 |
-| DB 작업 테이블을 읽는 워커 | broker 수를 줄이고 싶음 | 선점·중단 감지·재시도 구현 책임이 커짐 |
-| 프로세스 내부 background 작업 | 짧은 후속 작업 | 장기 영상 작업의 내구성 있는 대기열로는 별도 설계 필요 |
+| 실행 관리 | 프로세스 풀·큐 라우팅·시간 제한·재시도 기능 제공 | 소비자 그룹 외 실행 풀·시간 제한·정책을 직접 연결 |
+| 미확인 메시지 | ACK·visibility timeout 규칙 이해 필요 | PEL에서 추적하고 XACK·XAUTOCLAIM 등으로 관리 |
+| 중복 안전성 | DB 조건부 선점 등 업무 검증 필요 | 재인수하더라도 업무 중복 안전성은 별도로 필요 |
+| 보관·재생 | 업무 실행 대기열 중심 | 보관된 이벤트 재생·여러 소비자 그룹에 적합 |
+| 확장 비용 | 큐별 워커 수 조절로 시작 | 세밀한 제어 대신 장애 처리·모니터링 개발 부담 |
+| 이 프로젝트 | Python·FFmpeg 작업에 집중 가능 | 단순 작업 전달에 비해 직접 구현 범위가 큼 |
 
-Redis가 빠르다고 영상 생성이 빨라지는 것은 아니다. 처리 시간의 주요 부분은 분석과 FFmpeg다. RabbitMQ를 선택하면 중복 실행이 자동으로 없어지는 것도 아니다.
+RabbitMQ + Celery도 적합하다. 라우팅·전달 정책 요구가 커지면 브로커 변경을 검토한다. Kafka는 여러 독립 소비자와 이벤트 재생이 제품 요구가 될 때 검토한다. 어느 선택도 인코딩 자체를 빠르게 하거나 DB·메시지·파일을 하나의 트랜잭션으로 만들지는 않는다.
 
-## 현재 설정
+## 왜 PostgreSQL에서 선점하는가
 
-근거: [worker.py](../../app/worker.py), [compose.yaml](../../compose.yaml).
+메시지를 워커에 배분하는 것은 Redis와 Celery다. PostgreSQL은 메시지를 가져오지 않는다. 워커는 받은 job_id에 대해 `queued → running` 변경에 성공한 경우에만 인코딩한다. 두 메시지가 같은 업무 ID를 가리키는 재발행·재전달 상황을 제품 상태와 함께 검증한다. 서로 다른 ID로 제출한 같은 URL은 차단하지 않는다.
 
-- 대기열 이름 shortform, JSON 메시지만 허용
-- 워커 동시 실행 1, prefetch multiplier 1
-- soft/hard 제한 240/300초, Redis visibility timeout 600초
-- Redis AOF 활성화, maxmemory 128mb, noeviction
-- 일반 결과 backend 없음, 진단 테스트만 임시 backend 사용
+워커 메모리는 다른 워커와 공유되지 않는다. Redis 락도 가능하지만 만료·프로세스 중단·DB 상태 반영을 함께 설계해야 한다. 이미 상태 기준인 PostgreSQL의 조건부 UPDATE를 사용해 관리 지점을 줄였다. 이는 전체 부작용의 exactly-once 보장이 아니다.
 
-이는 초기 진단용 설정이다. 기본 조기 ACK를 사용하므로 프로세스 중단 후 업무 복구를 보장하지 않는다. AOF가 모든 장애에서 무손실을 보장하는 것도 아니다. 메모리 제한 시 새 발행이 실패할 수 있다.
+## 현재 정책과 한계
 
-## 후속 설계 의무
+- 영상 큐 `video`, 진단 큐 `shortform`; 워커 concurrency 1, prefetch multiplier 1.
+- 영상 태스크는 조기 ACK, 자동 재시도 없음, soft/hard 제한 660/720초. 진단은 240/300초 유지.
+- Redis visibility timeout 900초. 강제 종료 감지나 자동 복구 타이머가 아니다.
+- 일반 결과 backend 없음. PostgreSQL이 상태 기준이며 진단 테스트만 임시 Redis 결과 backend를 사용한다.
+- 발행 전후 DB 갱신은 짧은 행 잠금으로 조정한다. 발행 동안 DB 연결을 점유하는 비용을 감수하며 인코딩 중에는 잠금을 잡지 않는다.
+- API 종료 시 pending, 워커/DB 장애 시 running, 메시지 유실 시 queued가 남을 수 있다. outbox·주기 감시·자동 재실행은 없다.
+- 발행 실패는 failed, 중단된 pending/running은 관리자가 실행 종료를 확인한 뒤 실패 처리한다. queued의 임의 실패 처리는 지원하지 않는다.
 
-업무 작업을 붙이기 전에 ACK 시점, 중복 선점, 재시도 상한, 발행 누락 복구를 확정한다. 긴 작업에서 재전달 시간과 실제 실행 시간이 충돌하지 않도록 한다. 브로커를 캐시와 공유하면 데이터 제거 정책이 충돌할 수 있어 분리 여부를 검토한다.
+[상태 모델](../03-architecture/data-and-jobs.md)과 [관리자 절차](../05-development/async-video-jobs.md)를 함께 따른다.
 
-재검토 조건: 전달 정책·라우팅 요구가 커지면 RabbitMQ를, 이벤트 재처리가 주요 요구가 되면 Kafka 등을 별도 ADR로 검토한다.
+## 확장과 재검토 조건
+
+먼저 큐 대기 시간·인코딩 시간·CPU·메모리·실패율을 측정한다. 워커를 늘리기 전 자원 한도를 확인하고, 다중 호스트 전에는 객체 저장소를 도입한다. CPU 인코딩과 GPU 분석은 큐를 나눌 수 있다. 이용자 수 증가만으로 Streams로 교체하지 않는다.
+
+발행 누락 복구가 필요하면 outbox, 실행 중단 복구가 필요하면 heartbeat/lease·시도 ID·오래된 실행 차단을 추가한다. 여러 서비스가 같은 이벤트 이력을 독립적으로 재생해야 한다면 Streams를 별도 ADR로 다시 평가한다.
+
+## 공식 근거
+
+2026-11-15 확인: [Celery Redis 전송·visibility timeout](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html), [Redis Streams 소비자 그룹·확인·재인수](https://redis.io/docs/latest/develop/data-types/streams/). 기능 비교는 문서에 근거하며, 채택과 복구 범위는 이 프로젝트의 결정이다.

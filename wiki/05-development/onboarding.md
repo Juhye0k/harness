@@ -10,7 +10,7 @@
 2. [현황](../07-governance/status.md): 현재 어디까지 구현했는가?
 3. [시스템 구조](../03-architecture/system-overview.md): 어떤 프로세스가 무엇을 맡는가?
 4. [실행 흐름](../03-architecture/runtime-flows.md): 요청은 어디로 이동하는가?
-5. 아래 실행 절차를 수행하고 [하네스](harness-workflow.md)를 읽는다.
+5. 아래 실행 절차를 수행하고 [하네스](harness/workflow.md)를 읽는다.
 
 ## 준비 사항
 
@@ -32,7 +32,7 @@ curl.exe http://localhost:8000/health/live
 curl.exe http://localhost:8000/health/ready
 ```
 
-두 상태 API가 200을 반환하는지 확인한다. 문서는 http://localhost:8000/docs 에서 볼 수 있다. 이것만으로 워커 동작이 검증되는 것은 아니다. [통합 검사](verification.md)를 추가로 확인한다.
+두 상태 API가 200을 반환하는지 확인한다. 문서는 http://localhost:8000/docs 에서 볼 수 있다. 이것만으로 워커 동작이 검증되는 것은 아니다. [통합 검사](harness/verification.md)를 추가로 확인한다.
 
 ## API를 직접 수정하며 실행
 

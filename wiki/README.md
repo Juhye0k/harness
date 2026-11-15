@@ -4,7 +4,7 @@
 
 롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
 
-**현재는 FastAPI·PostgreSQL·Redis·Celery 초기 설정만 구현되어 있다.** 업무 테이블·영상 처리·실제 AI·웹 연결·SNS 게시·운영 배포는 아직 없다. 후속 기능은 설계 초안으로 표시했다.
+**현재는 링크에서 10초를 추출하는 CLI와 비동기 접수·조회·다운로드 API가 기능 브랜치에 구현되어 있다.** 실제 AI·웹 화면·SNS·운영 배포·자동 복구는 아직 없다. [비동기 실행 안내](05-development/async-video-jobs.md)에서 실행할 수 있다. [작업 기록](07-governance/video-002-work-log.md)과 [현황](07-governance/status.md)에서 게시·검증 범위를 확인한다.
 
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
@@ -15,7 +15,7 @@
 3. [단계별 실행 계획](02-delivery/roadmap.md)
 4. [시스템 구조](03-architecture/system-overview.md)와 [실행 흐름](03-architecture/runtime-flows.md)
 5. [기술 선택 근거](04-decisions/README.md)
-6. [개발 환경 시작](05-development/onboarding.md)과 [하네스 절차](05-development/harness-workflow.md)
+6. [개발 환경 시작](05-development/onboarding.md)과 [하네스 시작하기](05-development/harness/README.md)
 
 ## 카테고리
 

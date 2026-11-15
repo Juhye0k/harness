@@ -1,0 +1,66 @@
+# Isolated test project: no host ports, production volumes, or real video downloads.
+name: shortform-integration
+
+x-test: &test
+  image: shortform-harness:integration
+  build:
+    context: .
+    target: integration
+  environment: &environment
+    DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
+    REDIS_URL: redis://redis:6379/0
+    VIDEO_DATA_DIR: /data/jobs
+    RUN_INTEGRATION: "1"
+    RUN_VIDEO_INTEGRATION: "1"
+    TEST_API_URL: http://api:8000
+  volumes: ["test_video:/data"]
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: shortform
+      POSTGRES_USER: shortform
+      POSTGRES_PASSWORD: local-dev-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortform -d shortform"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7.4-bookworm
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *test
+    command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  api:
+    <<: *test
+    volumes: ["test_video:/data:ro"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=10)"]
+      interval: 2s
+      timeout: 12s
+      retries: 30
+  worker:
+    <<: *test
+    command: ["/app/.venv/bin/python", "-m", "tests.integration.fixture_worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  runner:
+    <<: *test
+    command: ["/app/.venv/bin/python", "-m", "pytest", "-m", "integration", "-q", "-p", "no:cacheprovider"]
+    depends_on:
+      api: {condition: service_healthy}
+      worker: {condition: service_started}
+
+volumes:
+  test_video:

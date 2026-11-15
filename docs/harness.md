@@ -2,9 +2,9 @@
 
 실행 가능한 지침·검사·피드백 체계의 상세 문서는 위키에서 관리합니다.
 
-- [AI와 함께 작업하는 개발 하네스](../wiki/05-development/harness-workflow.md)
-- [검증 계층과 실행 방법](../wiki/05-development/verification.md)
-- [코드 리뷰와 완료 기준](../wiki/05-development/review-and-done.md)
+- [개발 하네스 시작하기](../wiki/05-development/harness/README.md)
+- [검증 계층과 실행 방법](../wiki/05-development/harness/verification.md)
+- [코드 리뷰와 완료 기준](../wiki/05-development/harness/review.md)
 - [개발 환경 시작](../wiki/05-development/onboarding.md)
 
 [작업 규칙](../AGENTS.md) · [위키 홈](../wiki/README.md)

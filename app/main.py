@@ -1,14 +1,55 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from redis import Redis
+from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.jobs import router
 from app.config import get_settings
 from app.db import check_database
+from app.domain.jobs import JobError
+from app.domain.video import VideoError
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Shortform Harness", version="0.1.0")
+app.include_router(router)
+
+
+@app.exception_handler(JobError)
+async def job_error(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {"code": exc.code, "message": str(exc)},
+            "job_id": str(exc.job_id) if exc.job_id else None,
+        },
+    )
+
+
+@app.exception_handler(VideoError)
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {"code": "INVALID_INPUT", "message": "영상 URL과 시작 시간을 확인하세요."},
+        },
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_error(request, exc):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": {
+                "code": "DATABASE_UNAVAILABLE",
+                "message": "작업 저장소를 사용할 수 없습니다.",
+            },
+        },
+    )
 
 
 def check_redis() -> None:

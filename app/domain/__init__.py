@@ -1,1 +1,1 @@
-"""Reserved for business rules. No highlight scoring implementation yet."""
+"""Video contracts and rules; highlight scoring is not implemented yet."""

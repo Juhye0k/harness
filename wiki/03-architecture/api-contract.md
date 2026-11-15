@@ -1,51 +1,43 @@
-# 현재 API와 후속 API 설계 원칙
+# 현재 API 계약
 
-> 상태: 현재 API 명세 · 업무 API 미확정 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+> 상태: VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
 
-## 현재 제공하는 API
-
-근거: [app/main.py](../../app/main.py). OpenAPI 화면은 로컬 서버의 `/docs`에서 확인한다.
+인증 없는 localhost 개발 API다. `/docs`, `app/api/jobs.py`, `app/main.py`를 기준으로 한다.
 
 | 메서드·경로 | 응답 | 의미 |
 |---|---|---|
-| GET /health/live | 200 | FastAPI 프로세스 응답 |
-| GET /health/ready | 200 또는 503 | PostgreSQL·Redis 연결 점검 |
+| GET /health/live | 200 | API 생존 |
+| GET /health/ready | 200 / 503 | DB·Redis 연결, 워커 생존은 미확인 |
+| POST /jobs/video-extractions | 202 | 10초 추출 접수 |
+| GET /jobs/{job_id} | 200 / 404 | 상태·시각·검사·공개 오류 |
+| GET /jobs/{job_id}/download | 200 / 404 / 409 / 410 | 검증된 MP4 다운로드 |
 
-생존 응답:
-
-```json
-{"status": "ok"}
-```
-
-준비 응답 예:
+## 접수
 
 ```json
-{"status": "ready", "checks": {"postgresql": "ok", "redis": "ok"}}
+{"url":"https://media.w3.org/2010/05/sintel/trailer.mp4","start_seconds":5}
 ```
 
-실패 응답 예:
+길이는 10초 고정이다. URL은 기존 CLI의 공개 YouTube 단일 영상·MP4 직접 링크 제한을 따른다. 음수·NaN·무한대 시작 시간은 422다. 실제 영상 길이를 알아야 하는 범위 오류는 워커에서 실패로 기록한다.
 
 ```json
-{"status": "unavailable", "checks": {"postgresql": "unavailable", "redis": "ok"}}
+{"job_id":"UUID","status":"queued","status_url":"http://localhost:8000/jobs/UUID"}
 ```
 
-실패한 구성 요소를 숨기지 않되 원본 드라이버 메시지·접속 정보를 노출하지 않는다. 현재 업무 인증 API와 프로젝트 API는 없다. 상태 점검은 영상 생성 가능성을 보장하지 않는다.
+202는 완료가 아니다. 같은 요청을 다시 보내면 새 ID가 생긴다. 요청 중복 키는 아직 지원하지 않는다.
 
-## 후속 API 계약 원칙 — 아직 미구현
+## 조회와 오류
 
-| 사용 사례 | 계약에서 정할 내용 |
-|---|---|
-| 업로드 준비·완료 | 크기·형식·소유권·업로드 완료 검증 |
-| 분석 요청 | 입력 자산·조건·중복 요청 식별·작업 ID |
-| 작업 조회 | 상태·단계·오류 코드·재시도 가능 여부 |
-| 후보 조회 | 구간·점수·이유·분석 버전·샘플 표시 |
-| 편집 저장 | 기준 편집 버전·자막 시간 검증·충돌 처리 |
-| 출력 요청·다운로드 | 편집 버전 고정·완료 검증·접근 기간 |
+조회는 job_id, status, start_seconds, duration_seconds, UTC 시각 네 종류, error, result, download_url을 반환한다. 미완료 result/download_url은 null이다. 성공 result는 media와 checks이며 길이·영상·음성 유지·디코딩·원본 보존 검사만 공개한다. URL·서버 경로·관리 사유는 반환하지 않는다.
 
-긴 작업 요청은 수락 여부와 완료 여부를 분리하며 202와 작업 ID 반환을 검토한다. 확정된 경로·JSON Schema는 기능 구현 시 별도 명세로 추가한다. 이 문서의 사용 사례 이름을 실제 endpoint로 호출하지 않는다.
+- 422: 입력 형식·URL·시작 시간 오류. 원본 입력을 반사하지 않는다.
+- 503: DATABASE_UNAVAILABLE 또는 DISPATCH_FAILED. 생성된 ID가 확인되면 job_id도 반환한다.
+- 404: JOB_NOT_FOUND.
+- 409: RESULT_NOT_READY. 실패한 작업도 다운로드할 수 없다.
+- 410: RESULT_UNAVAILABLE. 파일이 없거나 저장 루트 밖이면 제공하지 않는다.
 
-## 호환성
+영상 실패는 조회 HTTP 200 안의 status=failed와 error로 표현한다. 접수 HTTP 성공과 작업 성공을 구분한다. [실행 예시](../05-development/async-video-jobs.md), [상태 계약](data-and-jobs.md).
 
-샘플 분석기와 실제 분석기는 후보의 공통 응답 구조를 사용하도록 설계한다. 새 필드를 추가할 때 화면·워커·저장 데이터와 평가 데이터에 미치는 영향을 함께 검토한다.
+웹 업로드·소유권·AI 추천·자막 편집·SNS API는 미구현이다. 파일 보존과 다운로드 인증은 외부 사용자 테스트 전에 확정한다.
