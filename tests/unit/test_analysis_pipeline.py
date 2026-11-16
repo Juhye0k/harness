@@ -99,7 +99,12 @@ def test_pipeline_outcomes(tmp_path, monkeypatch, mode, expected):
         repo.job.id,
         repo,
         tmp_path,
-        Settings(_env_file=None, enable_paid_ai=mode != "disabled"),
+        Settings(
+            _env_file=None,
+            enable_paid_ai=mode != "disabled",
+            transcription_provider="azure",
+            recommendation_provider="openai",
+        ),
         Providers(error=error),
     )
     result = repo.finishes[-1]
@@ -115,8 +120,95 @@ def test_reused_transcript_no_second_asr(tmp_path):
         repo.job.id,
         repo,
         tmp_path,
-        Settings(_env_file=None, enable_paid_ai=True),
+        Settings(
+            _env_file=None,
+            enable_paid_ai=True,
+            transcription_provider="azure",
+            recommendation_provider="openai",
+        ),
         Providers(error=AssertionError("ASR called")),
     )
     assert repo.calls == ["proposal"]
     assert repo.finishes[-1]["outcome"] == "NO_SUITABLE_CANDIDATES"
+
+
+def test_free_worker_rejects_old_paid_job_before_download(tmp_path):
+    repo = Repository(tmp_path)
+    analysis.process_analysis(
+        repo.job.id,
+        repo,
+        tmp_path,
+        Settings(
+            _env_file=None,
+            enable_free_ai=True,
+            groq_free_tier_confirmed=True,
+            recommendation_provider="groq",
+        ),
+        Providers(error=AssertionError("provider called")),
+    )
+    assert repo.finishes[-1]["error"] == "PROVIDER_CONFIG"
+    assert repo.calls == []
+
+
+def test_free_transcript_uses_separate_cache_version(tmp_path, monkeypatch):
+    from app.adapters.ai import GROQ_ASR_VERSION, provider_config
+
+    settings = Settings(
+        _env_file=None,
+        enable_free_ai=True,
+        groq_free_tier_confirmed=True,
+        recommendation_provider="groq",
+    )
+    repo = Repository(tmp_path)
+    repo.job.config = provider_config(settings)
+    original = repo.transcript
+
+    def transcript(asset_id, version):
+        assert version == GROQ_ASR_VERSION
+        return original(asset_id, version)
+
+    repo.transcript = transcript
+
+    def run(args, timeout):
+        assert args[-1].endswith("audio.mp3")
+        assert "libmp3lame" in args and "64k" in args
+
+    monkeypatch.setattr(analysis, "run", run)
+    analysis.process_analysis(repo.job.id, repo, tmp_path, settings, Providers())
+    assert repo.finishes[-1]["outcome"] == "NO_SPEECH"
+
+
+@pytest.mark.parametrize("cached", [False, True])
+def test_transcription_only_never_calls_recommendation(tmp_path, monkeypatch, cached):
+    from app.adapters.ai import provider_config
+
+    settings = Settings(_env_file=None, enable_free_ai=True, groq_free_tier_confirmed=True)
+    segments = [{"id": "s0000", "start_ms": 0, "end_ms": 30000, "text": "문장"}]
+    repo = Repository(tmp_path, segments=segments if cached else None)
+    repo.job.config = provider_config(settings, "transcription")
+    providers = Providers(
+        raw={"phrases": [{"offsetMilliseconds": 0, "durationMilliseconds": 30000, "text": "문장"}]}
+    )
+    providers.recommend = lambda *a: pytest.fail("recommendation called")
+    monkeypatch.setattr(analysis, "run", lambda *a: None)
+    analysis.process_analysis(repo.job.id, repo, tmp_path, settings, providers)
+    assert repo.finishes[-1]["outcome"] == "TRANSCRIBED"
+    assert repo.calls == ([] if cached else ["transcription"])
+    assert repo.saved_segments == segments
+
+
+def test_recommendation_disabled_fails_before_transcription(tmp_path):
+    from app.adapters.ai import provider_config
+
+    settings = Settings(_env_file=None, enable_free_ai=True, groq_free_tier_confirmed=True)
+    repo = Repository(tmp_path)
+    repo.job.config = provider_config(settings)
+    analysis.process_analysis(
+        repo.job.id,
+        repo,
+        tmp_path,
+        settings,
+        Providers(error=AssertionError("transcription called")),
+    )
+    assert repo.finishes[-1]["error"] == "RECOMMENDATION_DISABLED"
+    assert not repo.calls

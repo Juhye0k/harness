@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
     && /app/.venv/bin/python -m playwright install --with-deps chromium \
     && chmod -R a+rX /opt/playwright
 COPY tests ./tests
+COPY scripts ./scripts
 USER appuser
 
 FROM runtime AS production

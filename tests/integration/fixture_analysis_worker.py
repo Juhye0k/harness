@@ -1,5 +1,6 @@
 """Synthetic media + deterministic providers. Production code never imports this module."""
 
+import json
 import shutil
 
 from app.adapters.process import executable, run
@@ -13,17 +14,43 @@ class FixtureProviders:
     def __init__(self, settings):
         assert not settings.openai_api_key.get_secret_value()
         assert not settings.azure_speech_key.get_secret_value()
+        assert not settings.groq_api_key.get_secret_value()
 
     def transcribe(self, audio):
+        assert audio.suffix == ".mp3" and 0 < audio.stat().st_size < 25_000_000
+        info = json.loads(
+            run(
+                [executable("ffprobe"), "-v", "error", "-show_streams", "-of", "json", str(audio)],
+                30,
+            )
+        )
+        assert len(info["streams"]) == 1
+        stream = info["streams"][0]
+        assert stream["codec_name"] == "mp3"
+        assert stream["sample_rate"] == "16000" and stream["channels"] == 1
         return {
+            "_normalized_word_timestamps": True,
             "phrases": [
                 {
                     "offsetMilliseconds": i * 5000,
                     "durationMilliseconds": 5000,
-                    "text": f"한국어 인터뷰 테스트 문장 {i}",
+                    "text": f"한국어 인터뷰. 테스트 문장 {i}",
+                    "quality": {
+                        "avg_logprob": -1.2 if i == 0 else -0.2,
+                        "no_speech_prob": 0.7 if i == 0 else 0.01,
+                        "compression_ratio": 1.2,
+                    },
+                    "words": [
+                        {
+                            "text": part,
+                            "start_ms": i * 5000 + w * 800,
+                            "end_ms": i * 5000 + w * 800 + 700,
+                        }
+                        for w, part in enumerate(["한국어", "인터뷰.", "테스트", "문장", str(i)])
+                    ],
                 }
                 for i in range(36)
-            ]
+            ],
         }, {"provider": "fixture", "cost": None, "usage": None}
 
     def recommend(self, stage, payload, model):

@@ -55,6 +55,8 @@ async function poll(version) {
       currentDownload = `/jobs/${jobId}/download`;
       $("preview").src = currentDownload;
       $("result").hidden = false;
+      const uploadLink = $("youtube-upload");
+      if (uploadLink) { uploadLink.href = `/sns?job=${jobId}`; uploadLink.hidden = false; }
       const duration = job.result?.media?.duration;
       $("result-info").textContent = Number.isFinite(duration) ? `${duration.toFixed(1)}초 · MP4` : "MP4 영상";
     } else {

@@ -15,6 +15,8 @@ def settings(**kwargs):
     return Settings(
         _env_file=None,
         enable_paid_ai=True,
+        transcription_provider="azure",
+        recommendation_provider="openai",
         openai_api_key="test-secret",
         azure_speech_key="test-secret",
         azure_speech_endpoint="https://fixture.cognitiveservices.azure.com",

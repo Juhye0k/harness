@@ -2,7 +2,7 @@
 name: shortform-integration
 
 x-test: &test
-  image: shortform-harness:integration
+  image: ${INTEGRATION_IMAGE:-shortform-harness:integration}
   build:
     context: .
     target: integration
@@ -13,7 +13,17 @@ x-test: &test
     RUN_INTEGRATION: "1"
     RUN_VIDEO_INTEGRATION: "1"
     TEST_API_URL: http://api:8000
-    ENABLE_PAID_AI: "true" # Only test fixture worker; no keys or provider networking.
+    ENABLE_PAID_AI: "false"
+    ENABLE_FREE_AI: "true" # Only test fixture worker; no keys or provider networking.
+    GROQ_FREE_TIER_CONFIRMED: "true"
+    TRANSCRIPTION_PROVIDER: "groq"
+    RECOMMENDATION_PROVIDER: "groq" # Exercise both modes using fixtures only.
+    APP_ENV: test
+    ENABLE_SNS_UPLOAD: "true"
+    SNS_ORIGIN: http://api:8000
+    YOUTUBE_CLIENT_ID: fake-integration-client
+    YOUTUBE_CLIENT_SECRET: fake-integration-secret
+    SNS_TOKEN_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
   volumes: ["test_video:/data"]
 
 services:
@@ -43,6 +53,7 @@ services:
       redis: {condition: service_healthy}
   api:
     <<: *test
+    command: ["/app/.venv/bin/uvicorn", "tests.integration.fixture_sns_api:app", "--host", "0.0.0.0", "--port", "8000"]
     volumes: ["test_video:/data:ro"]
     depends_on:
       migrate: {condition: service_completed_successfully}
@@ -61,6 +72,12 @@ services:
     command: ["/app/.venv/bin/python", "-m", "tests.integration.fixture_analysis_worker"]
     depends_on:
       migrate: {condition: service_completed_successfully}
+  sns-worker:
+    <<: *test
+    volumes: ["test_video:/data:ro"]
+    command: ["/app/.venv/bin/python", "-m", "tests.integration.fixture_sns_worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
   runner:
     <<: *test
     command: ["/app/.venv/bin/python", "-m", "pytest", "-m", "integration", "-q", "-p", "no:cacheprovider"]
@@ -68,6 +85,7 @@ services:
       api: {condition: service_healthy}
       worker: {condition: service_started}
       analysis-worker: {condition: service_started}
+      sns-worker: {condition: service_started}
 
 volumes:
   test_video:

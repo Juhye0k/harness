@@ -4,7 +4,7 @@ import time
 
 from celery.exceptions import SoftTimeLimitExceeded
 
-from app.adapters.ai import ASR_VERSION, Providers, enabled
+from app.adapters.ai import Providers, validate_job_config
 from app.adapters.media import probe
 from app.adapters.process import executable, run
 from app.domain.jobs import JobError, output_file
@@ -44,7 +44,8 @@ def process_analysis(job_id, repo, root, settings, providers=None):
         return
     providers = providers or Providers(settings)
     try:
-        enabled(settings)
+        config = validate_job_config(job.config, settings)
+        groq_asr = config["transcription_provider"] == "groq"
         repo.stage(job.id, "download")
         asset = repo.asset(job.asset_id)
         if asset.state == "pending":
@@ -68,11 +69,14 @@ def process_analysis(job_id, repo, root, settings, providers=None):
             raise VideoError("SOURCE_CHANGED", "저장한 원본이 변경되었습니다.")
         if not asset.has_audio:
             raise VideoError("NO_AUDIO", "음성 트랙이 없습니다.")
-        transcript, owned = repo.transcript(asset.id, ASR_VERSION)
+        transcript, owned = repo.transcript(asset.id, config["asr_version"])
         if owned:
             try:
                 repo.stage(job.id, "audio")
-                audio = source.parent / "audio.wav"
+                # Version-specific directories avoid collisions with other ASR configurations.
+                audio_dir = source.parent / config["asr_version"]
+                audio_dir.mkdir(exist_ok=True)
+                audio = audio_dir / ("audio.mp3" if groq_asr else "audio.wav")
                 run(
                     [
                         executable("ffmpeg"),
@@ -92,7 +96,8 @@ def process_analysis(job_id, repo, root, settings, providers=None):
                         "-ar",
                         "16000",
                         "-c:a",
-                        "pcm_s16le",
+                        "libmp3lame" if groq_asr else "pcm_s16le",
+                        *(["-b:a", "64k"] if groq_asr else []),
                         str(audio),
                     ],
                     60,
@@ -105,9 +110,19 @@ def process_analysis(job_id, repo, root, settings, providers=None):
                 raise
         else:
             segments = transcript.segments
+        if video.checksum(source) != asset.sha256:
+            raise VideoError("SOURCE_CHANGED", "저장한 원본이 변경되었습니다.")
         if not segments:
             repo.finish(job.id, outcome="NO_SPEECH")
             return
+        if config["mode"] == "transcription":
+            repo.finish(job.id, outcome="TRANSCRIBED")
+            return
+        # Word timings serve display subtitles, not recommendation prompts.
+        segments = [
+            {k: v for k, v in segment.items() if k not in ("words", "quality")}
+            for segment in segments
+        ]
         context = {"genre": job.genre, "purpose": job.purpose}
         raw = measured(
             repo,

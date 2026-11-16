@@ -17,3 +17,8 @@ def index():
 @router.get("/recommendations", include_in_schema=False)
 def recommendations():
     return FileResponse(STATIC / "recommendations.html", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/sns", include_in_schema=False)
+def sns():
+    return FileResponse(STATIC / "sns.html", headers={"Cache-Control": "no-store"})

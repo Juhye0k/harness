@@ -304,7 +304,17 @@ select {
   color: #223e31;
   font: inherit;
 }
+#analysis-panel { grid-column: 1 / -1; grid-row: 3; margin-top: 24px; }
+#segments { overflow-wrap: anywhere; }
 .candidate { border-top: 1px solid #d3d9d0; padding: 24px 0; overflow-wrap: anywhere; }
 .candidate h3 { font-size: 22px; }
 .candidate details { margin: 16px 0; }
 .candidate a { display: block; margin-top: 18px; }
+
+.subtitle-cue { white-space: pre-line; overflow-wrap: anywhere; border-bottom: 1px solid #ddd; padding-bottom: 1rem; }
+.upload-details { overflow-wrap: anywhere; }
+.upload-details dt { color: #607166; font-size: 12px; margin-top: 12px; }
+.upload-details dd { margin: 4px 0 12px; }
+.confirm-label { display: flex; align-items: start; gap: 10px; margin: 24px 0; }
+.confirm-label input { width: 20px; flex-shrink: 0; margin-top: 4px; }
+.sns-page section + form { margin-top: 30px; }

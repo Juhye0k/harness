@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.domain.subtitles import validate_words
+from app.domain.transcript_review import quality
 from app.domain.video import VideoError
 
 VERSION = "text-v1"
@@ -65,6 +67,7 @@ def normalize(raw: dict, duration_ms: int) -> list[dict]:
         result = []
         last = -1
         last_end = -1
+        last_word_end = -1
         for phrase in phrases:
             if not isinstance(phrase["text"], str):
                 raise ValueError()
@@ -79,7 +82,16 @@ def normalize(raw: dict, duration_ms: int) -> list[dict]:
                 raise ValueError()
             last = start
             last_end = end
-            result.append(segment.model_dump())
+            normalized = segment.model_dump()
+            if metrics := quality(phrase.get("quality")):
+                normalized["quality"] = metrics
+            if raw.get("_normalized_word_timestamps") is True:
+                normalized["words"] = phrase["words"]
+                validate_words(normalized)
+                if normalized["words"][0]["start_ms"] < last_word_end:
+                    raise ValueError()
+                last_word_end = normalized["words"][-1]["end_ms"]
+            result.append(normalized)
         if sum(len(s["text"]) for s in result) > 60000:
             raise VideoError("TRANSCRIPT_LIMIT", "전사 입력 제한을 초과했습니다.")
         return result

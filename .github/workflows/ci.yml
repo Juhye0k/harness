@@ -33,7 +33,7 @@ jobs:
       - run: docker compose config --quiet
       - run: docker build --target production -t shortform-harness:ci .
       - run: docker compose -f compose.integration.yaml build runner
-      - run: docker compose -f compose.integration.yaml up --no-build -d api worker analysis-worker
+      - run: docker compose -f compose.integration.yaml up --no-build -d api worker analysis-worker sns-worker
       - run: docker compose -f compose.integration.yaml run --rm runner
       - name: Integration logs on failure
         if: failure()

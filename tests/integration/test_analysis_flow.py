@@ -116,6 +116,80 @@ def test_analysis_claim_interruption_and_transcript_claim():
     assert not owner and reused.segments == []
 
 
+def test_transcription_only_then_recommendation_reuses_transcript():
+    with httpx.Client(base_url=BASE, timeout=15) as client:
+        result = submit(client, url="https://fixture.example/analysis.mp4", mode="transcription")
+        assert result["outcome"] == "TRANSCRIBED" and result["candidates"] == []
+        assert result["config"]["recommendation_provider"] == "none"
+        assert result["config"]["model"] is None
+        path = f"/analyses/{result['analysis_id']}/transcript"
+        transcript = client.get(path).json()
+        assert len(transcript["segments"]) == 36
+        assert transcript["segments"][0]["start_ms"] == 0
+        assert client.get(path).json() == transcript
+        subtitles = client.get(f"/analyses/{result['analysis_id']}/subtitles").json()
+        assert len(subtitles["cues"]) == 72 and not subtitles["review_required"]
+        assert subtitles["cues"][0]["end_ms"] == 1500
+        assert subtitles["cues"][1]["start_ms"] == 1600
+        download = client.get(f"/analyses/{result['analysis_id']}/subtitles.srt")
+        assert download.status_code == 200 and "00:00:01,600" in download.text
+        assert client.get(path).json() == transcript
+        assert client.get(f"/analyses/{uuid4()}/transcript").status_code == 404
+        with Session(get_engine()) as s:
+            calls = list(
+                s.scalars(
+                    select(ProviderCall).where(
+                        ProviderCall.analysis_id == UUID(result["analysis_id"])
+                    )
+                )
+            )
+            assert [c.stage for c in calls] == ["transcription"]
+        recommended = submit(client, asset_id=result["asset_id"], mode="recommendation")
+        assert recommended["outcome"] == "RECOMMENDED"
+        with Session(get_engine()) as s:
+            calls = list(
+                s.scalars(
+                    select(ProviderCall).where(
+                        ProviderCall.analysis_id == UUID(recommended["analysis_id"])
+                    )
+                )
+            )
+            assert {c.stage for c in calls} == {"proposal", "scoring"}
+
+
+def test_transcription_browser_refresh_does_not_resubmit():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        posts, errors = [], []
+        page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(BASE + "/recommendations")
+        expect(page.get_by_label("작업 선택")).to_have_value("transcription")
+        page.get_by_label("영상 링크").fill("https://fixture.example/analysis.mp4")
+        page.get_by_role("button", name="음성 전사 시작").click()
+        expect(page.locator("#segments p")).to_have_count(36, timeout=90000)
+        expect(page.locator("#analysis-state")).to_contain_text("추천 AI 호출 없음")
+        expect(page.locator("#subtitle-cues p")).to_have_count(72)
+        expect(page.locator("#subtitle-state")).to_contain_text("원본 전사 보존")
+        with page.expect_download() as download:
+            page.get_by_role("link", name="SRT 다운로드").click()
+        assert download.value.failure() is None
+        assert download.value.suggested_filename.endswith(".srt")
+        page.locator("#transcript summary").click()
+        expect(page.locator("#segments p").first).to_be_visible()
+        page.set_viewport_size({"width": 390, "height": 844})
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if screenshot := os.getenv("SUBTITLE_SCREENSHOT_PATH"):
+            page.screenshot(path=screenshot, full_page=True)
+        page.reload()
+        expect(page.locator("#segments p")).to_have_count(36)
+        expect(page.locator("#subtitle-cues p")).to_have_count(72)
+        assert len(posts) == 1 and not errors
+        assert page.locator(".candidate").count() == 0
+        browser.close()
+
+
 def test_recommendation_browser_refresh_select_download():
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -124,6 +198,7 @@ def test_recommendation_browser_refresh_select_download():
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
         page.goto(BASE + "/recommendations")
+        page.get_by_label("작업 선택").select_option("recommendation")
         page.get_by_label("영상 링크").fill("https://fixture.example/analysis.mp4")
         page.get_by_role("button", name="하이라이트 추천받기").click()
         expect(page.get_by_role("heading", name="1. 첫 이야기")).to_be_visible(timeout=90000)
@@ -183,4 +258,54 @@ def test_recommendation_query_failure_and_safe_text():
         page.get_by_role("button", name="상태 다시 조회").click()
         expect(page.locator(".candidate h3")).to_contain_text("<img src=x onerror=alert(1)>")
         assert page.locator(".candidate img, .candidate script").count() == 0
+        browser.close()
+
+
+def test_subtitle_query_error_keeps_analysis_complete_and_renders_review_safely():
+    analysis_id = str(uuid4())
+    data = {
+        "analysis_id": analysis_id,
+        "status": "succeeded",
+        "stage": "complete",
+        "analysis_basis": "전사 기반",
+        "outcome": "TRANSCRIBED",
+        "candidates": [],
+        "config": {"mode": "transcription", "asr_version": "fixture"},
+    }
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        posts = []
+        page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
+        page.route(f"**/analyses/{analysis_id}", lambda r: r.fulfill(json=data))
+        page.route(
+            f"**/analyses/{analysis_id}/transcript", lambda r: r.fulfill(json={"segments": []})
+        )
+        page.route(f"**/analyses/{analysis_id}/subtitles", lambda r: r.abort())
+        page.goto(BASE + f"/recommendations?analysis={analysis_id}")
+        expect(page.locator("#subtitle-state")).to_contain_text("자막 조회에 실패")
+        expect(page.locator("#analysis-state")).to_contain_text("전사 완료")
+        expect(page.get_by_role("button", name="상태 다시 조회")).to_be_visible()
+        page.unroute(f"**/analyses/{analysis_id}/subtitles")
+        page.route(
+            f"**/analyses/{analysis_id}/subtitles",
+            lambda r: r.fulfill(
+                json={
+                    "review_required": True,
+                    "cues": [
+                        {
+                            "start_ms": 0,
+                            "end_ms": 21000,
+                            "lines": ["<script>alert(1)</script>"],
+                            "review_required": True,
+                            "warnings": ["WORD_TIMESTAMPS_UNAVAILABLE", "DURATION_LIMIT"],
+                        }
+                    ],
+                }
+            ),
+        )
+        page.get_by_role("button", name="상태 다시 조회").click()
+        expect(page.locator("#subtitle-cues")).to_contain_text("검토 필요: 단어 시각 없음")
+        expect(page.locator("#subtitle-cues")).to_contain_text("<script>alert(1)</script>")
+        assert page.locator("#subtitle-cues script").count() == 0 and not posts
         browser.close()
