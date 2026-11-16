@@ -69,3 +69,37 @@ def recommend_video(job_id: str) -> None:
 
     settings = get_settings()
     process_analysis(UUID(job_id), AnalysisRepository(), settings.video_data_dir, settings)
+
+
+@celery_app.task(
+    name="shortform.sns.upload",
+    queue="sns",
+    acks_late=False,
+    autoretry_for=(),
+    max_retries=0,
+    soft_time_limit=600,
+    time_limit=660,
+)
+def upload_youtube(upload_id: str) -> None:
+    from uuid import UUID
+
+    from app.adapters.sns_repository import SnsRepository
+    from app.services.sns import process_upload
+
+    process_upload(UUID(upload_id), SnsRepository(), get_settings())
+
+
+@celery_app.task(
+    name="shortform.sns.probe",
+    queue="sns",
+    acks_late=False,
+    autoretry_for=(),
+    max_retries=0,
+)
+def probe_youtube(upload_id: str, task_id: str) -> None:
+    from uuid import UUID
+
+    from app.adapters.sns_repository import SnsRepository
+    from app.services.sns import probe_upload
+
+    probe_upload(UUID(upload_id), UUID(task_id), SnsRepository(), get_settings())

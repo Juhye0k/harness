@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     azure_speech_key: SecretStr = SecretStr("")
     openai_api_key: SecretStr = SecretStr("")
     recommendation_model: str = "gpt-5.6-terra"
+    enable_sns_upload: bool = False
+    sns_origin: str = "http://localhost:8000"
+    youtube_client_id: str = ""
+    youtube_client_secret: SecretStr = SecretStr("")
+    sns_token_key: SecretStr = SecretStr("")
 
 
 @lru_cache

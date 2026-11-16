@@ -1,5 +1,7 @@
 # 검사 코드 안내
 
+SNS-006 검사는 `unit/test_sns.py`, `integration/test_sns_database.py`, `integration/test_sns_flow.py`에 둔다. 암호화·승인·제공자 HTTP 대역·실제 DB 경쟁·API·Celery·Chromium을 검사한다. 통합 Compose의 테스트 진입점만 YouTube 대역을 주입하며 production에는 포함되지 않는다. 병렬 실행은 `-p`와 `INTEGRATION_IMAGE`를 다르게 지정한다. 실제 OAuth·YouTube 업로드·유료 AI를 호출하지 않는다.
+
 제품 코드는 `app/`, 제품의 동작을 확인하는 코드는 이 폴더에 둡니다. 작업 규칙·리뷰·실패 기록은 [하네스 안내](../wiki/05-development/harness/README.md)에서 찾습니다.
 
 | 위치 | 목적 | 필요한 자원 |

@@ -52,3 +52,9 @@ DB와 Redis는 원자적 트랜잭션이 아니다. 메시지 전달 후 API가 
 `assets → transcripts`, `assets → analysis_jobs → highlight_candidates → video_jobs`로 연결한다. `provider_calls`는 분석·단계별 호출 기록이다. 원본·음성·결과 파일은 공유 볼륨, 상태·전사·점수는 PostgreSQL에 저장한다. [실행 계약](../05-development/highlight-recommendations.md)에 선점·재사용·비용 제어를 정리한다.
 
 분석 큐와 영상 큐를 분리하며 ID만 Redis로 전달한다. 후보별 video_jobs 고유 제약과 후보 행 잠금으로 동시 선택 시 하나의 출력 작업만 만든다. 후보·성공 상태를 원자적으로 저장하고 running 조건부 완료로 늦은 결과가 운영자 실패 확정을 덮어쓰지 못하게 한다. 외부 호출 동안 DB 트랜잭션을 유지하지 않는다.
+
+## SNS-006 데이터 추가
+
+`sns_oauth_states`는 세션 소유자·state 해시·만료·암호화한 PKCE 검증값을 저장한다. `sns_accounts`는 채널·연결 버전·암호화한 refresh token을 보관한다. `sns_uploads`는 성공 영상 작업과 계정·출력 해시·제목·공개 범위·아동용 여부·최종 확인 시각을 연결한다. 토큰·업로드 세션 주소를 API나 Redis 메시지에 넣지 않는다.
+
+계정 행 잠금과 확인된 출력의 부분 고유 인덱스로 같은 계정·작업·버전이 한 번만 전송되게 한다. 초안은 발행하지 않으며, 최종 확인 트랜잭션 중 발행한 메시지는 행 잠금을 기다린 뒤 queued만 선점한다. 전송 중 트랜잭션을 유지하지 않는다. 원격 결과 미확정은 unknown을 유지하고 같은 세션의 빈 상태 조회만 허용한다. 조기 ACK·자동 재시도 없음이며 강제 종료 시 running이 남을 수 있다. [중단 확인·제한](../05-development/youtube-upload.md)을 따른다.

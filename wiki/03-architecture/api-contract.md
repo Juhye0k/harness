@@ -40,7 +40,7 @@
 
 영상 실패는 조회 HTTP 200 안의 status=failed와 error로 표현한다. 접수 HTTP 성공과 작업 성공을 구분한다. [실행 예시](../05-development/async-video-jobs.md), [상태 계약](data-and-jobs.md).
 
-웹 업로드·소유권·AI 추천·자막 편집·SNS API는 미구현이다. 파일 보존과 다운로드 인증은 외부 사용자 테스트 전에 확정한다.
+웹 파일 업로드·사용자별 영상 소유권·자막 편집은 미구현이다. 추천·SNS 추가 계약은 아래를 따른다. 파일 보존과 다운로드 인증은 외부 사용자 테스트 전에 확정한다.
 ## VIDEO-004 추천 API 추가
 
 기존 API 계약에 아래 비동기 추천 흐름을 추가한다. [실행 계약](../05-development/highlight-recommendations.md)을 기준으로 한다.
@@ -53,3 +53,22 @@
 | GET /jobs/{id}, /jobs/{id}/download | 기존 상태·검증된 출력 다운로드 계약 재사용 |
 
 추천 접수 발행 실패도 추적 가능한 202 리소스를 반환하며 조회 상태는 failed/DISPATCH_FAILED다. 같은 URL의 별도 분석 접수는 별도 자산을 만들며, 기존 파일 재사용은 asset_id를 명시한다. 인증·사용자별 소유권 검사는 아직 없으므로 로컬에서만 사용한다.
+
+## SNS-006 YouTube 업로드 API
+
+상세 입력·설정·제한은 [YouTube 계약](../05-development/youtube-upload.md)을 따른다. `/sns/session`의 HttpOnly 쿠키와 반환된 CSRF 토큰이 필요하다. 변경 요청은 `X-SNS-CSRF` 헤더를 보내며 설정한 로컬 Origin 외의 접근은 거부한다. SNS 계정·업로드만 브라우저 세션에 속하며, 기존 영상 소유권·일반 사용자 인증은 제공하지 않는다.
+
+| 요청 | 의미 |
+|---|---|
+| GET /sns | 계정 연결·확인·상태 화면 |
+| GET /sns/session | 세션 쿠키와 csrf·enabled 반환, 전송 없음 |
+| POST /sns/youtube/connect | 10분·1회 state와 PKCE를 가진 Google 동의 URL |
+| GET /sns/youtube/callback | state 검증·코드 교환·채널 저장 후 결과 화면으로 303 이동 |
+| GET /sns/accounts | 해당 세션의 연결된 채널·연결 버전, 토큰 제외 |
+| DELETE /sns/accounts/{id} | 로컬 토큰 삭제·연결 버전 변경, 진행 중 전송 취소 아님 |
+| POST /sns/uploads | request_id·account_id·job_id·title·made_for_kids, privacy 기본 private. 201 확인 초안, 전송 없음 |
+| GET /sns/uploads/{id} | 상태·approval·계정 표시값·오류 코드·영상 URL, 비밀값·경로 제외 |
+| POST /sns/uploads/{id}/confirm | confirmed=true·서버 초안과 같은 approval. 202 추적 리소스, 반복 요청은 기존 작업 |
+| POST /sns/uploads/{id}/probe | unknown의 기존 세션만 조회하는 작업 접수. 영상 재전송 없음 |
+
+없는 계정·다른 세션 리소스는 404, 승인 불일치·만료·중복 설정 변경은 409, 입력 오류는 422, 기능 비활성화·설정 누락은 503이다. 확인 발행 실패는 202 응답의 failed/DISPATCH_FAILED로 추적하며 같은 출력의 자동 재요청을 허용하지 않는다. 응답 미확인은 같은 초안 주소의 GET으로 확인한다.

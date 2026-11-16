@@ -7,21 +7,50 @@ from fastapi.staticfiles import StaticFiles
 from redis import Redis
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.adapters.sns_logging import GoogleHttpFilter, SnsAccessFilter
 from app.api.analyses import router as analysis_router
 from app.api.jobs import router
+from app.api.sns import router as sns_router
 from app.api.web import STATIC
 from app.api.web import router as web_router
 from app.config import get_settings
 from app.db import check_database
 from app.domain.jobs import JobError
+from app.domain.sns import SnsError
 from app.domain.video import VideoError
 
 logger = logging.getLogger(__name__)
+logging.getLogger("uvicorn.access").addFilter(SnsAccessFilter())
+logging.getLogger("httpx").addFilter(GoogleHttpFilter())
 app = FastAPI(title="Shortform Harness", version="0.1.0")
 app.include_router(router)
 app.include_router(analysis_router)
+app.include_router(sns_router)
 app.include_router(web_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+@app.middleware("http")
+async def sns_private_response(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/sns" or request.url.path.startswith("/sns/"):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"
+        )
+    return response
+
+
+@app.exception_handler(SnsError)
+async def sns_error(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {"code": exc.code, "message": str(exc)},
+        },
+    )
 
 
 @app.exception_handler(JobError)
@@ -38,6 +67,13 @@ async def job_error(request, exc):
 @app.exception_handler(VideoError)
 @app.exception_handler(RequestValidationError)
 async def invalid_request(request, exc):
+    if request.url.path.startswith("/sns/"):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {"code": "INVALID_INPUT", "message": "SNS 입력과 확인 내용을 확인하세요."},
+            },
+        )
     return JSONResponse(
         status_code=422,
         content={

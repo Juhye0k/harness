@@ -23,6 +23,13 @@ services:
 
   api:
     <<: *app
+    environment:
+      <<: *app-environment
+      ENABLE_SNS_UPLOAD: ${ENABLE_SNS_UPLOAD:-false}
+      SNS_ORIGIN: ${SNS_ORIGIN:-http://localhost:8000}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      SNS_TOKEN_KEY: ${SNS_TOKEN_KEY:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -57,6 +64,23 @@ services:
     volumes: ["video_data:/data"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "analysis"]
     mem_limit: 1g
+
+  sns-worker:
+    <<: *app
+    profiles: ["sns"]
+    environment:
+      <<: *app-environment
+      ENABLE_SNS_UPLOAD: ${ENABLE_SNS_UPLOAD:-false}
+      SNS_ORIGIN: ${SNS_ORIGIN:-http://localhost:8000}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      SNS_TOKEN_KEY: ${SNS_TOKEN_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["video_data:/data:ro"]
+    command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "sns"]
+    mem_limit: 512m
 
   postgres:
     image: postgres:17-bookworm

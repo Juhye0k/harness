@@ -35,3 +35,5 @@
 VIDEO-002는 [별도 요구사항 연결표](video-002-requirements.md)에서 API·상태 전이·중복·실패·다운로드를 관리한다.
 
 VIDEO-003은 [웹 사용자 흐름과 검사 연결표](../web-video-extraction.md)에서 새로고침·통신 오류·브라우저 다운로드를 관리한다.
+
+SNS-006은 [YouTube 확인·중복·미확정 처리 연결표](changes/sns-006-upload.md)에서 OAuth·출력 버전·최종 확인·전송과 상태 조회를 관리한다.

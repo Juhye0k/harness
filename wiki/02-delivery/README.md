@@ -11,3 +11,4 @@
 - [3단계 — 샘플 기반 웹 MVP](phase-03-web-mvp.md)
 - [4단계 — 실제 분석과 품질 평가](phase-04-ai-evaluation.md)
 - [5단계 — 새 기능과 공개 준비](phase-05-extension.md)
+- [6단계 — 확인 후 SNS 업로드](phase-06-sns-upload.md)

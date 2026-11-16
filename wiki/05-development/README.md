@@ -12,6 +12,7 @@
 - [비동기 10초 추출과 중단 처리](async-video-jobs.md)
 - [웹 영상 추출과 브라우저 검증 — VIDEO-003](web-video-extraction.md)
 - [하이라이트 추천과 선택 추출 — VIDEO-004](highlight-recommendations.md)
+- [YouTube 계정 연결과 확인 후 업로드 — SNS-006](youtube-upload.md)
 - [VIDEO-002 요구사항과 검증](harness/video-002-requirements.md)
 - [코드 리뷰와 완료 기준](harness/review.md)
 - [요구사항과 검사 연결](harness/requirements-map.md)
