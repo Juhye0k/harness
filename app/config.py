@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,10 +14,20 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     video_data_dir: Path = Path(".artifacts/jobs")
     enable_paid_ai: bool = False
+    enable_free_ai: bool = False
+    groq_free_tier_confirmed: bool = False
+    groq_api_key: SecretStr = SecretStr("")
+    transcription_provider: Literal["groq", "azure"] = "groq"
+    recommendation_provider: Literal["none", "groq", "openai"] = "none"
     azure_speech_endpoint: str = ""
     azure_speech_key: SecretStr = SecretStr("")
     openai_api_key: SecretStr = SecretStr("")
     recommendation_model: str = "gpt-5.6-terra"
+    enable_sns_upload: bool = False
+    sns_origin: str = "http://localhost:8000"
+    youtube_client_id: str = ""
+    youtube_client_secret: SecretStr = SecretStr("")
+    sns_token_key: SecretStr = SecretStr("")
 
 
 @lru_cache

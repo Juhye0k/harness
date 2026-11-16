@@ -5,6 +5,7 @@
   <meta name="referrer" content="no-referrer">
   <title>Shortform — 하이라이트 추천</title>
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/transcript-review.js" defer></script>
   <script src="/static/recommendations.js" defer></script>
 </head>
 <body>
@@ -13,16 +14,17 @@
     <div class="intro"><p class="eyebrow">긴 이야기에서 발견하는 순간</p><h1>추천받고,<br>마음에 드는 구간만.</h1><p>한국어 음성 전사를 바탕으로 30~60초 구간을 최대 5개 추천합니다.<br>점수는 편집 적합도이며 조회수나 바이럴 확률이 아닙니다.</p></div>
     <section class="card"><h2>영상 분석</h2>
       <form id="analysis-form">
+        <label for="mode">작업 선택</label><select id="mode"><option value="transcription">음성 전사만 확인</option><option value="recommendation">하이라이트 추천</option></select>
         <label for="url">영상 링크</label><input id="url" type="url" required maxlength="4096" placeholder="https://…">
         <p class="hint">공개 YouTube 단일 영상 / MP4 · 최대 20분, 500MiB</p>
         <label for="genre">장르</label><select id="genre"><option value="unknown">기타 / 미지정</option><option value="conversation">대화 / 인터뷰</option><option value="drama_movie">드라마 / 영화</option><option value="game">게임</option><option value="entertainment">예능</option><option value="sports">스포츠</option></select>
         <label for="purpose">추천 목적</label><select id="purpose"><option value="balanced">균형</option><option value="information">정보</option><option value="humor">유머</option><option value="emotion">감동</option><option value="suspense">긴장감</option></select>
-        <p class="hint">영상 장면·음악·표정은 아직 분석하지 않습니다. 유료 AI 연결이 활성화된 환경에서 사용할 수 있습니다.</p>
-        <button id="analyze" type="submit">하이라이트 추천받기</button>
+        <p class="hint">전사만 실행하면 추천 AI를 호출하지 않습니다. 영상의 음성을 설정된 전사 서비스에 전송합니다. 영상 장면·표정은 분석하지 않습니다.</p>
+        <button id="analyze" type="submit">음성 전사 시작</button>
       </form>
       <p id="message" role="alert"></p>
     </section>
-    <section class="card" id="analysis-panel" hidden><h2>추천 결과</h2><p id="analysis-state" role="status" aria-live="polite"></p><button id="refresh" class="secondary" type="button" hidden>상태 다시 조회</button><div id="candidates"></div></section>
+    <section class="card" id="analysis-panel" hidden><h2>분석 결과</h2><p id="analysis-state" role="status" aria-live="polite"></p><button id="refresh" class="secondary" type="button" hidden>상태 다시 조회</button><div id="transcript" hidden><h3>표시 자막</h3><p class="hint">원본 영상 기준 시간입니다. 2줄·줄당 20자·최대 6초는 제품 초안이며 검토 필요 항목은 확인 후 사용하세요.</p><p id="subtitle-state" role="status"></p><a id="subtitle-download" hidden>SRT 다운로드</a><div id="subtitle-cues"></div><details><summary>원본 전사 보기</summary><div id="segments"></div></details></div><div id="candidates"></div></section>
     <aside><p>선택한 구간만 MP4로 추출합니다. 자막 편집과 SNS 게시는 후속 단계입니다.</p><a href="/">시작 시간을 직접 지정해 10초 추출 →</a></aside>
   </main>
   <footer>SHORTFORM STUDIO <span>로컬 개발용 · 외부 공개 전 인증 필요</span></footer>

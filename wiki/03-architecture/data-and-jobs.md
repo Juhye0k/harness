@@ -51,4 +51,14 @@ DB와 Redis는 원자적 트랜잭션이 아니다. 메시지 전달 후 API가 
 
 `assets → transcripts`, `assets → analysis_jobs → highlight_candidates → video_jobs`로 연결한다. `provider_calls`는 분석·단계별 호출 기록이다. 원본·음성·결과 파일은 공유 볼륨, 상태·전사·점수는 PostgreSQL에 저장한다. [실행 계약](../05-development/highlight-recommendations.md)에 선점·재사용·비용 제어를 정리한다.
 
+전사 전용 작업은 같은 analysis_jobs.config에 mode와 전사 제공자를 고정하며 추천 제공자 none·모델 null을 저장한다. 전사 완료 후 후보 없이 `TRANSCRIBED`로 성공한다. 새 테이블이나 migration은 필요 없다. 전사 GET은 성공한 분석이 참조하는 asset_id·asr_version으로만 읽고 전사 선점 메서드를 호출하지 않는다. 이후 추천 작업은 같은 자산·버전의 성공 전사를 재사용한다.
+
 분석 큐와 영상 큐를 분리하며 ID만 Redis로 전달한다. 후보별 video_jobs 고유 제약과 후보 행 잠금으로 동시 선택 시 하나의 출력 작업만 만든다. 후보·성공 상태를 원자적으로 저장하고 running 조건부 완료로 늦은 결과가 운영자 실패 확정을 덮어쓰지 못하게 한다. 외부 호출 동안 DB 트랜잭션을 유지하지 않는다.
+
+표시 자막은 전사 원문을 읽는 별도 계산 결과로 DB를 수정하지 않는다. Groq word+segment v2 캐시는 검증한 words를 segment에 부가 저장하고 기존 v1과 분리한다. 원본 시간·문자를 보존하며 표시 버전·정책·검토 사유를 반환한다. 스키마 변경·편집 버전 저장은 추가하지 않았다. [분할·구버전 계약](../05-development/subtitle-segmentation.md).
+
+## SNS-006 데이터 추가
+
+`sns_oauth_states`는 세션 소유자·state 해시·만료·암호화한 PKCE 검증값을 저장한다. `sns_accounts`는 채널·연결 버전·암호화한 refresh token을 보관한다. `sns_uploads`는 성공 영상 작업과 계정·출력 해시·제목·공개 범위·아동용 여부·최종 확인 시각을 연결한다. 토큰·업로드 세션 주소를 API나 Redis 메시지에 넣지 않는다.
+
+계정 행 잠금과 확인된 출력의 부분 고유 인덱스로 같은 계정·작업·버전이 한 번만 전송되게 한다. 초안은 발행하지 않으며, 최종 확인 트랜잭션 중 발행한 메시지는 행 잠금을 기다린 뒤 queued만 선점한다. 전송 중 트랜잭션을 유지하지 않는다. 원격 결과 미확정은 unknown을 유지하고 같은 세션의 빈 상태 조회만 허용한다. 조기 ACK·자동 재시도 없음이며 강제 종료 시 running이 남을 수 있다. [중단 확인·제한](../05-development/youtube-upload.md)을 따른다.

@@ -9,11 +9,13 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -111,6 +113,24 @@ class HighlightCandidate(Base):
     data: Mapped[dict] = mapped_column(JSONB)
 
 
+class TranscriptReview(Base):
+    __tablename__ = "transcript_reviews"
+    __table_args__ = (
+        UniqueConstraint("analysis_id", "asr_version", "policy_version", "segment_id"),
+        CheckConstraint("decision IN ('error','ok','uncertain')", name="review_decision"),
+        CheckConstraint("revision > 0", name="review_revision"),
+    )
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    analysis_id: Mapped[UUID] = mapped_column(ForeignKey("analysis_jobs.id"))
+    asr_version: Mapped[str] = mapped_column(String(80))
+    policy_version: Mapped[str] = mapped_column(String(80))
+    segment_id: Mapped[str] = mapped_column(String(32))
+    decision: Mapped[str] = mapped_column(String(16))
+    note: Mapped[str] = mapped_column(String(1000), default="")
+    revision: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ProviderCall(Base):
     __tablename__ = "provider_calls"
     __table_args__ = (UniqueConstraint("analysis_id", "stage", name="provider_call_once"),)
@@ -119,3 +139,67 @@ class ProviderCall(Base):
     stage: Mapped[str] = mapped_column(String(32))
     state: Mapped[str] = mapped_column(String(32), default="started")
     metadata_json: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class SnsOAuthState(Base):
+    __tablename__ = "sns_oauth_states"
+    state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(64))
+    verifier: Mapped[str] = mapped_column(Text)  # Encrypted, never returned.
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class SnsAccount(Base):
+    __tablename__ = "sns_accounts"
+    __table_args__ = (UniqueConstraint("owner", "channel_id", name="sns_owner_channel"),)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    owner: Mapped[str] = mapped_column(String(64), index=True)
+    channel_id: Mapped[str] = mapped_column(String(128))
+    channel_title: Mapped[str] = mapped_column(String(256))
+    credentials: Mapped[str] = mapped_column(Text)  # Fernet ciphertext only.
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    connected: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class SnsUpload(Base):
+    __tablename__ = "sns_uploads"
+    __table_args__ = (
+        UniqueConstraint("owner", "request_id", name="sns_request_once"),
+        CheckConstraint(
+            "status IN ('draft','queued','running','succeeded','failed','unknown')",
+            name="sns_upload_status",
+        ),
+        CheckConstraint("privacy IN ('private','unlisted','public')", name="sns_privacy"),
+        Index(
+            "sns_confirmed_output_once",
+            "account_id",
+            "job_id",
+            "output_version",
+            unique=True,
+            postgresql_where=text("status <> 'draft'"),
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    task_id: Mapped[UUID] = mapped_column(Uuid, unique=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(Uuid)
+    owner: Mapped[str] = mapped_column(String(64), index=True)
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("sns_accounts.id"))
+    account_version: Mapped[int] = mapped_column(Integer)
+    channel_id: Mapped[str] = mapped_column(String(128))
+    channel_title: Mapped[str] = mapped_column(String(256))
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("video_jobs.id"))
+    output_version: Mapped[str] = mapped_column(String(64))
+    output_size: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(100))
+    privacy: Mapped[str] = mapped_column(String(16), default="private")
+    made_for_kids: Mapped[bool] = mapped_column(Boolean)
+    status: Mapped[str] = mapped_column(String(16), default="draft", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    session_uri: Mapped[str | None] = mapped_column(Text)  # Encrypted upload capability.
+    remote_id: Mapped[str | None] = mapped_column(String(64))
+    probe_task_id: Mapped[UUID | None] = mapped_column(Uuid)

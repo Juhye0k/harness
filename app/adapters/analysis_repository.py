@@ -13,6 +13,7 @@ from app.models import (
     HighlightCandidate,
     ProviderCall,
     Transcript,
+    TranscriptReview,
     VideoJob,
     utcnow,
 )
@@ -115,6 +116,63 @@ class AnalysisRepository:
                 .where(Transcript.id == transcript_id, Transcript.state == "running")
                 .values(state="failed" if failed else "succeeded", segments=segments)
             )
+
+    def read_transcript(self, asset_id, version):
+        # Read-only: GET must never acquire an ASR claim or create a transcript.
+        with Session(self.engine) as s:
+            item = s.scalar(
+                select(Transcript).where(
+                    Transcript.asset_id == asset_id,
+                    Transcript.version == version,
+                    Transcript.state == "succeeded",
+                )
+            )
+            if item is None:
+                raise JobError("TRANSCRIPT_UNAVAILABLE", "전사 결과를 찾을 수 없습니다.", 404)
+            return item.segments
+
+    def review_decisions(self, analysis_id, asr_version, policy_version):
+        with Session(self.engine) as s:
+            rows = s.scalars(
+                select(TranscriptReview).where(
+                    TranscriptReview.analysis_id == analysis_id,
+                    TranscriptReview.asr_version == asr_version,
+                    TranscriptReview.policy_version == policy_version,
+                )
+            )
+            return {
+                r.segment_id: {"decision": r.decision, "note": r.note, "revision": r.revision}
+                for r in rows
+            }
+
+    def save_review(self, analysis_id, asr_version, policy_version, segment_id, body):
+        with Session(self.engine) as s, s.begin():
+            # Serialize first inserts as well as updates; no lost writes across browser tabs.
+            s.scalar(select(AnalysisJob).where(AnalysisJob.id == analysis_id).with_for_update())
+            row = s.scalar(
+                select(TranscriptReview).where(
+                    TranscriptReview.analysis_id == analysis_id,
+                    TranscriptReview.asr_version == asr_version,
+                    TranscriptReview.policy_version == policy_version,
+                    TranscriptReview.segment_id == segment_id,
+                )
+            )
+            if (row.revision if row else 0) != body.revision:
+                raise JobError("REVIEW_CONFLICT", "다른 검수가 저장됐습니다. 새로 조회하세요.", 409)
+            if row is None:
+                row = TranscriptReview(
+                    analysis_id=analysis_id,
+                    asr_version=asr_version,
+                    policy_version=policy_version,
+                    segment_id=segment_id,
+                    revision=0,
+                )
+                s.add(row)
+            row.decision, row.note = body.decision, body.note
+            row.revision += 1
+            row.updated_at = utcnow()
+            s.flush()
+            return {"decision": row.decision, "note": row.note, "revision": row.revision}
 
     def call_start(self, job_id, stage):
         with Session(self.engine) as s, s.begin():

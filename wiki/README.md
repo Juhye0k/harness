@@ -4,7 +4,7 @@
 
 롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
 
-**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. 자막 편집·SNS·운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
+**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. SNS-006은 [확인 후 YouTube 업로드](05-development/youtube-upload.md)를 추가하며 실제 계정·게시 검증은 수행하지 않았다. 자막 편집·운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
 
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
@@ -22,7 +22,7 @@
 | 카테고리 | 찾을 수 있는 내용 |
 |---|---|
 | [01 제품](01-product/README.md) | 문제·사용자·가치·MVP·참고 제품 |
-| [02 실행 계획](02-delivery/README.md) | 0~5단계 설계와 완료 기준 |
+| [02 실행 계획](02-delivery/README.md) | 0~6단계 설계와 완료 기준 |
 | [03 아키텍처](03-architecture/README.md) | 구성도·현재/목표 흐름·데이터·API |
 | [04 의사결정](04-decisions/README.md) | FastAPI·PostgreSQL·Redis/Celery와 대안 |
 | [05 개발](05-development/README.md) | 실행·검사·AI 협업·리뷰·용어 |

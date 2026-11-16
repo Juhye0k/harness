@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>YouTube 업로드 · Shortform</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/sns.js" defer></script>
+</head>
+<body>
+<header><a href="/" class="brand">Shortform<span>MAKE YOUR MOMENT</span></a><span class="badge">YouTube 업로드</span></header>
+<main class="sns-page">
+  <section class="intro">
+    <p class="eyebrow">마지막으로 확인하세요</p><h1>완성한 영상을<br> YouTube로</h1>
+    <p>계정과 영상, 제목, 공개 범위를 확인한 뒤 직접 업로드합니다. 기본은 비공개예요.</p>
+    <p>업로드 완료는 YouTube의 영상 처리·공개 완료를 의미하지 않습니다.</p>
+  </section>
+  <section class="card">
+    <p id="notice" role="status">설정을 확인하고 있어요.</p>
+    <button id="reload" class="secondary" hidden>상태 다시 조회</button>
+    <section id="account-panel" hidden>
+      <h2>1. 업로드 계정</h2>
+      <button id="connect" type="button">YouTube 계정 연결</button>
+      <p class="hint">Google 동의 화면에서 업로드할 채널을 선택하세요.</p>
+      <label for="account">연결된 YouTube 채널</label><select id="account"></select>
+      <button id="disconnect" type="button" class="secondary">선택한 계정 연결 해제</button>
+      <p class="hint">연결 해제는 이후 업로드를 차단합니다. 이미 전송 중인 작업은 취소되지 않습니다.</p>
+    </section>
+    <form id="upload-form" hidden>
+      <h2>2. 영상과 업로드 설정</h2>
+      <label for="job">완성한 영상 작업 번호</label><input id="job" required autocomplete="off">
+      <p class="hint">추출 결과에서 이동하면 자동으로 입력됩니다.</p>
+      <label for="title">YouTube 제목</label><input id="title" required maxlength="100">
+      <label for="privacy">공개 범위</label>
+      <select id="privacy"><option value="private" selected>비공개</option><option value="unlisted">일부 공개</option><option value="public">공개</option></select>
+      <label for="kids">아동용 콘텐츠인가요?</label>
+      <select id="kids" required><option value="">직접 선택하세요</option><option value="false">아니요</option><option value="true">예</option></select>
+      <button id="prepare" type="submit">업로드 내용 미리 확인</button>
+    </form>
+    <section id="review-panel" hidden>
+      <h2 id="upload-heading">3. 최종 업로드 확인</h2>
+      <dl class="upload-details"><dt>채널</dt><dd id="review-channel"></dd><dt>제목</dt><dd id="review-title"></dd><dt>공개 범위</dt><dd id="review-privacy"></dd><dt>아동용</dt><dd id="review-kids"></dd><dt>출력 버전 (SHA-256)</dt><dd id="review-version"></dd></dl>
+      <video id="sns-preview" controls preload="metadata"></video>
+      <p id="upload-state" role="status"></p>
+      <div id="confirmation">
+        <label class="confirm-label"><input type="checkbox" id="approved">위 채널·영상·제목·공개 범위를 확인했고 업로드에 동의합니다.</label>
+        <button id="confirm" disabled>확인한 내용으로 YouTube에 업로드</button>
+        <button id="edit" class="secondary">설정 다시 작성</button>
+      </div>
+      <button id="probe" class="secondary" hidden>재전송 없이 YouTube 상태 확인</button>
+      <a id="remote" class="new-job" rel="noopener noreferrer" target="_blank" hidden>YouTube에서 영상 확인</a>
+      <a href="/sns" class="new-job">다른 영상 업로드하기</a>
+    </section>
+  </section>
+</main>
+<footer><span>SHORTFORM</span><a href="/">영상 추출로 돌아가기</a></footer>
+</body></html>

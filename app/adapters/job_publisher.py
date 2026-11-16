@@ -27,3 +27,17 @@ def publish_video_job(job_id, task_id):
             retry=False,
             connection=connection,
         )
+
+
+def publish_sns_upload(upload_id, task_id):
+    from app.worker import upload_youtube
+
+    upload_youtube.apply_async(args=[str(upload_id)], task_id=str(task_id), queue="sns")
+
+
+def publish_sns_probe(upload_id, task_id):
+    from app.worker import probe_youtube
+
+    probe_youtube.apply_async(
+        args=[str(upload_id), str(task_id)], task_id=str(task_id), queue="sns"
+    )
