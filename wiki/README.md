@@ -1,5 +1,7 @@
 # Shortform 프로젝트 위키
 
+> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
+
 > 기준일: 2026-11-15 · 대상: 처음 합류한 개발자와 프로젝트 검토자
 
 롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
@@ -9,6 +11,8 @@
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
 ## 처음 읽는 순서
+
+최근 [실제 자막 품질 평가와 두 변경 통합](05-development/harness/changes/transcript-quality-integration.md)을 진행했다. 원문·시간 범위는 보존했으나 고정 샘플의 표시 가독성 초안은 미달이며, 인식 정확도는 확인된 정답 전사가 필요하다.
 
 1. [문제 정의](01-product/problem-definition.md)와 [범위](01-product/scope-and-reference.md)
 2. [현황과 검증 근거](07-governance/status.md)
@@ -37,6 +41,7 @@
 - 점수가 좋아졌는지 어떻게 아는가? → [AI 평가](02-delivery/phase-04-ai-evaluation.md)
 - ready는 정상인데 워커가 응답하지 않는다면? → [점검 절차](06-operations/runbook.md)
 - 어디까지 결정됐는가? → [미결정 목록](07-governance/open-decisions.md)
+- AI에게 어떤 요청을 했고 무엇을 얻었는가? → [프롬프트·결과와 포트폴리오 근거](05-development/harness/records/README.md)
 
 ## 문서 사용 원칙
 

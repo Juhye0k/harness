@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import get_engine
 from app.domain.jobs import JobError
 from app.models import VideoJob, utcnow
+from app.services.access import ownership_values
 
 
 class JobRepository:
@@ -16,7 +17,7 @@ class JobRepository:
 
     def create(self, url: str, start: float) -> VideoJob:
         with Session(self.engine, expire_on_commit=False) as session, session.begin():
-            job = VideoJob(source_url=url, start_seconds=start)
+            job = VideoJob(source_url=url, start_seconds=start, **ownership_values())
             session.add(job)
             session.flush()
             return job

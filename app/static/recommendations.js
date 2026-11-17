@@ -49,7 +49,7 @@ function render(data, epoch) {
 async function renderTranscript(id, epoch) {
   try {
     const [transcript, subtitles] = await Promise.all([
-      request(`/analyses/${id}/transcript`), request(`/analyses/${id}/subtitles`)
+      request(`/analyses/${id}/transcript`), request(`/analyses/${id}/subtitles?profile=shorts-display-v1`)
     ]);
     if (epoch !== generation) return;
     el("segments").replaceChildren(); el("subtitle-cues").replaceChildren();
@@ -57,13 +57,16 @@ async function renderTranscript(id, epoch) {
       el("segments").append(node("p", `${(s.start_ms/1000).toFixed(2)}~${(s.end_ms/1000).toFixed(2)}초 · ${s.text}`));
     }
     const labels = {WORD_TIMESTAMPS_UNAVAILABLE:"단어 시각 없음: 원본 구간 유지", TEXT_LIMIT:"줄수·글자수 초과", DURATION_LIMIT:"6초 초과", SHORT_DURATION:"표시 시간 짧음", READING_SPEED:"빠른 발화", OVERLAPPING_CUES:"구간 겹침"};
+    labels.UNALIGNED_WORD_TIMESTAMPS = "단어 정렬 불일치: 원본 구간 유지";
     for (const cue of subtitles.cues) {
       const p = node("p", `${(cue.start_ms/1000).toFixed(2)}~${(cue.end_ms/1000).toFixed(2)}초\n${cue.lines.join("\n")}${cue.review_required ? "\n검토 필요: " + cue.warnings.map(w => labels[w] || w).join(" · ") : ""}`);
       p.className = "subtitle-cue"; el("subtitle-cues").append(p);
     }
     el("subtitle-state").textContent = subtitles.review_required ? "검토가 필요한 자막이 있습니다. 단어 시각을 추정하거나 내용을 생략하지 않았습니다." : `${subtitles.cues.length}개 표시 자막 · 원본 전사 보존`;
-    el("subtitle-download").href = `/analyses/${id}/subtitles.srt`;
-    el("subtitle-download").hidden = !subtitles.cues.length;
+    el("subtitle-download").href = `/analyses/${id}/subtitles.srt?profile=shorts-display-v1`;
+    el("subtitle-download").hidden = !subtitles.quality_pass;
+    const link=node("a", "검증 결과"); link.href=`/verification?analysis=${id}`; el("subtitle-state").append(" ",link);
+    for(const row of subtitles.blocked_segments||[]){el("subtitle-cues").append(node("p", `검수 필요: ${row.start_ms/1000}~${row.end_ms/1000}s | ${row.text}`));}
     el("transcript").hidden = false;
   } catch (error) {
     if (epoch !== generation) return;

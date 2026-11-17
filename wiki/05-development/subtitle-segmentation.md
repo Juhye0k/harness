@@ -16,11 +16,11 @@
 
 ## 단어 시각과 캐시
 
-[Groq 공식 문서](https://console.groq.com/docs/speech-to-text)의 파라미터 표를 2026-11-16 확인했다. `verbose_json`과 `timestamp_granularities[]`의 `word`, `segment`를 함께 요청한다. 모델·한국어·음성 형식·temperature=0·단일 호출·시간 제한은 유지한다. 캐시 버전은 `groq-whisper-large-v3-turbo-ko-mp3-16k-64k-word-segment-v2`다.
+[Groq 공식 문서](https://console.groq.com/docs/speech-to-text)의 파라미터 표를 2026-11-16 확인했다. `verbose_json`과 `timestamp_granularities[]`의 `word`, `segment`를 함께 요청한다. 모델·한국어·음성 형식·temperature=0·단일 호출·시간 제한은 유지한다. 현재 캐시 버전은 신뢰도 정보를 포함하는 `groq-whisper-large-v3-turbo-ko-mp3-16k-64k-quality-v3`다. `word-segment-v2`는 이전 버전이다.
 
-단어 응답은 순서대로 원문 비공백 문자와 정확히 일치해야 한다. 누락·추가·순서 변경, 비문자열, 비유한 수·불리언·음수·0길이·겹침·구간 밖 시간은 `MODEL_RESPONSE_INVALID`다. 합당한 반복은 보존한다. 원본 길이·구간 순서는 기존 정규화에서도 검증한다. 단어 배열이 없거나 문장부호가 다르면 추정하지 않고 실패한다. provider_calls 선기록·실패 전사 보존·자동 재시도 없음 계약을 유지한다. Azure의 기존 원시 words 필드는 Groq 정규화 형식으로 오인하지 않는다.
+검증된 단어 응답만 원문 비공백 문자·구간 시간과 정확히 일치하는 분할에 사용한다. 실제 Groq 응답에서 구간 밖 단어 시각과 원문/단어의 한 글자 차이가 관측되어, 보조 단어 정보가 불일치하는 구간만 단어를 사용하지 않고 `UNALIGNED_WORD_TIMESTAMPS`를 표시한다. 다른 구간은 독립적으로 검증하며 원문·원본 구간 시간·신뢰도는 보존한다. 기본 파서는 시각을 늘리거나 문자를 고쳐 일치시키지 않는다. 기본 구간 데이터가 잘못되면 여전히 `MODEL_RESPONSE_INVALID`다. provider_calls 선기록·실패 전사 보존·자동 재시도 없음은 유지한다. 이 표시는 오인식 확정 신호가 아니므로 자동 검수의 우선순위를 단독으로 올리지 않는다. [구간별 복구와 별도 경계 실험](word-alignment-recovery.md)을 참고한다.
 
-v1 전사는 덮어쓰거나 v2로 취급하지 않는다. 과거 성공한 분석 GET은 해당 버전을 계속 읽는다. 대기 중 v1 작업은 새 워커와 설정이 달라 외부 호출 전 `PROVIDER_CONFIG`로 거절한다. 같은 asset_id로 새 분석을 명시적으로 접수하면 v2 전사를 새로 호출할 수 있으므로 기존 데이터·제공자·예산 승인 범위가 적용된다. 조회로 재전사하지 않는다.
+이전 전사를 덮어쓰거나 현재 버전으로 취급하지 않는다. 과거 성공한 분석 GET은 해당 버전을 계속 읽는다. 대기 중 이전 버전 작업은 새 워커와 설정이 달라 외부 호출 전 `PROVIDER_CONFIG`로 거절한다. 새 분석을 명시적으로 접수하면 현재 버전 전사를 새로 호출할 수 있으므로 기존 데이터·제공자·예산 승인 범위가 적용된다. 조회로 재전사하지 않는다.
 
 ## 분할 초안과 검토 필요
 
@@ -45,4 +45,4 @@ v1 전사는 덮어쓰거나 v2로 취급하지 않는다. 과거 성공한 분�
 
 [통합·브라우저 검사](../../tests/integration/test_analysis_flow.py)는 합성 영상과 AI 대역으로 PostgreSQL·Redis·Celery·FFmpeg·Chromium을 거쳐 데이터 보존·표시·SRT·모바일 폭·새로고침 재접수 방지·전사 재사용을 검사한다. 실제 실행 결과는 [현황](../07-governance/status.md)을 확인한다. 다른 작업과 병렬 실행할 때 Compose 프로젝트명뿐 아니라 통합 이미지명도 전용 override로 분리한다.
 
-실제 Groq 호출·사용자 영상 전송은 수행하지 않았다. 음성 인식·단어 정렬·의미 경계·초안 가독성은 승인된 고정 샘플과 사람의 판단으로 별도 평가해야 한다.
+2026-11-16 승인된 한국어 샘플의 실제 Groq 응답을 확인했다. 단어 정렬 불일치에 대한 보존 처리를 적용해 추가 외부 호출 없이 원본 121개 구간을 복구했다. 이는 단어 정렬·음성 인식 정확도·가독성 통과를 의미하지 않는다. [복구와 회귀 검사 기록](harness/changes/transcription-response-recovery.md)을 참고한다.

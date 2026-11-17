@@ -182,6 +182,39 @@ def test_unrelated_browser_cannot_read_or_confirm_upload(stored):
         assert exc.value.status_code == 404
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_probe_claim_waits_for_dispatch_commit(stored, fails):
+    repo, owner, _, draft = stored
+    upload = draft()
+    repo.confirm(upload.id, owner, approval_values(upload), lambda *a: None)
+    repo.claim(upload.id)
+    repo.record_session(upload.id, "encrypted-session")
+    repo.mark_unknown(upload.id)
+    entered, futures = Event(), []
+    with ThreadPoolExecutor(1) as pool:
+
+        def claim(task_id):
+            entered.set()
+            return repo.claim_probe(upload.id, task_id)
+
+        def publish(upload_id, task_id):
+            future = pool.submit(claim, task_id)
+            futures.append(future)
+            assert entered.wait(timeout=5)
+            with pytest.raises(TimeoutError):
+                future.result(timeout=0.2)
+            if fails:
+                raise ConnectionError("possibly already delivered")
+
+        if fails:
+            with pytest.raises(ConnectionError):
+                repo.request_probe(upload.id, owner, publish)
+        else:
+            repo.request_probe(upload.id, owner, publish)
+        claimed = futures[0].result(timeout=15)
+    assert (claimed is None) == fails
+
+
 def test_probe_dispatch_claim_is_single_use_and_cannot_resend(stored):
     repo, owner, _, draft = stored
     upload = draft()

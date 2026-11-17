@@ -85,7 +85,9 @@ def normalize(raw: dict, duration_ms: int) -> list[dict]:
             normalized = segment.model_dump()
             if metrics := quality(phrase.get("quality")):
                 normalized["quality"] = metrics
-            if raw.get("_normalized_word_timestamps") is True:
+            if phrase.get("word_timestamps_issue") == "UNALIGNED_WORD_TIMESTAMPS":
+                normalized["word_timestamps_issue"] = "UNALIGNED_WORD_TIMESTAMPS"
+            elif raw.get("_normalized_word_timestamps") is True:
                 normalized["words"] = phrase["words"]
                 validate_words(normalized)
                 if normalized["words"][0]["start_ms"] < last_word_end:

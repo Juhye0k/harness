@@ -96,6 +96,8 @@ def build_subtitles(segments, policy=POLICY):
         warnings = []
         if timing == "segment":
             warnings.append("WORD_TIMESTAMPS_UNAVAILABLE")
+            if segment.get("word_timestamps_issue") == "UNALIGNED_WORD_TIMESTAMPS":
+                warnings.append("UNALIGNED_WORD_TIMESTAMPS")
         if len(lines) > policy.max_lines or any(
             len(line) > policy.max_line_chars for line in lines
         ):

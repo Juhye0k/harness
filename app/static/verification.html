@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<script src="/static/auth.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shortform 검증 결과</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/verification.css">
+  <script src="/static/verification.js" defer></script>
+</head>
+<body class="verification-page">
+  <header>
+    <a class="brand" href="/">Shortform</a>
+    <nav aria-label="페이지 메뉴">
+      <a href="/recommendations">영상 분석</a>
+      <button id="fullscreen" type="button" aria-pressed="false" hidden>전체 화면</button>
+    </nav>
+  </header>
+  <main>
+    <div class="verification-heading">
+      <h1>검증 결과</h1>
+      <p>처리 상태와 자막 가독성을 확인하고, 원음을 들으며 검수하세요.</p>
+    </div>
+    <form id="lookup">
+      <div><label for="analysis">분석 번호</label><input id="analysis" required></div>
+      <button>결과 조회</button>
+    </form>
+    <p id="message" role="status"></p>
+    <section class="card">
+      <h2>완료 상태</h2>
+      <div id="states"></div>
+      <p class="verification-note">사람의 전사 검토는 자막 가독성 승인과 별개입니다. 정답 전사가 없어 CER(문자 오류율)은 평가 불가입니다.</p>
+    </section>
+    <section class="card">
+      <h2>빠른 숏츠 자막</h2>
+      <p class="verification-note">1~3어절 · 1줄 중심 · 최대 2줄 · 0.45~1.8초 · 15자/초 이하</p>
+      <p id="summary"></p>
+      <div class="caption-workspace">
+        <div class="caption-preview">
+          <h3>원음과 자막 미리보기</h3>
+          <p class="verification-note">원음을 재생하면 해당 시점의 생성 가능한 자막이 표시됩니다. 검수 필요 구간에는 자막이 표시되지 않습니다.</p>
+          <p id="active-caption" aria-live="off"></p>
+          <audio id="preview-audio" controls preload="none"></audio>
+          <div class="verification-actions">
+            <a id="download" hidden>SRT 다운로드</a>
+            <a id="review">원음·원문 검토</a>
+          </div>
+        </div>
+        <div class="caption-results">
+          <h3 id="cues-heading">생성 가능한 자막 (부분 미리보기)</h3>
+          <div id="cues" class="verification-list" role="region" aria-labelledby="cues-heading" tabindex="0"></div>
+        </div>
+      </div>
+      <h3 id="blocked-heading">검수 필요 원 구간</h3>
+      <div id="blocked" class="verification-list" role="region" aria-labelledby="blocked-heading" tabindex="0"></div>
+    </section>
+    <section class="card">
+      <h2>이전 기준 비교 자료</h2>
+      <p class="verification-note">이 자료는 이전 정책의 평가 자료입니다. 현재 숏츠 정책의 합격 근거로 사용하지 않습니다.</p>
+      <div id="assets"></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -11,6 +11,7 @@ from app.domain.jobs import JobError, output_file
 from app.domain.recommendations import candidates, normalize, rank
 from app.domain.video import MAX_SECONDS, VideoError
 from app.services import video
+from app.services.access import worker_guard
 
 
 def measured(repo, job, stage, call):
@@ -29,6 +30,11 @@ def measured(repo, job, stage, call):
                 "elapsed_seconds": time.monotonic() - started,
                 "usage": None,
                 "cost": None,
+                **(
+                    {"provider_diagnostics": exc.provider_diagnostics}
+                    if isinstance(exc, VideoError) and hasattr(exc, "provider_diagnostics")
+                    else {}
+                ),
             },
         )
         raise
@@ -38,6 +44,7 @@ def measured(repo, job, stage, call):
     return raw
 
 
+@worker_guard("analysis", "repo")
 def process_analysis(job_id, repo, root, settings, providers=None):
     job = repo.claim(job_id)
     if job is None:

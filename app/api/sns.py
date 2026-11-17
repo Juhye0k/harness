@@ -80,7 +80,10 @@ def owner(request: Request):
         supplied = request.headers.get("x-sns-csrf", "")
         if not hmac.compare_digest(supplied, digest(token + ":csrf")):
             raise SnsError("CSRF_DENIED", "SNS 화면에서 다시 요청하세요.", 403)
-    return digest(token)
+    from app.services.access import current_user
+
+    user = current_user.get()
+    return str(user) if user else digest(token)
 
 
 Owner = Annotated[str, Depends(owner)]

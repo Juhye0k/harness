@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, model_validator
 
@@ -16,7 +16,7 @@ from app.adapters.job_repository import JobRepository
 from app.config import get_settings
 from app.domain.jobs import JobError
 from app.domain.recommendations import VERSION
-from app.domain.subtitles import VERSION as SUBTITLE_VERSION
+from app.domain.shorts_subtitles import build_shorts
 from app.domain.subtitles import build_subtitles, srt
 from app.domain.video import VideoError
 
@@ -90,7 +90,12 @@ def get_analysis(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(
         "outcome": job.outcome,
         "error": {
             "code": job.error_code,
-            "message": "분석이 완료되지 못했습니다. 오류 코드를 확인하세요.",
+            "message": (
+                "제공자가 요청 접근을 거부했습니다. "
+                "키 인증과 별도로 제공자 권한·요청 제한을 확인하세요."
+                if job.error_code == "PROVIDER_ACCESS_DENIED"
+                else "분석이 완료되지 못했습니다. 오류 코드를 확인하세요."
+            ),
         }
         if job.error_code
         else None,
@@ -112,20 +117,42 @@ def get_transcript(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depend
 
 
 @router.get("/analyses/{analysis_id}/subtitles")
-def get_subtitles(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(repository)]):
+def get_subtitles(
+    analysis_id: UUID,
+    repo: Annotated[AnalysisRepository, Depends(repository)],
+    profile: Literal["ko-display-v1", "shorts-display-v1"] = "ko-display-v1",
+    start_ms: Annotated[int | None, Query(ge=0)] = None,
+    end_ms: Annotated[int | None, Query(gt=0)] = None,
+):
     transcript = get_transcript(analysis_id, repo)
-    return {
-        "analysis_id": str(analysis_id),
-        "transcript_version": transcript["version"],
-        **build_subtitles(transcript["segments"]),
-    }
+    try:
+        if profile == "shorts-display-v1":
+            if end_ms is not None and end_ms > repo.asset(transcript["asset_id"]).duration_ms:
+                raise ValueError()
+            data = build_shorts(transcript["segments"], start_ms, end_ms)
+        else:
+            if start_ms is not None or end_ms is not None:
+                raise ValueError()
+            data = build_subtitles(transcript["segments"])
+    except ValueError as exc:
+        raise JobError("INVALID_RANGE", "Invalid subtitle range", 422) from exc
+    return {"analysis_id": str(analysis_id), "transcript_version": transcript["version"], **data}
 
 
 @router.get("/analyses/{analysis_id}/subtitles.srt")
-def download_subtitles(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(repository)]):
-    filename = f"subtitles-{analysis_id}-{SUBTITLE_VERSION}.srt"
+def download_subtitles(
+    analysis_id: UUID,
+    repo: Annotated[AnalysisRepository, Depends(repository)],
+    profile: Literal["ko-display-v1", "shorts-display-v1"] = "ko-display-v1",
+    start_ms: Annotated[int | None, Query(ge=0)] = None,
+    end_ms: Annotated[int | None, Query(gt=0)] = None,
+):
+    data = get_subtitles(analysis_id, repo, profile, start_ms, end_ms)
+    if profile == "shorts-display-v1" and not data["quality_pass"]:
+        raise JobError("SUBTITLE_REVIEW_REQUIRED", "Subtitle review required", 409)
+    filename = f"subtitles-{analysis_id}-{data['version']}.srt"
     return Response(
-        srt(get_subtitles(analysis_id, repo)),
+        srt(data),
         media_type="application/x-subrip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

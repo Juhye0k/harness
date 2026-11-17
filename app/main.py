@@ -7,13 +7,18 @@ from fastapi.staticfiles import StaticFiles
 from redis import Redis
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.adapters.auth_middleware import AuthMiddleware
 from app.adapters.sns_logging import install_sns_logging
 from app.api.analyses import router as analysis_router
+from app.api.auth import router as auth_router
+from app.api.data import router as data_router
 from app.api.jobs import router
 from app.api.sns import router as sns_router
 from app.api.transcript_review import router as review_router
+from app.api.verification import router as verification_router
 from app.api.web import STATIC
 from app.api.web import router as web_router
+from app.auth_models import User  # noqa: F401
 from app.config import get_settings
 from app.db import check_database
 from app.domain.jobs import JobError
@@ -23,11 +28,15 @@ from app.domain.video import VideoError
 logger = logging.getLogger(__name__)
 install_sns_logging()
 app = FastAPI(title="Shortform Harness", version="0.1.0")
+app.add_middleware(AuthMiddleware)
+app.include_router(auth_router)
+app.include_router(data_router)
 app.include_router(router)
 app.include_router(analysis_router)
 app.include_router(sns_router)
 app.include_router(review_router)
 app.include_router(web_router)
+app.include_router(verification_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

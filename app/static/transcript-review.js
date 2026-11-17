@@ -46,7 +46,7 @@ window.loadTranscriptReview = async (id) => {
       for (const row of data.segments) {
         if (filter.value==="flagged" && row.priority==="none" || filter.value==="unreviewed" && row.decision!==null) continue;
         if (filter.value==="sample" && !data.unflagged_sample_ids.includes(row.id)) continue;
-        const card=document.createElement("article"); card.className="subtitle-cue"; card.dataset.segmentId=row.id;
+        const card=document.createElement("article"); card.className="subtitle-cue"; card.dataset.segmentId=row.id; card.id=`review-${row.id}`;
         card.append(element("p",`${(row.start_ms/1000).toFixed(2)}~${(row.end_ms/1000).toFixed(2)}초 · ${row.priority}`),element("p",row.text));
         card.append(element("p",`인식: ${row.recognition_reasons.map(r=>labels[r]||r).join(" · ")||"탐지 신호 없음"} / 표시: ${row.display_reasons.join(" · ")||"없음"}`));
         card.append(element("p",`관측값: ${JSON.stringify(row.quality)} / 평가 불가: ${row.unavailable_metrics.join(", ")||"없음"}`));
@@ -75,6 +75,6 @@ window.loadTranscriptReview = async (id) => {
         card.append(play,note,...buttons,result); list.append(card);
       }
     };
-    filter.onchange=render; render();
+    filter.onchange=render; if(location.hash.startsWith('#review-'))filter.value='all'; render(); if(location.hash.startsWith('#review-'))document.getElementById(location.hash.slice(1))?.scrollIntoView();
   } catch(error) {if(epoch===reviewEpoch)status.textContent=`${error.message} 전사 완료 상태와 별개입니다.`;}
 };

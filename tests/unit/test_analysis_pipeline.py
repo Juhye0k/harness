@@ -71,6 +71,22 @@ class Providers:
         return {"candidates": []}, {}
 
 
+def test_measured_failure_keeps_safe_diagnostic_and_no_retry(tmp_path):
+    repo = Repository(tmp_path)
+    records = []
+    repo.call_finish = lambda *args: records.append(args)
+    error = VideoError("PROVIDER_AUTH", "fixed message")
+    error.provider_diagnostics = {"http_status": 403, "provider_code": None}
+
+    def fail():
+        raise error
+
+    with pytest.raises(VideoError):
+        analysis.measured(repo, repo.job, "transcription", fail)
+    assert repo.calls == ["transcription"] and len(records) == 1
+    assert records[0][-1]["provider_diagnostics"] == error.provider_diagnostics
+
+
 @pytest.mark.parametrize(
     "mode,expected",
     [

@@ -22,3 +22,18 @@ def recommendations():
 @router.get("/sns", include_in_schema=False)
 def sns():
     return FileResponse(STATIC / "sns.html", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/verification", include_in_schema=False)
+def verification_page():
+    return FileResponse(STATIC / "verification.html", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/login", include_in_schema=False)
+def login_page():
+    return FileResponse(STATIC / "login.html")
+
+
+@router.get("/my-data", include_in_schema=False)
+def data_page():
+    return FileResponse(STATIC / "my-data.html")

@@ -8,3 +8,4 @@
 - [현재 실행 흐름과 목표 사용자 흐름](runtime-flows.md)
 - [데이터 모델과 작업 생명주기](data-and-jobs.md)
 - [현재 API와 후속 API 설계 원칙](api-contract.md)
+- [Google 로그인과 사용자 데이터 관리 계획 — AUTH-DATA-001](user-auth-data-management.md)

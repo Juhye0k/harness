@@ -46,6 +46,8 @@ docker compose -f compose.integration.yaml down --volumes
 
 VIDEO-003부터 같은 runner가 Playwright Chromium 브라우저 검사도 실행한다. 테스트 이미지에 Chromium·시스템 라이브러리를 설치하며 production 이미지에는 추가하지 않는다. 실제 영상 흐름과 오류 응답 대역을 분리해 새로고침·중복 제출·통신 오류·미리보기·다운로드를 검증한다.
 
+검증 페이지의 [화면 회귀 검사](../../../tests/integration/test_shorts_verification.py)는 390·768·1440·1920px에서 가로 넘침·카드 겹침과 실제 사용 너비를 확인한다. 전체화면 진입·복귀, 새로고침 시 읽기 전용 조회, 표시 품질 미통과 시 SRT 다운로드 차단도 검사한다. 모바일 한 크기의 넘침 검사만으로는 공통 그리드 스타일 때문에 생기는 데스크톱 카드 겹침을 잡을 수 없었다. 원인과 수정 근거는 [작업 기록](records/2026-11-17-verification-layout.md)을 참고한다.
+
 ## CI와 검사 증거
 
 GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은 일반 이미지 빌드와 격리 Compose 검사를 수행한다. 배포·유료 모델 호출은 없다. 통합 실패 시 Compose 로그를 출력하고 종료 시 테스트 환경을 정리한다.

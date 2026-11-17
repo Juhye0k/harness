@@ -1,14 +1,29 @@
 # 구현 현황과 검증 기록
 
+> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
+
 > 상태: 2026-11-16 기준 스냅샷 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
 
 ## 현재 상태
 
+2026-11-17 게시 준비: 승인된 전사 복구·숏츠 표시/검증 화면·추천 평가·Google 인증·7일 자료 관리·하네스 기록을 통합했다. 아래의 로컬 미게시 문구와 검사 수치는 각 작업 당시 이력이며 현재 게시 검증 결과는 별도 기록한다.
+
 자막 포함 세로 출력 1단계: [고정 합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. 한국어 자막을 입힌 10초·720×1280 MP4·클립 기준 SRT·미리보기를 생성한다. 최신 main에서 이번 작업만 분리한 브랜치의 기본 **281개**·Linux 출력 **28개**·실제 인프라 통합 **58개**가 통과했다. 편집 UI·비동기 최종 출력·실제 발화 정렬은 후속이다. 기존 혼합 작업 폴더의 검증 이력은 [작업 기록](../05-development/harness/records/2026-11-17-subtitle-render-spike.md)에서 구분한다. GitHub Wiki 게시 전이다.
+AUTH-DATA-001 로컬 구현: Google 로그인·테스트 계정 승인·서버 세션, 업무 API·파일·SNS 소유권 검사, 새 자료 7일 만료·삭제·탈퇴를 추가했다. 기존 자료는 보존하고 자동 귀속하지 않는다. 실제 Google 계정 로그인·기존 DB 전환·운영 배포는 미실행이다. [설정·정리·제한](../05-development/user-auth-data.md)과 [작업 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)을 따른다.
+
+자막 편집·최종 출력의 첫 기술 확인(2026-11-17): [합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. Windows·Linux production 이미지에서 한글 1~2줄을 입힌 10.0초·720×1280 MP4와 클립 기준 SRT·미리보기·검사 보고서를 생성했다. 기본 **334개**, Linux 출력 회귀 **28개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **64개**와 검증 중 갱신된 브라우저 검사 **1개**가 통과했다. 한글 모양·줄바꿈은 PNG로 별도 확인했다. 입력은 고정 합성 영상과 시험음이며 실제 발화 정렬·가독성 평가는 아니다. 편집 저장·UI·비동기 최종 출력·SNS 연결은 후속이다. [작업 기록과 소스 범위](../05-development/harness/records/2026-11-17-subtitle-render-spike.md). 커밋·푸시·Wiki 게시 전이다.
+
+SHORTS-001: 빠른 자막 정책 `shorts-display-v1`과 기존 웹앱의 `/verification`을 추가했다. 1~3어절·1줄 중심·최대 2줄·0.45~1.8초·15자/초 기준이며, 미확정 구간이 있는 새 정책의 완성본 SRT는 서버에서 409로 차단한다. 실제 샘플은 정상 원 구간 19개·자막 60개(모두 1줄, 최장 1.68초), 검수 필요 102개로 전체 품질은 미달이다. 동시 작업에 의한 소스 변경을 감지해 별도 실행 스냅샷을 고정했고 기본 **303개**·실제 인프라 통합 **63개**를 통과했다. 배포한 로컬 API의 앱 해시가 검사 기록과 일치하며, 이후 작업 폴더 변경의 통과를 뜻하지 않는다. 원음 동기 자막·모바일 폭·새로고침 무변경·다운로드 차단을 실제 웹에서도 확인했다. [실행 기준과 제한](../05-development/shorts-display-policy.md). 커밋·푸시·Wiki 게시 전이다.
+
+RECO-EVAL-001 로컬 구현: 추천 평가 CLI에 원본·전사 입력 고정, 선택과 사용 가능 판정 분리, 구간 수정 이유, 회차 비교를 추가했다. 별도 반복 실행기는 등록된 주요 문제·사람 확인과 같은 코드의 연속 2회 전체 검사 통과로 종료한다. 고정 수정 횟수는 없고 실행 시간 한도를 적용한다. 기본 331개·실제 인프라/브라우저 통합 64개 통과. 실제 사람 평가 1~3회와 AI 코딩 작업자 연결은 아직 수행하지 않았다. [사용법과 제한](../05-development/recommendation-improvement-loop.md), [검증·개선 기록](../05-development/harness/changes/recommendation-improvement-loop.md).
 
 SNS-006 실제 계정 검증 완료: OAuth 채널 연결 후 승인된 720×1280·음성 포함 10초 합성 출력을 비공개로 업로드했다. YouTube API의 채널·제목·비공개·아동용 여부·처리 완료와 Studio Shorts 탭의 실제 분류를 확인했다. SNS 분리 워크트리의 기본 151개·통합 54개가 통과했다. OAuth 실패 코드 비노출과 오류 안내 유지 회귀 검사를 반영하며, 통합 브랜치의 기존 로그 보호·초안 재작성·상태 조회 경쟁 수정은 보존한다. [상세 기록](../05-development/harness/changes/sns-006-upload.md). 자동 세로 변환·운영 배포·원격 게시를 완료한 것으로 설명하지 않는다.
+
+TR-EVAL-002 / SUB-ALIGN-003 통합: 두 워크트리의 평가 도구·정답 입력 화면·구간별 단어 복구·검사를 현재 로컬 브랜치 `feat/integrate-transcript-quality`에 통합했다. 기본 **282개**, 합친 코드의 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **61개** 통과. 개발 API·워커에도 반영하고 보존 응답으로 새 검토 결과를 별도로 만들었다. 승인된 실제 샘플은 원 전사 121개·단어 복구 22개·표시 자막 125개다. 원문·시각 순서·영상 범위는 통과했으나 표시 제약 위반 23개·최장 21.483초·최대 9줄로 가독성 초안은 미달이다. 확인된 정답 전사가 없어 CER·탐지 품질은 평가 불가다. [평가 근거와 후속 과제](../05-development/harness/changes/transcript-quality-integration.md). 커밋·푸시·Wiki 게시 전이다.
+
+TR-001 후속 수정: 실제 전사 응답의 보조 단어 정보 불일치가 전사 전체를 실패시키는 문제를 수정했다. 원문·구간 시간·신뢰도를 보존하고 단어 정렬 제한을 명시한다. 승인된 샘플은 보존 응답을 오프라인으로 복구했으며 실패 이력은 유지했다. 기본 **256개**, 격리 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **59개** 통과. 실제 전사 화면의 121개 구간·검수 필터·음성 재생·새로고침 무변경도 확인했다. 통합 검사에서 발견한 SNS 상태 조회 선점 경쟁을 함께 수정했다. 이 변경은 로컬 상태이며 커밋·푸시·Wiki 게시 전이다. [상세 근거와 제한](../05-development/harness/changes/transcription-response-recovery.md)을 따른다.
 
 전사 자동 검수 로컬 구현: 규칙·선택 신뢰도 기반 의심 구간, 음성 Range 재생, 버전별 사람 판정과 revision 충돌 검사, 보고서·비표시 구간 표본을 추가했다. 기본 검사 **251개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **57개** 통과. [전사 검수 안내](../05-development/transcript-review.md). 기존 전사를 자동 재호출하지 않으며 새 Groq 분석은 quality-v3 캐시를 사용한다. 실제 탐지 품질·검수 시간 절감은 아직 평가하지 않았다.
 

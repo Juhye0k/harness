@@ -57,7 +57,8 @@ def inspect(segments):
                 "priority": "high"
                 if low
                 else "medium"
-                if reasons or set(display) - {"WORD_TIMESTAMPS_UNAVAILABLE"}
+                if reasons
+                or set(display) - {"WORD_TIMESTAMPS_UNAVAILABLE", "UNALIGNED_WORD_TIMESTAMPS"}
                 else "none",
                 "decision": None,
                 "note": "",

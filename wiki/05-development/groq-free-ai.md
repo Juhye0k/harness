@@ -58,7 +58,7 @@ API는 `POST /analyses`에 `mode: "transcription"`을 명시한다. 웹 기본�
 
 작업에 mode·전사/추천 제공자·모델·전사 버전을 저장한다. 전사 작업에는 추천 제공자 none, 추천 모델 null을 고정한다. 필요한 제공자가 대기 중 바뀌면 실패하고 몰래 다른 제공자를 사용하지 않는다. 전사 전용 작업은 추천 설정 변경의 영향을 받지 않는다. 이전 Groq 작업은 기존 provider 필드로, 그 이전 작업은 Azure·OpenAI로 해석한다. 전사는 최대 1회, 추천 모드에만 제안·평가 각 1회를 허용하며 재시도는 없다. 전사 180초, 추천 120초와 Celery 전체 실행 제한을 유지한다.
 
-401/403은 `PROVIDER_AUTH`, 429는 `PROVIDER_RATE_LIMIT`, 시간 초과는 `PROVIDER_TIMEOUT`, 잘못된 JSON·시간 정보는 `MODEL_RESPONSE_INVALID`다. 비용은 미측정 `null`, 사용량은 제공된 값만 기록한다.
+401과 명시적인 잘못된 키 응답은 `PROVIDER_AUTH`, 나머지 403은 `PROVIDER_ACCESS_DENIED`다. 403만으로 키가 잘못됐다고 단정하지 않는다. 429는 `PROVIDER_RATE_LIMIT`, 시간 초과는 `PROVIDER_TIMEOUT`, 잘못된 JSON·시간 정보는 `MODEL_RESPONSE_INVALID`다. 비용은 미측정 `null`, 사용량은 제공된 값만 기록한다.
 
 ## 검증과 남은 제한
 

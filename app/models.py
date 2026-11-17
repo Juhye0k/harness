@@ -38,6 +38,10 @@ class VideoJob(Base):
         ),
     )
 
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    legacy: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     task_id: Mapped[UUID] = mapped_column(Uuid, unique=True, nullable=False, default=uuid4)
     source_url: Mapped[str] = mapped_column(Text)
@@ -62,7 +66,13 @@ class VideoJob(Base):
 
 class Asset(Base):
     __tablename__ = "assets"
+
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    legacy: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     source_url: Mapped[str] = mapped_column(Text)
     path: Mapped[str | None] = mapped_column(Text)
     sha256: Mapped[str | None] = mapped_column(String(64))

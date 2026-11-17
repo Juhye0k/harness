@@ -7,6 +7,8 @@ x-app: &app
     DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
     REDIS_URL: redis://redis:6379/0
     APP_ENV: development
+    ENABLE_AUTH: ${ENABLE_AUTH:-false}
+    AUTH_ORIGIN: ${AUTH_ORIGIN:-http://localhost:8000}
     VIDEO_DATA_DIR: /data/jobs
     ENABLE_PAID_AI: ${ENABLE_PAID_AI:-false}
     ENABLE_FREE_AI: ${ENABLE_FREE_AI:-false}
@@ -29,6 +31,8 @@ services:
     <<: *app
     environment:
       <<: *app-environment
+      GOOGLE_LOGIN_CLIENT_ID: ${GOOGLE_LOGIN_CLIENT_ID:-}
+      GOOGLE_LOGIN_CLIENT_SECRET: ${GOOGLE_LOGIN_CLIENT_SECRET:-}
       ENABLE_SNS_UPLOAD: ${ENABLE_SNS_UPLOAD:-false}
       SNS_ORIGIN: ${SNS_ORIGIN:-http://localhost:8000}
       YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
@@ -86,6 +90,16 @@ services:
     volumes: ["video_data:/data:ro"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "sns"]
     mem_limit: 512m
+
+  cleanup:
+    <<: *app
+    profiles: ["auth"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["video_data:/data"]
+    command: ["/app/.venv/bin/python", "-m", "app.cli.cleanup_data", "--loop"]
+    mem_limit: 256m
 
   postgres:
     image: postgres:17-bookworm
