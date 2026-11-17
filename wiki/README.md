@@ -1,54 +1,46 @@
 # Shortform 프로젝트 위키
 
-> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
+**긴 영상에서 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼 영상으로 출력하는 서비스를 만든다.** 이 위키는 처음 합류한 개발자가 제품의 목적, 처리 흐름, 개발·검증 방법을 순서대로 이해하도록 안내한다.
 
-> 기준일: 2026-11-15 · 대상: 처음 합류한 개발자와 프로젝트 검토자
+> 기준일: 2026-11-18 · 대상: 신입 개발자·프로젝트 검토자
 
-롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
+## 지금 어디까지 만들었나
 
-**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. SNS-006은 [확인 후 YouTube 업로드](05-development/youtube-upload.md)를 추가하며 별도 승인된 합성 영상으로 실제 비공개 Shorts 업로드·Studio 분류를 확인했다. 자막 편집·최종 출력·로컬 영상 업로드는 로컬 구현했으며 운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
+링크·로컬 파일 입력, 한국어 전사 기반 추천, 후보 선택, 자막 편집·저장, 세로 MP4·SRT 다운로드, 확인 후 YouTube 업로드를 연결했다. 자동 검사에서는 AI·YouTube를 시험용 응답으로 대체하고 나머지 API·DB·워커·영상 처리를 실제로 실행한다.
 
-공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
-
-실제 Google 로그인 검증(2026-11-17): 격리된 로컬 환경에서 테스트 계정의 Google 인증·운영자 승인 후 내 자료 접근·새로고침 시 로그인 유지·로그아웃 후 접근 차단을 확인했다. [설정과 검증 범위](05-development/user-auth-data.md), [작업 기록](05-development/harness/records/2026-11-17-auth-data-plan.md)을 참고한다. 운영 배포는 별도다.
+실제 영상의 추천·자막 품질, 편집한 완성본의 실계정 게시, 운영 배포는 각각 별도 확인이 필요하다. 최신 결과는 [현재 현황](07-governance/status.md) 한 곳에서 확인한다.
 
 ## 처음 읽는 순서
 
-전체 사용자 흐름의 현재 구현은 [FLOW-001: 입력부터 자막 편집·출력·YouTube까지](05-development/complete-flow.md)를 참고한다. 자막 편집·최종 출력은 로컬 연결했으며 대역 E2E 통과와 실제 모델·계정 검증은 구분한다.
+| 순서 | 읽을 문서 | 읽고 이해할 내용 |
+|---|---|---|
+| 1 | [문제 정의](01-product/problem-definition.md) | 누구의 어떤 편집 작업을 줄이려는가 |
+| 2 | [전체 사용자 흐름](05-development/complete-flow.md) | 영상 입력부터 다운로드까지 무엇을 하는가 |
+| 3 | [시스템 구조](03-architecture/system-overview.md)·[실행 과정](03-architecture/runtime-flows.md) | API·DB·Redis·워커가 어떻게 연결되는가 |
+| 4 | [개발 환경 시작](05-development/onboarding.md) | 내 컴퓨터에서 어떻게 실행하는가 |
+| 5 | [개발 하네스](05-development/harness/README.md) | AI의 변경을 어떤 규칙과 검사로 확인하는가 |
+| 6 | [남은 단계](02-delivery/roadmap.md) | 다음에 무엇을 검증하고 확장할 것인가 |
 
-최근 [실제 자막 품질 평가와 두 변경 통합](05-development/harness/changes/transcript-quality-integration.md)을 진행했다. 원문·시간 범위는 보존했으나 고정 샘플의 표시 가독성 초안은 미달이며, 인식 정확도는 확인된 정답 전사가 필요하다.
+## 목적에 맞게 찾아보기
 
-1. [문제 정의](01-product/problem-definition.md)와 [범위](01-product/scope-and-reference.md)
-2. [현황과 검증 근거](07-governance/status.md)
-3. [단계별 실행 계획](02-delivery/roadmap.md)
-4. [시스템 구조](03-architecture/system-overview.md)와 [실행 흐름](03-architecture/runtime-flows.md)
-5. [기술 선택 근거](04-decisions/README.md)
-6. [개발 환경 시작](05-development/onboarding.md)과 [하네스 시작하기](05-development/harness/README.md)
-
-## 카테고리
-
-| 카테고리 | 찾을 수 있는 내용 |
+| 카테고리 | 여기서 찾는 답 |
 |---|---|
-| [01 제품](01-product/README.md) | 문제·사용자·가치·MVP·참고 제품 |
-| [02 실행 계획](02-delivery/README.md) | 0~6단계 설계와 완료 기준 |
-| [03 아키텍처](03-architecture/README.md) | 구성도·현재/목표 흐름·데이터·API |
-| [04 의사결정](04-decisions/README.md) | FastAPI·PostgreSQL·Redis/Celery와 대안 |
-| [05 개발](05-development/README.md) | 실행·검사·AI 협업·리뷰·용어 |
-| [06 운영](06-operations/README.md) | 배포·비용·확장·장애 점검 |
-| [07 관리](07-governance/README.md) | 구현 현황·미결정 사항·문서 규칙 |
+| [01 제품](01-product/README.md) | 사용자 문제·MVP 범위·참고 제품 |
+| [02 실행 계획](02-delivery/README.md) | 단계별 목표·작업 순서·완료 조건 |
+| [03 아키텍처](03-architecture/README.md) | 구성 요소·데이터·API·작업 상태 |
+| [04 기술 선택](04-decisions/README.md) | FastAPI·PostgreSQL·Redis/Celery를 고른 이유 |
+| [05 개발과 하네스](05-development/README.md) | 실행·자막·추천·테스트·AI 협업 |
+| [06 운영](06-operations/README.md) | 비용·배포 준비·장애 대응 |
+| [07 현황과 문서 관리](07-governance/README.md) | 현재 결과·미결정 사항·과거 검증 근거 |
 
-## 자주 찾는 질문
+## 자주 찾는 문서
 
-- Redis와 Celery는 무엇이 다른가? → [ADR-003](04-decisions/adr-003-redis-celery.md)
-- 지금 호출할 수 있는 API는? → [현재 API](03-architecture/api-contract.md)
-- 다음에 무엇을 구현하는가? → [2단계](02-delivery/phase-02-video-jobs.md)
-- 점수가 좋아졌는지 어떻게 아는가? → [AI 평가](02-delivery/phase-04-ai-evaluation.md)
-- ready는 정상인데 워커가 응답하지 않는다면? → [점검 절차](06-operations/runbook.md)
-- 어디까지 결정됐는가? → [미결정 목록](07-governance/open-decisions.md)
-- AI에게 어떤 요청을 했고 무엇을 얻었는가? → [프롬프트·결과와 포트폴리오 근거](05-development/harness/records/README.md)
+- 기능이 동작하는지 확인하기: [검증 절차](05-development/harness/verification.md)
+- 통신이 끊기거나 워커가 종료됐을 때: [실패 경로 검사](05-development/failure-path-testing.md)·[장애 대응](06-operations/runbook.md)
+- 추천과 자막이 실제로 쓸 만한지 평가하기: [추천 평가](05-development/recommendation-improvement-loop.md)·[전사 품질 평가](05-development/transcript-quality-evaluation.md)
+- AI에게 요청한 내용과 결과 찾기: [작업 기록](05-development/harness/records/README.md)
+- 위키에 새 문서 추가하기: [작성 규칙](07-governance/document-guide.md)
 
-## 문서 사용 원칙
+공식 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 저장소의 `wiki/`는 게시 원본이며, 코드 저장소 반영과 Wiki 게시를 따로 관리한다.
 
-구현 사실은 코드·검사 근거와 함께, 계획은 완료 조건과 함께 읽는다. 정하지 않은 공급자·일정·품질 목표는 임의로 확정하지 않는다. 문서를 추가할 때는 [작성 규칙](07-governance/document-guide.md)을 따른다.
-
-[저장소 README](../README.md) · [작업 규칙](../AGENTS.md) · [아키텍처 SVG](../docs/architecture.svg)
+[저장소 README](../README.md) · [작업 규칙](../AGENTS.md)

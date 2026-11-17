@@ -1,34 +1,49 @@
-# 개발과 하네스
+# 개발과 하네스 문서 찾기
+
+**처음 실행한다면 시작 안내를, 기능을 수정한다면 해당 기능 계약과 검증 절차를 읽는다.** 아래 문서는 작업 목적별로 묶었다. 모든 문서를 순서대로 읽을 필요는 없다.
 
 [위키 홈](../README.md)
 
-환경 실행, 검사, AI 협업과 리뷰 절차를 따른다.
+## 처음 합류했을 때
 
-- [신입 개발자 시작 안내](onboarding.md)
-- [개발 하네스 시작하기](harness/README.md)
-- [Google 로그인과 7일 자료 관리](user-auth-data.md)
-- [로컬 영상 파일 업로드](local-video-upload.md)
-- [AI와 함께 작업하는 절차](harness/workflow.md)
-- [프롬프트·결과와 포트폴리오 근거 기록](harness/records/README.md)
-- [검증 계층과 실행 방법](harness/verification.md)
-- [링크에서 10초 영상 추출](video-extraction.md)
-- [한국어 자막 포함 세로 영상 샘플 — 출력 1단계](portrait-subtitle-sample.md)
-- [입력부터 자막 편집·출력·YouTube까지 — FLOW-001](complete-flow.md)
-- [실패 경로 E2E 구현 계획 — FAIL-E2E-001](failure-path-testing.md)
-- [비동기 10초 추출과 중단 처리](async-video-jobs.md)
-- [웹 영상 추출과 브라우저 검증 — VIDEO-003](web-video-extraction.md)
-- [하이라이트 추천과 선택 추출 — VIDEO-004](highlight-recommendations.md)
-- [Groq 무료 전사·추천 설정](groq-free-ai.md)
-- [표시 자막 분할과 SRT](subtitle-segmentation.md)
-- [빠른 숏츠 자막과 웹 검증](shorts-display-policy.md)
-- [구간별 단어 정렬 복구와 경계 실험](word-alignment-recovery.md)
-- [전사 자동 검수와 사람 판정](transcript-review.md)
-- [전사 품질 평가와 정답 입력](transcript-quality-evaluation.md)
-- [실제 추천 품질 기준선 측정 — VIDEO-005](recommendation-quality-baseline.md)
-- [추천 피드백과 반복 개선 — RECO-EVAL-001](recommendation-improvement-loop.md)
-- [YouTube 계정 연결과 확인 후 업로드 — SNS-006](youtube-upload.md)
-- [VIDEO-002 요구사항과 검증](harness/video-002-requirements.md)
-- [코드 리뷰와 완료 기준](harness/review.md)
-- [요구사항과 검사 연결](harness/requirements-map.md)
-- [하네스 개선 기록](harness/changes/README.md)
-- [프로젝트 용어집](glossary.md)
+1. [신입 개발자 시작 안내](onboarding.md)에서 환경을 실행한다.
+2. [입력부터 자막 편집·출력까지](complete-flow.md)에서 사용자 흐름을 따라간다.
+3. [개발 하네스](harness/README.md)에서 작업 규칙과 검사 위치를 익힌다.
+
+## 입력·영상 처리·출력
+
+| 하고 싶은 작업 | 문서 |
+|---|---|
+| 링크의 10초 구간 추출 | [영상 추출 CLI](video-extraction.md) |
+| 로컬 영상 파일 입력 | [파일 업로드](local-video-upload.md) |
+| 비동기 작업·중단 처리 이해 | [비동기 작업](async-video-jobs.md) |
+| 추출 웹의 상태·오류 처리 | [웹 영상 추출](web-video-extraction.md) |
+| 후보 선택·자막 수정·최종 영상 생성 | [전체 사용자 흐름](complete-flow.md) |
+| 외부 호출 없이 한글 출력 확인 | [세로 출력 샘플 CLI](portrait-subtitle-sample.md) |
+
+## 전사·추천·자막 품질
+
+| 하고 싶은 작업 | 문서 |
+|---|---|
+| 추천 방식·선택 추출 이해 | [하이라이트 추천](highlight-recommendations.md) |
+| 무료 제공자 설정 | [Groq 설정](groq-free-ai.md) |
+| 자막 분할·SRT 확인 | [표시 자막](subtitle-segmentation.md)·[빠른 숏츠 정책](shorts-display-policy.md) |
+| 단어 시각이 부족한 구간 다루기 | [단어 정렬 복구](word-alignment-recovery.md) |
+| 의심 전사와 원음 확인 | [전사 검수](transcript-review.md) |
+| 정답 전사로 인식 정확도 측정 | [전사 품질 평가](transcript-quality-evaluation.md) |
+| 추천 후보의 사용 가능성 평가 | [기준선 측정](recommendation-quality-baseline.md)·[피드백과 반복 개선](recommendation-improvement-loop.md) |
+
+## 계정·자료·게시
+
+- [Google 로그인·내 자료·7일 관리](user-auth-data.md)
+- [YouTube 연결·최종 확인·업로드](youtube-upload.md)
+
+## AI와 개발하고 검증하기
+
+- 작업 시작: [AI 협업 절차](harness/workflow.md)
+- 구현 결과 확인: [검증 순서](harness/verification.md)·[실패 경로 E2E](failure-path-testing.md)
+- 리뷰와 완료 판단: [코드 리뷰](harness/review.md)
+- 요구사항의 검사 위치: [전체 연결표](harness/requirements-map.md)·[비동기 작업 연결표](harness/video-002-requirements.md)
+- 무엇을 요청하고 얻었는지 기록: [프롬프트·결과 기록](harness/records/README.md)
+- 반복 실패의 원인 찾기: [하네스 개선 이력](harness/changes/README.md)
+- 낯선 용어 확인: [용어집](glossary.md)
