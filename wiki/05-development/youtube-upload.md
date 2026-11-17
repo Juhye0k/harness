@@ -1,6 +1,6 @@
 # YouTube 계정 연결과 확인 후 업로드 — SNS-006
 
-> 상태: 로컬 구현 · 실제 계정 연결·게시 미검증 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
+> 상태: 로컬 구현 · 실제 비공개 Shorts 업로드·Studio 분류 확인 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [개발 목차](README.md)
 
@@ -12,7 +12,7 @@
 
 ## 설정과 실행
 
-1. Google Cloud에서 YouTube Data API v3를 켜고 OAuth 동의 화면을 설정한다. 개발용 테스트 사용자와 **웹 애플리케이션** OAuth 클라이언트를 준비한다.
+1. Google Cloud에서 YouTube Data API v3를 켜고 OAuth 동의 화면을 설정한다. 개발용 테스트 사용자와 **웹 애플리케이션** OAuth 클라이언트를 준비한다. 연결할 Google 계정에는 YouTube 채널이 있어야 한다. Google 로그인만 가능한 계정은 YouTube에서 채널을 먼저 만든 뒤 다시 연결한다. 채널 조회 실패 안내는 계정 목록이 비어 있어도 화면에 유지된다.
 2. 승인된 리디렉션 URI를 `http://localhost:8000/sns/youtube/callback`으로 등록한다. 앱을 여는 주소와 `SNS_ORIGIN`을 정확히 맞춘다. `localhost`와 `127.0.0.1`은 별도 주소다.
 3. 환경 변수로 `ENABLE_SNS_UPLOAD=true`, `SNS_ORIGIN`, `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `SNS_TOKEN_KEY`를 주입한다. 기본은 비활성화다. 테스트용 자격 증명을 실제 설정에 사용하지 않는다.
 4. 암호화 키는 `uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`로 생성해 비공개 비밀 저장소에 보관한다. 생성한 값과 토큰을 Git·로그에 남기지 않는다. API와 SNS 워커가 같은 키를 사용해야 하며, 키를 잃으면 다시 연결해야 한다. 키 교체·재암호화 도구는 없다.
@@ -51,7 +51,13 @@ docker compose -p shortform-sns-local -f compose.integration.yaml run --rm runne
 docker compose -p shortform-sns-local -f compose.integration.yaml down --volumes
 ```
 
-이 테스트 프로젝트만 정리한다. 호스트 포트를 열거나 개발 DB·Redis·영상 볼륨을 공유하지 않는다. [검사 연결·작업 기록](harness/changes/sns-006-upload.md)에서 실제 실행 결과를 확인한다. 실제 Google 동의 화면·토큰 만료 및 철회·계정별 업로드 한도·실제 업로드·YouTube 처리 품질은 미검증이다. 실제 계정·출력 버전·제목·공개 범위의 별도 명시적 승인 전에는 실제 요청을 실행하지 않는다.
+이 테스트 프로젝트만 정리한다. 호스트 포트를 열거나 개발 DB·Redis·영상 볼륨을 공유하지 않는다. [검사 연결·작업 기록](harness/changes/sns-006-upload.md)에서 실제 실행 결과를 확인한다. 실제 Google 동의와 채널 연결은 별도 승인된 로컬 테스트에서 확인했다. 토큰 만료 및 철회·계정별 업로드 한도·YouTube 처리 품질은 미검증이다. 승인된 가로 합성 영상 1건의 일반 업로드와 세로 합성 영상 1건의 비공개 Shorts 업로드를 확인했다. 세로 파일은 720×1280·10.000초이며 YouTube 처리 완료와 Studio Shorts 탭 분류를 확인했다. 실제 계정·출력 버전·제목·공개 범위의 별도 명시적 승인 전에는 실제 요청을 실행하지 않는다.
+
+## Shorts 출력 확인
+
+[YouTube 공식 기준](https://support.google.com/youtube/answer/15424877?hl=ko)은 정사각형 또는 세로 비율이고 길이가 3분 이내인 새 업로드를 Shorts로 분류한다. 길이가 짧은 가로 영상을 Shorts로 설명하지 않는다. Shorts 테스트 전에는 실제 출력의 영상 트랙 폭·높이, 픽셀 비율, 길이·음성·디코딩·해시를 확인하고 Studio의 Shorts 탭에서 실제 분류 결과를 확인한다.
+
+현재 추출기는 원본 화면 비율을 보존하며 가로 영상을 자동으로 9:16으로 바꾸는 제품 기능은 없다. 이번 실제 Shorts 테스트는 별도 720×1280 세로 합성 출력을 준비해 사용자 승인 후 비공개로 업로드하고 Studio Shorts 탭에서 실제 분류를 확인했다. 출력이 바뀌면 새 해시에 대한 승인을 받고 새 작업으로 전송하며, 이미 올린 영상의 로컬 파일을 덮어쓰지 않는다.
 
 ## 공식 문서 확인
 

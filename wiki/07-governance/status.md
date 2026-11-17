@@ -6,6 +6,8 @@
 
 ## 현재 상태
 
+SNS-006 실제 계정 검증 완료: OAuth 채널 연결 후 승인된 720×1280·음성 포함 10초 합성 출력을 비공개로 업로드했다. YouTube API의 채널·제목·비공개·아동용 여부·처리 완료와 Studio Shorts 탭의 실제 분류를 확인했다. SNS 분리 워크트리의 기본 151개·통합 54개가 통과했다. OAuth 실패 코드 비노출과 오류 안내 유지 회귀 검사를 반영하며, 통합 브랜치의 기존 로그 보호·초안 재작성·상태 조회 경쟁 수정은 보존한다. [상세 기록](../05-development/harness/changes/sns-006-upload.md). 자동 세로 변환·운영 배포·원격 게시를 완료한 것으로 설명하지 않는다.
+
 전사 자동 검수 로컬 구현: 규칙·선택 신뢰도 기반 의심 구간, 음성 Range 재생, 버전별 사람 판정과 revision 충돌 검사, 보고서·비표시 구간 표본을 추가했다. 기본 검사 **251개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **57개** 통과. [전사 검수 안내](../05-development/transcript-review.md). 기존 전사를 자동 재호출하지 않으며 새 Groq 분석은 quality-v3 캐시를 사용한다. 실제 탐지 품질·검수 시간 절감은 아직 평가하지 않았다.
 
 2026-11-16 통합 검증: 자막 분할·SRT와 SNS-006 변경을 Groq 전사 기반 위에 통합했다. Docker 엔진 복구 후 기본 **235개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **56개**를 통과했다. SNS 워커 로그 보호와 만료 초안 재작성 결함을 회귀 검사와 함께 수정했다. 커밋·푸시·GitHub CI·Wiki 게시·실계정 업로드는 아직 수행하지 않았다. [통합 근거와 남은 검사](../05-development/harness/changes/integration-subtitles-sns.md)를 따른다. 아래의 Docker 차단·개별 검사 수치는 통합 전 이력이다.
@@ -37,7 +39,7 @@ VIDEO-002의 CLI·비동기 API는 [PR #1](https://github.com/Juhye0k/short-form
 | 링크 입력·업무 워커 연결 | 로컬 구현 | 기존 영상 서비스를 Celery에 연결; 웹 업로드 미구현 |
 | 전사 기반 AI 추천·선택 추출 | 구현·로컬 검증 완료 | VIDEO-004, 제공자 대역 통합 검사 / 실제 모델 품질 미평가 |
 | 다운로드 API / 웹 화면 / 자막 편집 | API·추출 화면 구현 / 자막 편집 미구현 | VIDEO-003은 지정 구간 추출 흐름 |
-| YouTube 업로드 | 로컬 구현·실제 게시 미검증 | SNS-006, 브라우저 세션별 OAuth·최종 확인·제공자 대역 검사 |
+| YouTube 업로드 | 로컬 구현·실제 비공개 Shorts 분류 확인 | SNS-006, 브라우저 세션별 OAuth·최종 확인·제공자 대역 검사 |
 | 일반 사용자 인증·운영 배포·자동 복구 | 미구현 | SNS 세션은 전체 서비스 사용자 인증을 대신하지 않음 |
 | 카테고리형 프로젝트 위키 | 작성 | [위키 홈](../README.md) |
 

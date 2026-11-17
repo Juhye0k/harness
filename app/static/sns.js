@@ -71,6 +71,7 @@ async function loadAccounts() {
   $("disconnect").disabled = !accounts.length;
   $("upload-form").hidden = !accounts.length || Boolean(current);
   if (!accounts.length) notice("먼저 업로드할 YouTube 채널을 연결하세요.");
+  return accounts;
 }
 async function start() {
   try {
@@ -80,8 +81,15 @@ async function start() {
     const params = new URL(location.href).searchParams;
     if (params.get("job")) sessionStorage.setItem("sns.job", params.get("job"));
     $("job").value = sessionStorage.getItem("sns.job") || "";
-    notice(params.get("oauth") === "error" ? "계정 연결을 완료하지 못했어요. 다시 연결하세요." : "");
-    await loadAccounts();
+    notice("");
+    const accounts = await loadAccounts();
+    if (params.get("oauth") === "error") {
+      notice(params.get("reason") === "channel_unavailable"
+        ? "선택한 Google 계정에서 YouTube 채널을 확인하지 못했어요. YouTube에서 채널을 만들거나 기존 채널이 있는 계정을 선택한 뒤 다시 연결하세요."
+        : "계정 연결을 완료하지 못했어요. 다시 연결하세요.");
+    } else if (params.get("oauth") === "connected" && accounts.length) {
+      notice("YouTube 채널을 연결했어요. 아래에서 영상과 업로드 설정을 확인하세요.");
+    }
     await loadUpload();
   } catch { notice("설정을 조회하지 못했어요. 연결과 서버 설정을 확인한 뒤 새로고침하세요.", true); }
 }

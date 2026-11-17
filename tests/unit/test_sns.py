@@ -383,3 +383,34 @@ def test_changed_provider_channel_blocks_upload_before_remote_write(settings):
     assert provider.calls == ["token"]
     assert repo.upload.status == "failed"
     assert repo.upload.error_code == "ACCOUNT_CHANGED"
+
+
+@pytest.mark.parametrize(
+    "code,expected",
+    [("CHANNEL_UNAVAILABLE", "CHANNEL_UNAVAILABLE"), ("raw-sensitive-error", "OAUTH_FAILED")],
+)
+def test_callback_diagnostics_log_only_known_codes(settings, monkeypatch, caplog, code, expected):
+    def fail(*args, **kwargs):
+        raise ProviderFailure(code)
+
+    monkeypatch.setattr(api.sns, "complete_oauth", fail)
+    monkeypatch.setattr(api, "get_settings", lambda: settings)
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[api.repository] = lambda: object()
+    try:
+        with TestClient(app, base_url="http://testserver") as client:
+            client.get("/sns/session")
+            response = client.get(
+                "/sns/youtube/callback?code=secret-code&state=secret-state", follow_redirects=False
+            )
+        assert response.status_code == 303
+        target = "/sns?oauth=error"
+        if expected == "CHANNEL_UNAVAILABLE":
+            target += "&reason=channel_unavailable"
+        assert response.headers["location"] == target
+        assert f"SNS OAuth callback failed: code={expected}" in caplog.text
+        assert "secret-code" not in caplog.text
+        assert "secret-state" not in caplog.text
+        assert "raw-sensitive-error" not in caplog.text
+    finally:
+        app.dependency_overrides.clear()
