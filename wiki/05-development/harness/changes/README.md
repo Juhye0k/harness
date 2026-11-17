@@ -7,7 +7,10 @@
 같은 실패를 다시 잡을 수 있도록 검사·지침·실행 환경을 개선한 경우 기록한다. 단순 파일명 수정마다 문서를 만들지는 않는다. 제품 실행 JSON이나 원본 대화를 이곳에 복사하지 않는다.
 
 - [기록 양식](template.md)
+- [RECO-EVAL-001: 선택 피드백과 종료 조건 기반 개선 루프](recommendation-improvement-loop.md)
 - [TR-001: 전사 검수 자동 분류와 판정 저장](transcript-review-v1.md)
+- [TR-001 후속: 실제 전사 응답 복구와 SNS 선점 경쟁 수정](transcription-response-recovery.md)
+- [전사 평가·단어 정렬 통합과 실제 샘플 품질](transcript-quality-integration.md)
 - [자막·SNS 변경 통합과 검사 환경 복구](integration-subtitles-sns.md)
 - [VIDEO-001: 시간 초과 후 자식 프로세스가 남는 문제](video-001-process-timeout.md)
 - [VIDEO-005: Groq 무료 모드와 통합 이미지 검사](video-005-groq-free.md)

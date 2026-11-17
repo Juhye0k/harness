@@ -122,7 +122,7 @@ def test_oversize_rejected_before_network(tmp_path, monkeypatch):
     "status,code",
     [
         (401, "PROVIDER_AUTH"),
-        (403, "PROVIDER_AUTH"),
+        (403, "PROVIDER_ACCESS_DENIED"),
         (429, "PROVIDER_RATE_LIMIT"),
         (500, "PROVIDER_FAILED"),
         (302, "PROVIDER_FAILED"),
@@ -270,7 +270,7 @@ def test_transcript_get_does_not_read_incomplete_job(monkeypatch, state):
         [{"start": 1, "end": 2, "word": "한국어 문장"}, {"start": 2, "end": 3, "word": "추가"}],
     ],
 )
-def test_word_contract_failure_is_explicit_without_retry(tmp_path, monkeypatch, words):
+def test_unusable_word_metadata_preserves_original_without_retry(tmp_path, monkeypatch, words):
     audio = tmp_path / "audio.mp3"
     audio.write_bytes(b"fixture")
     calls = []
@@ -283,9 +283,18 @@ def test_word_contract_failure_is_explicit_without_retry(tmp_path, monkeypatch, 
         )
 
     mock_http(monkeypatch, handler)
-    with pytest.raises(VideoError) as exc:
-        ai.Providers(settings()).transcribe(audio)
-    assert exc.value.code == "MODEL_RESPONSE_INVALID" and len(calls) == 1
+    raw, _ = ai.Providers(settings()).transcribe(audio)
+    segments = normalize(raw, 5000)
+    assert len(calls) == 1
+    assert segments == [
+        {
+            "id": "s0000",
+            "start_ms": 1000,
+            "end_ms": 3000,
+            "text": "한국어 문장",
+            "word_timestamps_issue": "UNALIGNED_WORD_TIMESTAMPS",
+        }
+    ]
 
 
 def test_no_speech_word_response_is_valid(tmp_path, monkeypatch):
@@ -294,6 +303,28 @@ def test_no_speech_word_response_is_valid(tmp_path, monkeypatch):
     mock_http(monkeypatch, lambda r: httpx.Response(200, json={"segments": [], "words": []}))
     raw, _ = ai.Providers(settings()).transcribe(audio)
     assert normalize(raw, 3000) == []
+
+
+def test_approximate_words_never_destroy_primary_transcript_or_quality():
+    from copy import deepcopy
+
+    from app.adapters.groq import parse_transcription
+    from app.domain.subtitles import build_subtitles
+    from app.domain.transcript_review import inspect
+
+    raw = {
+        "segments": [{"start": 0, "end": 2, "text": "primary text", "avg_logprob": -0.2}],
+        "words": [{"start": 0, "end": 2.14, "word": "primary text extra"}],
+    }
+    before = deepcopy(raw)
+    segments = normalize(parse_transcription(raw), 3000)
+    assert raw == before
+    assert segments[0]["text"] == "primary text"
+    assert segments[0]["start_ms"] == 0 and segments[0]["end_ms"] == 2000
+    assert segments[0]["quality"] == {"avg_logprob": -0.2}
+    assert "words" not in segments[0]
+    assert "UNALIGNED_WORD_TIMESTAMPS" in build_subtitles(segments)["cues"][0]["warnings"]
+    assert inspect(segments)["flagged"] == 0
 
 
 def test_old_groq_segment_only_job_rejected_before_any_call():
@@ -310,3 +341,41 @@ def test_groq_job_without_pinned_transcript_version_is_not_reinterpreted():
     with pytest.raises(VideoError) as exc:
         ai.validate_job_config(config, settings())
     assert exc.value.code == "PROVIDER_CONFIG"
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx.Response(
+            403,
+            json={
+                "error": {"code": "model_permission_blocked_project", "message": "private-secret"}
+            },
+        ),
+        httpx.Response(403, text="error code: 1010 private-secret"),
+        httpx.Response(403, json={"error": {"code": "private-secret"}}),
+    ],
+)
+def test_failure_diagnostics_do_not_save_raw_secrets_or_retry(monkeypatch, response):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return response
+
+    mock_http(monkeypatch, handler)
+    with pytest.raises(VideoError) as failure:
+        groq.GroqProvider(settings()).request("/audio/transcriptions", timeout=1)
+    details = failure.value.provider_diagnostics
+    assert details["http_status"] == 403
+    assert "private-secret" not in str(details)
+    assert len(calls) == 1
+
+
+def test_403_invalid_key_is_distinct_from_generic_access_denial():
+    invalid_key = httpx.Response(403, json={"error": {"code": "invalid_api_key"}})
+    denied = httpx.Response(403, json={"error": "Access denied. private-secret"})
+    assert groq.request_error(invalid_key).code == "PROVIDER_AUTH"
+    error = groq.request_error(denied)
+    assert error.code == "PROVIDER_ACCESS_DENIED"
+    assert "private-secret" not in str(error)

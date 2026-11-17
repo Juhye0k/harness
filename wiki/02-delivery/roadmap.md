@@ -1,12 +1,16 @@
 # 단계별 실행 계획
 
+> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
+
 > 상태: 진행 계획 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
 
 ## 단계 운영 원칙
 
-VIDEO-005는 [Groq 무료 연동](../05-development/groq-free-ai.md)과 품질 평가 준비를 진행했다. 로컬 자동 검증은 완료했으며 다음 단계는 Free 계정 키 설정과 승인된 한국어 샘플의 실제 평가다.
+추천 개선은 [RECO-EVAL-001](../05-development/recommendation-improvement-loop.md)에 따라 수작업 평가·수정·재검증 1~3회로 절차를 확인한 뒤 반복 하네스로 옮긴다. 실제 추천 품질 평가와 자율 AI 작업자 연결은 도구 구현과 구분한다.
+
+VIDEO-005는 [Groq 무료 연동](../05-development/groq-free-ai.md)과 승인된 한국어 샘플의 전사 생성을 진행했다. TR-EVAL-002의 [정답 입력·품질 평가](../05-development/transcript-quality-evaluation.md)와 SUB-ALIGN-003의 [구간별 단어 복구](../05-development/word-alignment-recovery.md)를 통합했다. 고정 샘플의 원문·시간 범위 보존은 통과했으나 표시 가독성 초안은 미달이다. 다음은 남은 긴 자막·짧은 표시 개선과 원음을 확인한 정답 전사에 근거한 인식 정확도 평가다. 코드 검사 통과를 실제 품질 통과로 해석하지 않는다.
 
 전사와 추천은 독립 설정이며 현재 기본은 Groq 전사·추천 비활성이다. 먼저 대사와 시간 정보만 평가하고, 이후 저장된 전사를 추천 실험에 재사용한다.
 

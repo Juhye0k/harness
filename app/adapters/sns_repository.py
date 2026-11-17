@@ -100,6 +100,12 @@ class SnsRepository:
             return account
 
     def output(self, job_id):
+        from app.services.access import acquire, current_user, release
+
+        user = current_user.get()
+        if user:
+            uses = acquire(user, [("job", job_id)], self.engine)
+            release(uses, self.engine)
         with Session(self.engine) as session:
             job = session.get(VideoJob, job_id)
             if job is None or job.status != "succeeded":
@@ -262,13 +268,13 @@ class SnsRepository:
 
     def claim_probe(self, upload_id, task_id):
         with Session(self.engine, expire_on_commit=False) as session, session.begin():
-            return session.scalar(
-                update(SnsUpload)
-                .where(
-                    SnsUpload.id == upload_id,
-                    SnsUpload.status == "unknown",
-                    SnsUpload.probe_task_id == task_id,
-                )
-                .values(probe_task_id=None)
-                .returning(SnsUpload)
+            # Delivery can precede request_probe's commit. Lock by identity first,
+            # then check the committed token; an UPDATE predicate can skip it early.
+            upload = session.scalar(
+                select(SnsUpload).where(SnsUpload.id == upload_id).with_for_update()
             )
+            if upload is None or upload.status != "unknown" or upload.probe_task_id != task_id:
+                return None
+            upload.probe_task_id = None
+            session.flush()
+            return upload

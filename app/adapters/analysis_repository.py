@@ -17,6 +17,7 @@ from app.models import (
     VideoJob,
     utcnow,
 )
+from app.services.access import ownership_values
 
 
 class AnalysisRepository:
@@ -30,7 +31,7 @@ class AnalysisRepository:
                 if asset is None or asset.state != "ready":
                     raise JobError("ASSET_NOT_READY", "사용할 수 있는 원본이 없습니다.", 409)
             else:
-                asset = Asset(source_url=url)
+                asset = Asset(source_url=url, **ownership_values())
                 s.add(asset)
                 s.flush()
             job = AnalysisJob(asset_id=asset.id, genre=genre, purpose=purpose, config=config)
@@ -238,6 +239,9 @@ class AnalysisRepository:
             asset = s.get(Asset, analysis.asset_id)
             data = candidate.data
             job = VideoJob(
+                user_id=asset.user_id,
+                legacy=asset.legacy,
+                expires_at=asset.expires_at,
                 source_url=asset.source_url,
                 asset_id=asset.id,
                 candidate_id=candidate_id,

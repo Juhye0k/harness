@@ -17,12 +17,103 @@ from app.adapters.ai import (
     status_error,
 )
 from app.domain.recommendations import Proposals, Scores, invalid
-from app.domain.subtitles import compact, validate_words
 from app.domain.transcript_review import quality
 from app.domain.video import VideoError
 
 MAX_AUDIO_BYTES = 25_000_000
 BASE_URL = "https://api.groq.com/openai/v1"
+
+
+def failure_diagnostics(response):
+    """Only fixed codes/categories; never persist raw error bodies or credentials."""
+    allowed = {
+        "model_permission_blocked_org",
+        "model_permission_blocked_project",
+        "invalid_api_key",
+        "insufficient_permissions",
+        "organization_restricted",
+        "access_denied",
+        "rate_limit_exceeded",
+        "empty_audio_file",
+    }
+    try:
+        raw = response.json()
+        error = raw.get("error", {}) if isinstance(raw, dict) else {}
+        code = error.get("code") if isinstance(error, dict) else None
+        kind = "json"
+    except ValueError:
+        code = None
+        kind = "html" if "html" in response.headers.get("content-type", "") else "other"
+    return {
+        "http_status": response.status_code,
+        "provider_code": code if isinstance(code, str) and code in allowed else None,
+        "response_kind": kind,
+        "edge_error_1010": "1010" in response.text and "error" in response.text.lower(),
+    }
+
+
+def parse_transcription(raw):
+    try:
+        segments = raw["segments"]
+        if not isinstance(segments, list):
+            raise ValueError()
+        if len(segments) > 2000:
+            raise VideoError("TRANSCRIPT_LIMIT", "전사 구간 제한을 초과했습니다.")
+        phrases = []
+        for segment in segments:
+            start, end = segment["start"], segment["end"]
+            if any(type(t) not in (int, float) or not math.isfinite(t) for t in (start, end)):
+                raise ValueError()
+            if start < 0 or end <= start:
+                raise ValueError()
+            if not isinstance(segment["text"], str):
+                raise ValueError()
+            phrases.append(
+                {
+                    "offsetMilliseconds": round(start * 1000),
+                    "durationMilliseconds": round(end * 1000) - round(start * 1000),
+                    "text": segment["text"],
+                    "quality": quality(segment),
+                }
+            )
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise invalid() from exc
+    from app.domain.word_alignment import recover
+
+    source_segments = [
+        {
+            "id": f"s{index:04d}",
+            "start_ms": phrase["offsetMilliseconds"],
+            "end_ms": phrase["offsetMilliseconds"] + phrase["durationMilliseconds"],
+            "text": phrase["text"],
+        }
+        for index, phrase in enumerate(phrases)
+    ]
+    aligned, report = recover(source_segments, raw.get("words"))
+    for phrase, segment in zip(phrases, aligned, strict=True):
+        if "words" in segment:
+            phrase["words"] = segment["words"]
+        else:
+            phrase["word_timestamps_issue"] = "UNALIGNED_WORD_TIMESTAMPS"
+    return {
+        "phrases": phrases,
+        "_normalized_word_timestamps": True,
+        "_word_alignment": {k: v for k, v in report.items() if k != "segments"},
+    }
+
+
+def request_error(response):
+    diagnostics = failure_diagnostics(response)
+    # 403 alone is not evidence of an invalid credential.
+    if response.status_code == 403 and diagnostics["provider_code"] != "invalid_api_key":
+        error = VideoError(
+            "PROVIDER_ACCESS_DENIED",
+            "Groq가 요청 접근을 거부했습니다. 키 인증과 별도로 제공자 권한·요청 제한을 확인하세요.",
+        )
+    else:
+        error = status_error(response.status_code)
+    error.provider_diagnostics = diagnostics
+    return error
 
 
 class GroqProvider:
@@ -42,7 +133,7 @@ class GroqProvider:
                     **kwargs,
                 )
             if not 200 <= response.status_code < 300:
-                raise status_error(response.status_code)
+                raise request_error(response)
             raw = response.json()
             if not isinstance(raw, dict):
                 raise invalid()
@@ -70,76 +161,15 @@ class GroqProvider:
                     "temperature": "0",
                 },
             )
-        try:
-            segments = raw["segments"]
-            if not isinstance(segments, list):
-                raise ValueError()
-            if len(segments) > 2000:
-                raise VideoError("TRANSCRIPT_LIMIT", "전사 구간 제한을 초과했습니다.")
-            phrases = []
-            for segment in segments:
-                start, end = segment["start"], segment["end"]
-                if any(type(t) not in (int, float) or not math.isfinite(t) for t in (start, end)):
-                    raise ValueError()
-                if start < 0 or end <= start:
-                    raise ValueError()
-                phrases.append(
-                    {
-                        "offsetMilliseconds": round(start * 1000),
-                        "durationMilliseconds": round(end * 1000) - round(start * 1000),
-                        "text": segment["text"],
-                        "quality": quality(segment),
-                    }
-                )
-            words = raw["words"]
-            if not isinstance(words, list) or len(words) > 60000:
-                raise ValueError()
-            cursor = 0
-            for phrase in phrases:
-                phrase["words"] = []
-                covered = ""
-                if not isinstance(phrase["text"], str):
-                    raise ValueError()
-                target = compact(phrase["text"])
-                while len(covered) < len(target):
-                    word = words[cursor]
-                    start, end = word["start"], word["end"]
-                    if any(
-                        type(t) not in (int, float) or not math.isfinite(t) for t in (start, end)
-                    ):
-                        raise ValueError()
-                    normalized = {
-                        "text": word["word"],
-                        "start_ms": round(start * 1000),
-                        "end_ms": round(end * 1000),
-                    }
-                    if not isinstance(normalized["text"], str):
-                        raise ValueError()
-                    covered += compact(normalized["text"])
-                    if not target.startswith(covered):
-                        raise ValueError()
-                    phrase["words"].append(normalized)
-                    cursor += 1
-                if target:
-                    validate_words(
-                        {
-                            "text": phrase["text"],
-                            "words": phrase["words"],
-                            "start_ms": phrase["offsetMilliseconds"],
-                            "end_ms": phrase["offsetMilliseconds"] + phrase["durationMilliseconds"],
-                        }
-                    )
-            if cursor != len(words):
-                raise ValueError()
-        except (KeyError, IndexError, TypeError, ValueError, OverflowError) as exc:
-            raise invalid() from exc
-        return {"phrases": phrases, "_normalized_word_timestamps": True}, {
+        parsed = parse_transcription(raw)
+        return parsed, {
             "provider": "groq",
             "model": GROQ_ASR_MODEL,
             "request_id": request_id,
             "usage": None,
             "cost": None,
             "version": GROQ_ASR_VERSION,
+            "word_alignment": parsed["_word_alignment"],
         }
 
     def recommend(self, stage, payload, model):

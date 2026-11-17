@@ -48,6 +48,8 @@
 
 ## 비동기 확장
 
+AUTH-DATA-001은 [인증·자료 관리 계약](../user-auth-data.md)을 따른다. `test_auth_data.py`가 실제 PostgreSQL에서 A/B 사용자 경계·로그인 승인·콜백 재사용·CSRF·로그아웃·만료·삭제·탈퇴·Range 다운로드와 실제 브라우저를 검사한다. `test_google_login.py`는 공식 검증 함수의 오류 전파·nonce·최근 재인증을, `test_auth_safety.py`는 관리 루트 밖 삭제 거부와 토큰 해시 경계를 확인한다. 실제 Google 로그인은 일반 CI와 분리한다.
+
 VIDEO-002는 [별도 요구사항 연결표](video-002-requirements.md)에서 API·상태 전이·중복·실패·다운로드를 관리한다.
 
 VIDEO-003은 [웹 사용자 흐름과 검사 연결표](../web-video-extraction.md)에서 새로고침·통신 오류·브라우저 다운로드를 관리한다.
@@ -59,3 +61,6 @@ VIDEO-005의 [Groq 무료 연동](../groq-free-ai.md)은 `test_groq_provider.py`
 VIDEO-005-SUBTITLES는 [표시 자막 계약](../subtitle-segmentation.md)을 `test_subtitles.py`의 21초·173자 무손실·문자/시간 오류·구버전 fallback·불가능한 제약·읽기 전용 SRT 검사와 연결한다. Groq 대역은 word/segment 동시 요청·v1 거절을, `test_analysis_flow.py`는 실제 DB·Celery 보존과 브라우저 SRT·재접수 방지를 검증한다. 실제 음성 정렬은 일반 CI 밖이다.
 
 SNS-006은 [YouTube 확인·중복·미확정 처리 연결표](changes/sns-006-upload.md)에서 OAuth·출력 버전·최종 확인·전송과 상태 조회를 관리한다.
+# 빠른 숏츠 표시 정책 추가 연결
+
+SHORTS-001의 정책·완성본 차단·검증 화면은 [정책 계약](../shorts-display-policy.md)을 따른다. `test_shorts_policy.py`가 21초/9줄·짧은 표시·어절 내부 토큰·서버 차단·호환 API·이전 코드 검사 기록을 확인하고, `test_shorts_verification.py`가 실제 DB·워커·브라우저로 새 정책과 웹 상태를 확인한다. 단어 시간이 없는 원문을 생략하거나 타이밍을 추정해 검사를 통과시키지 않는다.

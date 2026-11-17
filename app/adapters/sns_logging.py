@@ -7,7 +7,7 @@ class SnsAccessFilter(logging.Filter):
     def filter(self, record):
         if isinstance(record.args, tuple) and len(record.args) == 5:
             args = list(record.args)
-            if str(args[2]).startswith("/sns/"):
+            if str(args[2]).startswith(("/sns/", "/auth/")):
                 args[2] = str(args[2]).split("?", 1)[0]
                 record.args = tuple(args)
         return True

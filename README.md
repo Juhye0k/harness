@@ -1,6 +1,6 @@
 # Shortform Harness
 
-FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 모델 품질은 미검증이며 자막 편집은 아직 없습니다. 승인된 합성 영상의 실제 비공개 Shorts 업로드와 Studio 분류를 확인했습니다.
+FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 인식 정확도는 미검증이며 자막 편집은 아직 없습니다. 승인된 합성 영상의 실제 비공개 Shorts 업로드와 Studio 분류를 확인했습니다.
 
 **[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
@@ -56,7 +56,13 @@ YouTube 업로드: http://localhost:8000/sns — [OAuth 설정·확인·중복 �
 
 자막 포함 세로 출력의 첫 기술 확인: `uv run python -m app.cli.render_sample`로 외부 호출 없이 합성 영상의 한국어 자막·720×1280 MP4·클립 기준 SRT를 만듭니다. [실행 안내와 검증 범위](wiki/05-development/portrait-subtitle-sample.md). 편집 UI·비동기 최종 출력은 후속입니다.
 
+Google 로그인·내 자료·7일 만료는 선택 활성화 기능입니다. 기존 로컬 자료는 보존하며 로그인 계정에 자동 연결하지 않습니다. [설정·테스트 계정 승인·삭제 절차](wiki/05-development/user-auth-data.md)를 따르세요. 별도 로컬 환경에서 실제 테스트 계정의 Google 로그인·승인·로그아웃을 확인했습니다. 기존 개발 서비스의 인증 전환과 운영 배포는 별도입니다.
+
+검증 결과: http://localhost:8000/verification — 분석 번호를 입력하거나 분석 화면의 검증 결과 링크로 이동합니다. [빠른 숏츠 자막 정책](wiki/05-development/shorts-display-policy.md)은 1줄 중심의 1~3어절·0.45~1.8초 자막을 제공합니다. 시간 정보가 불확실한 구간이 있으면 완성본 SRT 다운로드를 차단합니다.
+
 전사 검수는 분석 결과 화면에서 의심 구간·관측값 확인, 앞뒤 음성 재생, 판정 저장과 JSON 보고서를 제공합니다. 추가 AI 호출이나 원문 수정은 하지 않습니다. [검수 정책·API·실제 평가의 한계](wiki/05-development/transcript-review.md)를 참고하세요.
+
+품질 평가는 저장된 검수 JSON과 음성으로 [정답 입력 팩과 CER 보고서](wiki/05-development/transcript-quality-evaluation.md)를 만들 수 있습니다. 단어 정보는 [구간별로 검증해 분할](wiki/05-development/word-alignment-recovery.md)하며, 불확실한 구간은 원문과 시간을 유지합니다. 고정 샘플의 표시 가독성 초안은 아직 미달이며 [실제 평가와 통합 기록](wiki/05-development/harness/changes/transcript-quality-integration.md)을 확인하세요.
 
 | 목적 | 문서 |
 |---|---|

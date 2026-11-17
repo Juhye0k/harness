@@ -11,6 +11,7 @@ from app.adapters.download import validate_url
 from app.adapters.job_repository import JobRepository
 from app.domain.jobs import JobError, output_file, public_result
 from app.domain.video import VideoError, validate_start
+from app.services.access import worker_guard
 from app.services.video import execute
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def submit(repository, publish, url: str, start: float):
     return job
 
 
+@worker_guard("job", "repository")
 def process_job(job_id: UUID, repository: JobRepository, root: Path, extractor=None):
     job = repository.claim(job_id)
     if job is None:

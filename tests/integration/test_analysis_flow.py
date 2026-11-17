@@ -170,7 +170,7 @@ def test_transcription_browser_refresh_does_not_resubmit():
         page.get_by_role("button", name="음성 전사 시작").click()
         expect(page.locator("#segments p")).to_have_count(36, timeout=90000)
         expect(page.locator("#analysis-state")).to_contain_text("추천 AI 호출 없음")
-        expect(page.locator("#subtitle-cues p")).to_have_count(72)
+        expect(page.locator("#subtitle-cues p")).to_have_count(108)
         expect(page.locator("#subtitle-state")).to_contain_text("원본 전사 보존")
         with page.expect_download() as download:
             page.get_by_role("link", name="SRT 다운로드").click()
@@ -184,7 +184,7 @@ def test_transcription_browser_refresh_does_not_resubmit():
             page.screenshot(path=screenshot, full_page=True)
         page.reload()
         expect(page.locator("#segments p")).to_have_count(36)
-        expect(page.locator("#subtitle-cues p")).to_have_count(72)
+        expect(page.locator("#subtitle-cues p")).to_have_count(108)
         assert len(posts) == 1 and not errors
         assert page.locator(".candidate").count() == 0
         browser.close()
@@ -281,14 +281,14 @@ def test_subtitle_query_error_keeps_analysis_complete_and_renders_review_safely(
         page.route(
             f"**/analyses/{analysis_id}/transcript", lambda r: r.fulfill(json={"segments": []})
         )
-        page.route(f"**/analyses/{analysis_id}/subtitles", lambda r: r.abort())
+        page.route(f"**/analyses/{analysis_id}/subtitles*", lambda r: r.abort())
         page.goto(BASE + f"/recommendations?analysis={analysis_id}")
         expect(page.locator("#subtitle-state")).to_contain_text("자막 조회에 실패")
         expect(page.locator("#analysis-state")).to_contain_text("전사 완료")
         expect(page.get_by_role("button", name="상태 다시 조회")).to_be_visible()
-        page.unroute(f"**/analyses/{analysis_id}/subtitles")
+        page.unroute(f"**/analyses/{analysis_id}/subtitles*")
         page.route(
-            f"**/analyses/{analysis_id}/subtitles",
+            f"**/analyses/{analysis_id}/subtitles*",
             lambda r: r.fulfill(
                 json={
                     "review_required": True,

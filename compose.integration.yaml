@@ -8,6 +8,7 @@ x-test: &test
     target: integration
   environment: &environment
     DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
+    AUTH_TEST_DATABASE_URL: postgresql+psycopg://shortform:local-dev-only@postgres:5432/shortform
     REDIS_URL: redis://redis:6379/0
     VIDEO_DATA_DIR: /data/jobs
     RUN_INTEGRATION: "1"

@@ -1,0 +1,54 @@
+<!doctype html><html lang="ko"><meta charset="utf-8">
+<title>전사 품질 평가</title><style>
+body{max-width:1000px;margin:32px auto;font-family:system-ui;padding:16px}
+article{border:1px solid #aaa;padding:16px;margin:16px 0}textarea{width:95%;min-height:70px}
+button,select{padding:8px;margin:6px}audio{max-width:100%}
+</style><h1>전사 품질 평가</h1>
+<p>원음을 듣고 정답을 입력하세요. AI 전사나 의심 표시만으로 오류를 확정하지 않습니다.</p>
+<p>일부 구간만 확인하면 전체 정확도·탐지율을 계산할 수 없습니다. 개인정보가 포함된 파일은 공개하지 마세요.</p>
+<audio controls preload="metadata" src="audio.mp3"></audio>
+<label>검수 구간 필터 <select id="filter">
+<option value="all">전체 구간</option><option value="flagged">검토 대상</option>
+<option value="recognition">인식 의심 신호</option><option value="sample">비표시 구간 표본</option>
+</select></label>
+<button id="download">정답·판정 JSON 저장</button><div id="rows"></div>
+<script id="payload" type="application/json">__DATA__</script><script>
+const {report,references}=JSON.parse(document.getElementById('payload').textContent);
+const audio=document.querySelector('audio'); let stop=null;
+audio.addEventListener('timeupdate',()=>{if(stop!==null&&audio.currentTime>=stop)audio.pause()});
+const node=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e};
+let dirty=false;
+window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});
+const filter=document.getElementById('filter');
+const show=()=>{
+ for(const card of document.querySelectorAll('article')){
+  const row=report.segments.find(r=>r.id===card.dataset.segmentId);
+  card.hidden=filter.value==='flagged'&&row.priority==='none'||
+   filter.value==='recognition'&&!row.recognition_reasons.length||
+   filter.value==='sample'&&!(report.unflagged_sample_ids||[]).includes(row.id);
+ }
+};filter.onchange=show;
+for(const row of report.segments){
+ const item=references.references.find(r=>r.segment_id===row.id);
+ const card=node('article','');card.dataset.segmentId=row.id;
+ card.append(node('h2',`${row.id} · ${(row.start_ms/1000).toFixed(2)}–${(row.end_ms/1000).toFixed(2)}초`),
+ node('p',row.text),node('p',`인식 사유: ${row.recognition_reasons.join(', ')||'없음'} / 표시 사유: ${row.display_reasons.join(', ')||'없음'}`));
+ const play=node('button','앞뒤 2초 듣기');play.onclick=()=>{
+  audio.currentTime=Math.max(0,row.start_ms/1000-2);stop=row.end_ms/1000+2;audio.play()};
+ const select=node('select','');select.setAttribute('aria-label',`${row.id} 인식 판정`);
+ for(const [value,label] of [['unreviewed','미검수'],['ok','인식 이상 없음'],['error','인식 오류'],['uncertain','판단 어려움']]){
+  const option=node('option',label);option.value=value;select.append(option)}
+ select.value=item.decision;select.onchange=()=>{item.decision=select.value;dirty=true};
+ const text=node('textarea','');text.placeholder='원음을 확인한 정답 전사. 자동 전사는 미리 채우지 않습니다.';
+ text.setAttribute('aria-label',`${row.id} 정답 전사`);text.value=item.reference_text??'';
+ text.oninput=()=>{item.reference_text=text.value;dirty=true};
+ const verified=node('input','');verified.type='checkbox';verified.checked=item.human_verified;
+ verified.onchange=()=>{item.human_verified=verified.checked;dirty=true};
+ const label=node('label','원음 확인 완료 ');label.append(verified);
+ card.append(play,select,text,label);document.getElementById('rows').append(card);
+}
+document.getElementById('download').onclick=()=>{
+ const url=URL.createObjectURL(new Blob([JSON.stringify(references,null,2)],{type:'application/json'}));
+ const a=node('a','');a.href=url;a.download='references-reviewed.json';a.click();
+ URL.revokeObjectURL(url);dirty=false};
+</script></html>

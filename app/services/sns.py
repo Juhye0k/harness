@@ -14,6 +14,7 @@ from app.adapters.youtube_upload import (
 )
 from app.domain.jobs import output_file
 from app.domain.sns import SnsError, approval_values, digest, output_version, validate_title
+from app.services.access import worker_guard
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ def public_upload(upload):
     }
 
 
+@worker_guard("sns", "repo")
 def process_upload(upload_id: UUID, repo, settings, provider=None):
     upload = repo.claim(upload_id)
     if upload is None:
@@ -137,6 +139,7 @@ def process_upload(upload_id: UUID, repo, settings, provider=None):
         repo.finish(upload.id, "unknown" if ambiguous else "failed", error_code=code)
 
 
+@worker_guard("sns", "repo")
 def probe_upload(upload_id, task_id, repo, settings, provider=None):
     upload = repo.claim_probe(upload_id, task_id)
     if upload is None:

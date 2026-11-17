@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "development"
+    enable_auth: bool = False
+    auth_origin: str = "http://localhost:8000"
+    google_login_client_id: str = ""
+    google_login_client_secret: SecretStr = SecretStr("")
     database_url: str = "postgresql+psycopg://shortform:local-dev-only@localhost:5432/shortform"
     redis_url: str = "redis://localhost:6379/0"
     video_data_dir: Path = Path(".artifacts/jobs")
