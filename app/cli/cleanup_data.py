@@ -5,7 +5,7 @@ import shutil
 import time
 from datetime import timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.api.data import active_jobs
@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.db import get_engine
 from app.models import (
     AnalysisJob,
+    AnalysisRequestReceipt,
     Asset,
     HighlightCandidate,
     ProviderCall,
@@ -46,6 +47,8 @@ def remove_tree(root, relative):
 
 
 def scrub(s, item, root):
+    from app.upload_models import Upload
+
     user = item.user_id
     asset_filter = Asset.user_id == user if item.kind == "user" else Asset.id == item.resource_id
     assets = list(s.scalars(select(Asset).where(asset_filter))) if item.kind != "job" else []
@@ -65,6 +68,7 @@ def scrub(s, item, root):
         remove_tree(root, str(job.id))
     for asset in assets:
         remove_tree(root, "assets/" + str(asset.id))
+        remove_tree(get_settings().upload_data_dir, str(asset.id))
     for analysis in analyses:
         remove_tree(root, "verification/" + str(analysis))
     s.execute(delete(SnsUpload).where(SnsUpload.job_id.in_(job_ids)))
@@ -73,6 +77,16 @@ def scrub(s, item, root):
         job.error_message, job.operator_reason = None, None
         job.deleted_at = utcnow()
     if item.kind in {"asset", "user"}:
+        # Keep a content-free tombstone for at most 30 days after deletion.
+        s.execute(
+            update(AnalysisRequestReceipt)
+            .where(
+                AnalysisRequestReceipt.analysis_id.in_(analyses),
+                AnalysisRequestReceipt.expires_at > utcnow(),
+            )
+            .values(expires_at=utcnow())
+        )
+        s.execute(delete(Upload).where(Upload.asset_id.in_(asset_ids)))
         # Flush FK references from export jobs before deleting candidates.
         for job in jobs:
             job.candidate_id = None
@@ -109,6 +123,17 @@ def sweep(engine=None, root=None, dry_run=False):
             )
         )
         for user in users:
+            from app.upload_models import Upload
+
+            for receipt in s.scalars(
+                select(Upload)
+                .join(Asset)
+                .where(Asset.user_id == user.id, Upload.state.in_(("created", "queued")))
+            ):
+                asset = s.get(Asset, receipt.asset_id)
+                if (user.state == "deleting" or asset.expires_at <= utcnow()) and not dry_run:
+                    receipt.state, receipt.error_code = "failed", "RESOURCE_EXPIRED"
+                    asset.state = "failed"
             for kind, model in (("asset", Asset), ("job", VideoJob)):
                 expired = list(
                     s.scalars(
@@ -183,6 +208,11 @@ def sweep(engine=None, root=None, dry_run=False):
                     item.state = "failed" if item.attempts >= 3 else "requested"
                     item.error = "CLEANUP_IO_FAILED"
         if not dry_run:
+            s.execute(
+                delete(AnalysisRequestReceipt).where(
+                    AnalysisRequestReceipt.expires_at < utcnow() - timedelta(days=30)
+                )
+            )
             s.execute(delete(Deletion).where(Deletion.finished_at < utcnow() - timedelta(days=30)))
             s.execute(delete(LoginState).where(LoginState.expires_at <= utcnow()))
             s.execute(delete(AuthSession).where(AuthSession.expires_at <= utcnow()))

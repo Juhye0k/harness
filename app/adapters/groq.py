@@ -1,15 +1,16 @@
 """Groq REST adapter. Free account confirmation is not a billing API guarantee."""
 
-import json
 import math
 
 import httpx
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 
 from app.adapters.ai import (
     EVALUATE,
     GROQ_ASR_MODEL,
     GROQ_ASR_VERSION,
     GROQ_MODEL,
+    GROQ_RECOMMENDATION_PROFILE,
     PROMPT_VERSION,
     PROPOSE,
     SYSTEM,
@@ -116,6 +117,28 @@ def request_error(response):
     return error
 
 
+def recommendation_input(payload):
+    """Keep all source IDs/times/text, without nesting transcript JSON in a JSON string."""
+
+    def segments(rows):
+        return "\n".join(
+            f"SEGMENT {row['id']} {row['start_ms']} {row['end_ms']}\n{row['text']}\nEND_SEGMENT"
+            for row in rows
+        )
+
+    text = (
+        f"Genre: {payload.get('genre', 'unknown')}\nPurpose: {payload.get('purpose', 'balanced')}\n"
+    )
+    if "segments" in payload:
+        return text + segments(payload["segments"])
+    for candidate in payload.get("candidates", []):
+        text += (
+            f"CANDIDATE {candidate['id']} {candidate['start_ms']} {candidate['end_ms']}\n"
+            f"Title: {candidate['title']}\n{segments(candidate['segments'])}\nEND_CANDIDATE\n"
+        )
+    return text
+
+
 class GroqProvider:
     def __init__(self, settings):
         enabled(settings, "transcription")
@@ -126,6 +149,21 @@ class GroqProvider:
 
     def request(self, path, *, timeout, **kwargs):
         try:
+            if path == "/chat/completions":
+                # Groq officially supports this SDK against its own base URL.
+                # This is never a fallback to OpenAI or an automatically retried call.
+                with OpenAI(
+                    api_key=self.key,
+                    base_url=BASE_URL,
+                    max_retries=0,
+                    timeout=timeout,
+                    http_client=httpx.Client(timeout=timeout, follow_redirects=False),
+                ) as client:
+                    response = client.chat.completions.with_raw_response.create(**kwargs["json"])
+                    raw = response.http_response.json()
+                    if not isinstance(raw, dict):
+                        raise invalid()
+                    return raw, response.headers.get("x-request-id")
             with httpx.Client(timeout=timeout, follow_redirects=False) as client:
                 response = client.post(
                     BASE_URL + path,
@@ -138,9 +176,11 @@ class GroqProvider:
             if not isinstance(raw, dict):
                 raise invalid()
             return raw, response.headers.get("x-request-id")
-        except httpx.TimeoutException as exc:
+        except APIStatusError as exc:
+            raise request_error(exc.response) from None
+        except (httpx.TimeoutException, APITimeoutError) as exc:
             raise VideoError("PROVIDER_TIMEOUT", "Groq 요청 시간이 초과되었습니다.") from exc
-        except httpx.RequestError as exc:
+        except (httpx.RequestError, APIConnectionError) as exc:
             raise VideoError("PROVIDER_FAILED", "Groq 서버에 연결하지 못했습니다.") from exc
         except ValueError as exc:
             raise invalid() from exc
@@ -177,25 +217,36 @@ class GroqProvider:
         if model != GROQ_MODEL or stage not in ("proposal", "scoring"):
             raise VideoError("PROVIDER_CONFIG", "허용된 Groq 모델과 단계를 사용하세요.")
         schema = Proposals if stage == "proposal" else Scores
+        response_schema = schema.model_json_schema()
+        if stage == "proposal":
+            response_schema["properties"]["candidates"]["maxItems"] = 5
         raw, request_id = self.request(
             "/chat/completions",
             timeout=120,
             json={
                 "model": model,
-                "max_completion_tokens": 8000,
+                "max_completion_tokens": 2048,
+                "reasoning_effort": "low",
                 "messages": [
                     {
                         "role": "system",
-                        "content": SYSTEM + " " + (PROPOSE if stage == "proposal" else EVALUATE),
+                        "content": SYSTEM
+                        + " "
+                        + (
+                            PROPOSE.replace("up to 15", "up to 5")
+                            if stage == "proposal"
+                            else EVALUATE
+                        )
+                        + " SEGMENT records provide original ID, start_ms, end_ms and text.",
                     },
-                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                    {"role": "user", "content": recommendation_input(payload)},
                 ],
                 "response_format": {
                     "type": "json_schema",
                     "json_schema": {
                         "name": stage,
                         "strict": True,
-                        "schema": schema.model_json_schema(),
+                        "schema": response_schema,
                     },
                 },
             },
@@ -208,6 +259,8 @@ class GroqProvider:
             if choice["finish_reason"] != "stop" or message.get("refusal"):
                 raise ValueError()
             result = schema.model_validate_json(message["content"]).model_dump()
+            if stage == "proposal" and len(result["candidates"]) > 5:
+                raise ValueError()
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise invalid() from exc
         return result, {
@@ -218,4 +271,7 @@ class GroqProvider:
             "usage": raw.get("usage"),
             "cost": None,
             "prompt_version": PROMPT_VERSION,
+            "recommendation_profile": GROQ_RECOMMENDATION_PROFILE,
+            "max_completion_tokens": 2048,
+            "reasoning_effort": "low",
         }

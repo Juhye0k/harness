@@ -12,9 +12,11 @@ from app.adapters.sns_logging import install_sns_logging
 from app.api.analyses import router as analysis_router
 from app.api.auth import router as auth_router
 from app.api.data import router as data_router
+from app.api.editor import router as editor_router
 from app.api.jobs import router
 from app.api.sns import router as sns_router
 from app.api.transcript_review import router as review_router
+from app.api.uploads import router as upload_router
 from app.api.verification import router as verification_router
 from app.api.web import STATIC
 from app.api.web import router as web_router
@@ -31,7 +33,9 @@ app = FastAPI(title="Shortform Harness", version="0.1.0")
 app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(data_router)
+app.include_router(editor_router)
 app.include_router(router)
+app.include_router(upload_router)
 app.include_router(analysis_router)
 app.include_router(sns_router)
 app.include_router(review_router)
@@ -77,6 +81,18 @@ async def job_error(request, exc):
 @app.exception_handler(VideoError)
 @app.exception_handler(RequestValidationError)
 async def invalid_request(request, exc):
+    if "/caption-revisions" in request.url.path:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": exc.code if isinstance(exc, VideoError) else "SUBTITLE_INVALID",
+                    "message": str(exc)
+                    if isinstance(exc, VideoError)
+                    else "자막 문구·줄 수·시간 형식을 확인하세요.",
+                }
+            },
+        )
     if request.url.path.startswith("/sns/"):
         return JSONResponse(
             status_code=422,

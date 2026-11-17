@@ -37,6 +37,9 @@ def create_app(directory: Path, source: Path):
     transcript = json.loads((directory / "transcript.json").read_text(encoding="utf-8"))
     if fingerprint(transcript["segments"]) != frozen["transcript_sha256"]:
         raise ValueError("전사 고정본이 변경되었습니다.")
+    from app.domain.subtitles import build_subtitles
+
+    subtitles = build_subtitles(transcript["segments"])
     reviews = directory / "web-reviews"
     reviews.mkdir(exist_ok=True)
     lock = threading.Lock()
@@ -83,6 +86,7 @@ def create_app(directory: Path, source: Path):
             "revision": revision,
             "report": report,
             "transcript": transcript["segments"],
+            "subtitles": subtitles,
         }
 
     @app.get("/media")

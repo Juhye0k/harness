@@ -1,5 +1,9 @@
 # 현재 API 계약
 
+## 로컬 파일 업로드
+
+UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, `GET /assets/{id}/upload`를 제공한다. 영상 검사는 worker에서 수행하며 ready인 asset_id는 기존 추출·분석 입력으로 재사용한다. 크기·상태·권한·삭제 경계는 [업로드 계약](../05-development/local-video-upload.md)을 따른다.
+
 ## 전사 검수 API
 
 `GET /analyses/{id}/transcript-review`, `PUT /analyses/{id}/transcript-review/{segment_id}`, `GET /analyses/{id}/review-audio`를 추가했다. 조회·재생은 읽기 전용이며 판정은 전사·정책 버전과 revision으로 저장한다. 완료 전/버전·동시 저장 충돌은 409, 없는 분석·구간·음성은 404다. [입력·정책·경계](../05-development/transcript-review.md)를 따른다.

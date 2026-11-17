@@ -27,7 +27,9 @@ def public_result(result: dict) -> dict:
     checks = result.get("checks", {})
     return {
         "media": {
-            k: media[k] for k in ("duration", "has_audio", "container_duration") if k in media
+            k: media[k]
+            for k in ("duration", "has_audio", "container_duration", "width", "height")
+            if k in media
         },
         "checks": {
             k: checks[k]
@@ -37,7 +39,20 @@ def public_result(result: dict) -> dict:
                 "audio_preserved",
                 "decodable",
                 "source_unchanged",
+                "portrait_dimensions",
+                "square_pixels",
             )
             if k in checks
         },
+        **(
+            {
+                "render": {
+                    k: result["render"][k]
+                    for k in ("profile", "revision_id", "subtitle_time_origin")
+                    if k in result["render"]
+                }
+            }
+            if result.get("render")
+            else {}
+        ),
     }

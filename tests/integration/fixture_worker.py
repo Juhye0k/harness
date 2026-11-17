@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.domain.video import VideoError
 from app.services import video
 from app.worker import celery_app
+from tests.integration.faults import install_video_faults
 
 
 def main():
@@ -49,6 +50,7 @@ def main():
         return target
 
     video.download = local_download
+    install_video_faults()
     celery_app.conf.result_backend = settings.redis_url  # Existing diagnostic test only.
     celery_app.worker_main(
         ["worker", "--loglevel=INFO", "--concurrency=1", "-Q", "shortform,video"]

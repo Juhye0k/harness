@@ -34,7 +34,24 @@ jobs:
       - run: docker build --target production -t shortform-harness:ci .
       - run: docker compose -f compose.integration.yaml build runner
       - run: docker compose -f compose.integration.yaml up --no-build -d api worker analysis-worker sns-worker
-      - run: docker compose -f compose.integration.yaml run --rm runner
+      - name: Run integration and end-to-end flow
+        id: integration-tests
+        run: docker compose -f compose.integration.yaml run --rm runner
+      - name: Collect synthetic end-to-end evidence
+        if: always() && (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'failure')
+        run: |
+          mkdir -p .artifacts/e2e
+          if ! docker compose -f compose.integration.yaml run --rm --no-deps -T --entrypoint /bin/tar runner --exclude='*.mp4' -C /data -cf - e2e > .artifacts/e2e/evidence.tar; then
+            echo "No complete end-to-end evidence was available; inspect the test failure above."
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always() && (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'failure')
+        with:
+          name: synthetic-e2e-evidence
+          path: .artifacts/e2e/evidence.tar
+          include-hidden-files: true # Exact synthetic archive only; never upload the workspace.
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Integration logs on failure
         if: failure()
         run: docker compose -f compose.integration.yaml logs --tail=200

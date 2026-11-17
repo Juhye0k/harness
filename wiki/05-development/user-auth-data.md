@@ -1,6 +1,6 @@
 # Google 로그인과 7일 자료 관리 — AUTH-DATA-001
 
-> 상태: 로컬 구현 / 실제 Google 계정 검증 전 · 기준일: 2026-11-17
+> 상태: 로컬 구현 / 격리 환경의 실제 Google 로그인·로그아웃 확인 · 기준일: 2026-11-17
 
 [위키 홈](../README.md) · [개발 목차](README.md)
 
@@ -57,6 +57,8 @@ Compose에서는 인증 설정 후 `auth` 프로필의 cleanup 프로세스를 �
 
 ## 검사와 제한
 
-일반 검사는 외부 Google·AI·SNS에 접속하지 않는다. `tests/integration/test_auth_data.py`는 별도의 폐기 가능한 PostgreSQL을 준비하고 migration을 적용한 다음 `AUTH_TEST_DATABASE_URL`과 `RUN_INTEGRATION=1`로 실행한다. 실제 Google 로그인·클라이언트 설정·동의 화면은 테스트 계정으로 별도 확인해야 한다. 키나 사용자 자료를 테스트에 주입하지 않는다.
+일반 검사는 외부 Google·AI·SNS에 접속하지 않는다. `tests/integration/test_auth_data.py`는 별도의 폐기 가능한 PostgreSQL을 준비하고 migration을 적용한 다음 `AUTH_TEST_DATABASE_URL`과 `RUN_INTEGRATION=1`로 실행한다. 실제 Google 로그인·클라이언트 설정·동의 화면은 일반 검사와 분리해 테스트 계정으로 확인한다. 키나 사용자 자료를 일반 테스트에 주입하지 않는다.
 
-기본 검사, 전용 DB 검사, 격리 Celery·Chromium 통합 결과와 미실행 항목은 [작업 기록](harness/records/2026-11-17-auth-data-plan.md)에 남긴다. 실제 계정 로그인·운영 배포·기존 사용자 자료 삭제를 완료한 구현으로 표현하지 않는다.
+2026-11-17에는 커밋 `94f2474`의 인증 코드를 고정한 별도 로컬 API·DB·Redis에서 실제 Google 테스트 계정 1개의 로그인을 확인했다. 로그인 전용 웹 클라이언트와 `http://localhost:8002/auth/google/callback`을 등록하고, 계정 선택·동의 후 pending 등록, 운영자 승인 후 내 자료 접근, 새로고침 시 세션 유지, 로그아웃 후 서버 세션 제거와 보호 화면 접근 차단을 검증했다. API 접근 로그는 끄고 비밀값은 Git 제외 `.env`로만 주입했다. 기존 8000 개발 DB·자료·SNS 연결은 전환하지 않았다.
+
+기본 검사, 전용 DB 검사, 격리 Celery·Chromium 통합 결과와 미실행 항목은 [작업 기록](harness/records/2026-11-17-auth-data-plan.md)에 남긴다. 운영 배포·HTTPS 운영 쿠키·기존 사용자 자료 삭제·다른 계정의 실제 로그인은 이번 실계정 검증에 포함하지 않는다.

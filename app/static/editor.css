@@ -1,0 +1,20 @@
+.editor-page .editor-preview { position: relative; max-width: 960px; margin: auto; }
+.editor-page .editor-preview video { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+.editor-page #caption-preview { position: absolute; left: 8%; right: 8%; bottom: 56px; text-align: center; color: white; font-size: clamp(18px, 2.5vw, 32px); font-weight: 700; white-space: pre-line; text-shadow: 1px 1px 3px black, -1px -1px 3px black; pointer-events: none; }
+.editor-page .caption-row { display: grid; grid-template-columns: minmax(120px, 1fr) 110px 110px minmax(180px, 2fr) auto; align-items: end; gap: 12px; padding: 20px 0; border-bottom: 1px solid #d9e1d4; }
+.editor-page .caption-row > label { min-width: 0; margin: 0; }
+.editor-page .caption-row select { margin: 8px 0 0; }
+.editor-page textarea { display: block; width: 100%; min-height: 76px; resize: vertical; padding: 10px; font: inherit; border: 1px solid #cbd5c7; border-radius: 8px; }
+.editor-page .caption-row button { padding: 12px; }
+.editor-page #source-preview { background: #13251e; }
+.editor-page #final-preview { display: block; max-width: 540px; width: 100%; max-height: 75vh; margin: auto; }
+.editor-page #editor-message, .editor-page #render-state { overflow-wrap: anywhere; }
+.editor-page details { margin: 24px 0; }
+.editor-page #editor-transcript { max-height: 300px; overflow-y: auto; }
+.editor-page #caption-rows { max-height: 650px; overflow-y: auto; }
+.editor-page #save-captions, .editor-page #render-final { width: 100%; }
+@media(max-width: 900px) {
+  .editor-page .caption-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .editor-page .caption-row > label:first-child, .editor-page .caption-row .cue-text-label { grid-column: 1 / -1; }
+  .editor-page .caption-row button { grid-column: 1 / -1; }
+}

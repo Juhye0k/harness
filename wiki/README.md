@@ -6,11 +6,15 @@
 
 롱폼 영상에서 복수 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼으로 출력하는 서비스를 만든다. 개발 과정에서는 AI 코딩 에이전트의 변경을 검증할 하네스도 함께 개선한다.
 
-**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. SNS-006은 [확인 후 YouTube 업로드](05-development/youtube-upload.md)를 추가하며 별도 승인된 합성 영상으로 실제 비공개 Shorts 업로드·Studio 분류를 확인했다. 자막 편집·운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
+**10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출을 연결했다.** 추천 AI는 기본 비활성화이며 실제 모델 품질은 미평가다. SNS-006은 [확인 후 YouTube 업로드](05-development/youtube-upload.md)를 추가하며 별도 승인된 합성 영상으로 실제 비공개 Shorts 업로드·Studio 분류를 확인했다. 자막 편집·최종 출력·로컬 영상 업로드는 로컬 구현했으며 운영 배포·자동 복구는 후속 단계다. [추천 실행 안내](05-development/highlight-recommendations.md)와 [현황](07-governance/status.md)에서 검증 범위를 확인한다.
 
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
+실제 Google 로그인 검증(2026-11-17): 격리된 로컬 환경에서 테스트 계정의 Google 인증·운영자 승인 후 내 자료 접근·새로고침 시 로그인 유지·로그아웃 후 접근 차단을 확인했다. [설정과 검증 범위](05-development/user-auth-data.md), [작업 기록](05-development/harness/records/2026-11-17-auth-data-plan.md)을 참고한다. 운영 배포는 별도다.
+
 ## 처음 읽는 순서
+
+전체 사용자 흐름의 현재 구현은 [FLOW-001: 입력부터 자막 편집·출력·YouTube까지](05-development/complete-flow.md)를 참고한다. 자막 편집·최종 출력은 로컬 연결했으며 대역 E2E 통과와 실제 모델·계정 검증은 구분한다.
 
 최근 [실제 자막 품질 평가와 두 변경 통합](05-development/harness/changes/transcript-quality-integration.md)을 진행했다. 원문·시간 범위는 보존했으나 고정 샘플의 표시 가독성 초안은 미달이며, 인식 정확도는 확인된 정답 전사가 필요하다.
 

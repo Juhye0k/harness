@@ -10,6 +10,7 @@ x-app: &app
     ENABLE_AUTH: ${ENABLE_AUTH:-false}
     AUTH_ORIGIN: ${AUTH_ORIGIN:-http://localhost:8000}
     VIDEO_DATA_DIR: /data/jobs
+    UPLOAD_DATA_DIR: /uploads
     ENABLE_PAID_AI: ${ENABLE_PAID_AI:-false}
     ENABLE_FREE_AI: ${ENABLE_FREE_AI:-false}
     GROQ_FREE_TIER_CONFIRMED: ${GROQ_FREE_TIER_CONFIRMED:-false}
@@ -41,7 +42,7 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    volumes: ["video_data:/data:ro"]
+    volumes: ["video_data:/data:ro", "upload_data:/uploads"]
     ports: ["127.0.0.1:8000:8000"]
     healthcheck:
       test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=10)"]
@@ -55,7 +56,7 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    volumes: ["video_data:/data"]
+    volumes: ["video_data:/data", "upload_data:/uploads"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "shortform,video"]
     mem_limit: 1g
 
@@ -70,7 +71,7 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    volumes: ["video_data:/data"]
+    volumes: ["video_data:/data", "upload_data:/uploads"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "analysis"]
     mem_limit: 1g
 
@@ -97,7 +98,7 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    volumes: ["video_data:/data"]
+    volumes: ["video_data:/data", "upload_data:/uploads"]
     command: ["/app/.venv/bin/python", "-m", "app.cli.cleanup_data", "--loop"]
     mem_limit: 256m
 
@@ -130,3 +131,4 @@ volumes:
   postgres_data:
   redis_data:
   video_data:
+  upload_data:

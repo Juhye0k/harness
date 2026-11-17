@@ -8,10 +8,16 @@
 
 ## 현재 상태
 
+main 통합 검증(2026-11-17): 인증·전사 검증 커밋과 미커밋 편집·최종 출력·로컬 업로드·추천 평가·실패 경로 작업을 고정 사본에서 검증한다. 기본 375개·Ruff·서식·migration 0008 오프라인 SQL, 일반/통합 이미지 빌드는 통과했다. 전체 통합과 원격 반영 결과는 [INTEGRATE-001](../05-development/harness/records/2026-11-17-main-integration.md)에 기록한다. 아래 수치는 각 작업 시점의 이력이며 통합 검증을 대체하지 않는다.
+
+RECO-EVAL-001 120B 동작 검증: 키·모델을 유지한 채 `groq-records-low-2048-v1` 프로필로 승인된 전체 전사의 실제 후보 생성·채점에 성공했고 최종 후보 2개를 로컬 수작업 평가 페이지에 연결했다. 관련 회귀 70개·합성 Chrome 웹 평가 1개 통과. 사람 판정은 아직 없으며 전체 verify는 별도 인증·업로드 작업의 정적 오류로 중단됐다. 동일 조건 A/B에서 기존 JSON 입력도 성공했으므로 JSON 형식을 403의 단독 원인으로 단정하지 않는다. 413/429 한도 오류와 별개로 403의 정확한 제공자 내부 규칙은 미확정이다. [실험·검증·남은 제한](../05-development/harness/records/2026-11-17-recommendation-manual-review.md).
+
+FLOW-001 로컬 구현(2026-11-17): 링크 입력 → 다중 추천 → 후보 선택 → 자막 편집·확인·불변 저장 → 비동기 720×1280 출력 → MP4/클립 SRT 다운로드 → 기존 YouTube 확인·업로드를 연결했다. 기본 **365개**, 같은 앱 스냅샷의 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **84개**와 출력 접수 중 편집 잠금의 추가 브라우저 **1개**가 통과했다. 모델·다운로드·YouTube만 합성 대역으로 사용했으며 실제 인식·추천 품질이나 편집 결과의 실계정 게시를 완료한 것은 아니다. 기존 8000 개발 DB는 전환하지 않고 8001의 분리된 리허설을 제공한다. [흐름·계약](../05-development/complete-flow.md), [작업·실패 근거](../05-development/harness/records/2026-11-17-complete-flow.md). 이번 작업의 커밋·푸시·Wiki 게시는 수행하지 않았다.
+
 2026-11-17 게시 준비: 승인된 전사 복구·숏츠 표시/검증 화면·추천 평가·Google 인증·7일 자료 관리·하네스 기록을 통합했다. 아래의 로컬 미게시 문구와 검사 수치는 각 작업 당시 이력이며 현재 게시 검증 결과는 별도 기록한다.
 
 자막 포함 세로 출력 1단계: [고정 합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. 한국어 자막을 입힌 10초·720×1280 MP4·클립 기준 SRT·미리보기를 생성한다. 최신 main에서 이번 작업만 분리한 브랜치의 기본 **281개**·Linux 출력 **28개**·실제 인프라 통합 **58개**가 통과했다. 편집 UI·비동기 최종 출력·실제 발화 정렬은 후속이다. 기존 혼합 작업 폴더의 검증 이력은 [작업 기록](../05-development/harness/records/2026-11-17-subtitle-render-spike.md)에서 구분한다. GitHub Wiki 게시 전이다.
-AUTH-DATA-001 로컬 구현: Google 로그인·테스트 계정 승인·서버 세션, 업무 API·파일·SNS 소유권 검사, 새 자료 7일 만료·삭제·탈퇴를 추가했다. 기존 자료는 보존하고 자동 귀속하지 않는다. 실제 Google 계정 로그인·기존 DB 전환·운영 배포는 미실행이다. [설정·정리·제한](../05-development/user-auth-data.md)과 [작업 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)을 따른다.
+AUTH-DATA-001 로컬 구현·실계정 로그인 확인: Google 로그인·테스트 계정 승인·서버 세션, 업무 API·파일·SNS 소유권 검사, 새 자료 7일 만료·삭제·탈퇴를 추가했다. 커밋 `94f2474`의 인증 코드와 분리된 8002 API·DB에서 실제 테스트 계정 1개의 Google 인증·pending 등록·승인 후 내 자료 접근·새로고침 시 세션 유지·로그아웃 후 세션 제거와 접근 차단을 확인했다. 기존 자료는 보존하고 자동 귀속하지 않으며 기존 8000 DB 전환·운영 배포·실제 자료 삭제는 미실행이다. [설정·정리·제한](../05-development/user-auth-data.md)과 [작업 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)을 따른다.
 
 자막 편집·최종 출력의 첫 기술 확인(2026-11-17): [합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. Windows·Linux production 이미지에서 한글 1~2줄을 입힌 10.0초·720×1280 MP4와 클립 기준 SRT·미리보기·검사 보고서를 생성했다. 기본 **334개**, Linux 출력 회귀 **28개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **64개**와 검증 중 갱신된 브라우저 검사 **1개**가 통과했다. 한글 모양·줄바꿈은 PNG로 별도 확인했다. 입력은 고정 합성 영상과 시험음이며 실제 발화 정렬·가독성 평가는 아니다. 편집 저장·UI·비동기 최종 출력·SNS 연결은 후속이다. [작업 기록과 소스 범위](../05-development/harness/records/2026-11-17-subtitle-render-spike.md). 커밋·푸시·Wiki 게시 전이다.
 
@@ -53,11 +59,12 @@ VIDEO-002의 CLI·비동기 API는 [PR #1](https://github.com/Juhye0k/short-form
 | Compose·CI·검사 | 구현 | [compose.yaml](../../compose.yaml), [CI](../../.github/workflows/ci.yml) |
 | 업무 테이블·API | 로컬 구현 | video_jobs, 접수·조회·다운로드 API |
 | 링크 입력·10초 추출 CLI | 로컬 구현 | [실행·계약](../05-development/video-extraction.md), [서비스](../../app/services/video.py) |
-| 링크 입력·업무 워커 연결 | 로컬 구현 | 기존 영상 서비스를 Celery에 연결; 웹 업로드 미구현 |
+| 링크 입력·업무 워커 연결 | 로컬 구현 | 기존 영상 서비스·업로드 검증을 Celery에 연결; 로컬 파일 입력 구현 |
 | 전사 기반 AI 추천·선택 추출 | 구현·로컬 검증 완료 | VIDEO-004, 제공자 대역 통합 검사 / 실제 모델 품질 미평가 |
-| 다운로드 API / 웹 화면 / 자막 편집 | API·추출 화면 구현 / 자막 편집 미구현 | VIDEO-003은 지정 구간 추출 흐름 |
+| 다운로드 API / 웹 화면 / 자막 편집 | 로컬 구현 | FLOW-001 편집본 고정·비동기 세로 출력·클립 SRT |
 | YouTube 업로드 | 로컬 구현·실제 비공개 Shorts 분류 확인 | SNS-006, 브라우저 세션별 OAuth·최종 확인·제공자 대역 검사 |
-| 일반 사용자 인증·운영 배포·자동 복구 | 미구현 | SNS 세션은 전체 서비스 사용자 인증을 대신하지 않음 |
+| 일반 사용자 인증 | 선택 활성화 구현·실계정 로컬 검증 | Google 로그인·자료 소유권·7일 만료; 운영 HTTPS는 별도 |
+| 운영 배포·자동 복구 | 미구현 | 현재 Compose는 로컬 개발용 |
 | 카테고리형 프로젝트 위키 | 작성 | [위키 홈](../README.md) |
 
 ## 확인된 검증 증거

@@ -26,6 +26,9 @@ ERROR_MESSAGES = {
     "LIMIT_EXCEEDED": "영상 처리 제한을 초과했습니다.",
     "TIMEOUT": "처리 제한 시간을 초과했습니다.",
     "TOOL_MISSING": "필수 처리 도구가 없습니다.",
+    "FONT_MISSING": "한글 자막 폰트가 없습니다.",
+    "SUBTITLE_INVALID": "확정 자막과 출력 설정을 확인하세요.",
+    "SUBTITLE_INCOMPLETE": "선택 구간의 자막 검수가 필요합니다.",
     "TOOL_FAILED": "영상 처리 도구가 실패했습니다.",
     "OUTPUT_INVALID": "출력 검사를 통과하지 못했습니다.",
     "OUTPUT_CONFLICT": "출력 경로가 충돌했습니다.",
@@ -61,11 +64,18 @@ def process_job(job_id: UUID, repository: JobRepository, root: Path, extractor=N
     try:
         if getattr(job, "asset_id", None):
             from app.adapters.analysis_repository import AnalysisRepository
+            from app.adapters.caption_repository import CaptionRepository
             from app.services.asset_export import execute_asset
+            from app.services.final_export import execute_final
 
             asset = AnalysisRepository(repository.engine).asset(job.asset_id)
-            result = execute_asset(
-                asset, job.start_seconds, job.duration_seconds, root / str(job.id), root
+            revision = CaptionRepository(repository.engine).for_job(job.id)
+            result = (
+                execute_final(asset, job, revision, root / str(job.id), root)
+                if revision is not None
+                else execute_asset(
+                    asset, job.start_seconds, job.duration_seconds, root / str(job.id), root
+                )
             )
         else:
             result = extractor(job.source_url, job.start_seconds, root=root / str(job.id))
@@ -78,6 +88,8 @@ def process_job(job_id: UUID, repository: JobRepository, root: Path, extractor=N
                 "decodable",
                 "source_unchanged",
             }
+            if result.get("render"):
+                required |= {"portrait_dimensions", "square_pixels"}
             if set(public["checks"]) != required or not all(
                 v is True for v in public["checks"].values()
             ):

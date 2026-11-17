@@ -46,7 +46,22 @@
 
 한국어 글리프 모양은 별도 미리보기 확인이며, 실제 음성 정렬·가독성 품질은 위 자동 검사로 판정하지 않는다.
 
-## 비동기 확장
+## FLOW-001 — 시작부터 끝까지
+
+| 요구사항 | 구현 | 검사 |
+|---|---|---|
+| 자동 초안·수동 편집의 표시 제약·원 구간 누락 차단 | `domain.caption_edit`, `api.editor` | `unit/test_caption_edit.py`, `integration/test_caption_versions.py` |
+| 원본 전사 보존·불변 버전·확인 전 출력 차단 | `CaptionRevision`, `caption_repository` | 같은 integration과 `test_complete_flow.py` |
+| 동일 버전 출력 재사용·원본 추출 캐시 독립 | `caption_repository.export`, 기존 jobs 서비스 | 동시 접수와 원본 추출 검사 |
+| 실제 세로 렌더링·다운로드·클립 SRT·SNS 파일 일치 | `services.final_export`, editor 웹 | `integration/test_complete_flow.py` |
+| 저장·새로고침 중복 방지·편집 시 이전 출력 숨김 | `static/editor.js` | 같은 브라우저 전체 흐름 검사 |
+| 사용자·후보 경계·만료·자산 삭제 시 자막 제거 | 기존 접근 경계·FK cascade | `integration/test_caption_versions.py` |
+
+실제 AI·SNS와의 차이와 실패 trace 확인은 [전체 흐름 안내](../complete-flow.md)를 따른다.
+
+## 비동기·인증·다른 확장
+
+UPLOAD-001은 [파일 업로드 계약](../local-video-upload.md)을 따른다. `test_uploads.py`는 크기·해시·시간 제한과 원본 미공개를, `test_local_upload.py`는 실제 DB·브라우저·워커에서 바이트 제한·중복·소유권·원본 검증·추출·전사 재사용·새로고침 무재전송을 검사한다.
 
 AUTH-DATA-001은 [인증·자료 관리 계약](../user-auth-data.md)을 따른다. `test_auth_data.py`가 실제 PostgreSQL에서 A/B 사용자 경계·로그인 승인·콜백 재사용·CSRF·로그아웃·만료·삭제·탈퇴·Range 다운로드와 실제 브라우저를 검사한다. `test_google_login.py`는 공식 검증 함수의 오류 전파·nonce·최근 재인증을, `test_auth_safety.py`는 관리 루트 밖 삭제 거부와 토큰 해시 경계를 확인한다. 실제 Google 로그인은 일반 CI와 분리한다.
 

@@ -4,13 +4,38 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px/1.6 system-ui}main{max-width:1100px;margin:32px auto;padding:20px}h1{margin:0}p{color:#52627a}.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel,article{background:white;padding:24px;border-radius:16px;margin:16px 0;border:1px solid #dde3ec}video{width:100%;max-height:400px;background:#111;border-radius:12px}.player{position:sticky;top:15px;align-self:start}label{display:block;margin:12px 0}select,input,textarea,button{font:inherit;padding:10px;border:1px solid #b8c3d3;border-radius:8px;max-width:100%}textarea{width:100%;min-height:90px}input[type=number]{width:130px}button{cursor:pointer;background:#eef2f9}button.primary{background:#2455d6;color:white;border-color:#2455d6}button:disabled{opacity:.5;cursor:wait}.row{display:flex;gap:12px;flex-wrap:wrap}.message{white-space:pre-wrap}#message{padding:12px;background:#eaf0ff}details{margin-top:12px}.actions{position:sticky;bottom:0;padding:16px;background:#fff;border-top:1px solid #ddd}a{color:#2455d6}@media(max-width:760px){.layout{display:block}.player{position:static}main{margin:0;padding:12px}}
 </style>
+<style>
+[hidden]{display:none!important}.video-frame{position:relative}.video-frame video{display:block}
+.caption-overlay{position:absolute;left:4%;right:4%;bottom:15%;max-height:48%;overflow:auto;margin:0;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.78);color:#fff;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(14px,2vw,20px);line-height:1.45;text-shadow:0 1px 2px #000}
+.caption-text{white-space:pre-wrap;overflow-wrap:anywhere;background:#eef2f9;border-radius:8px;padding:12px;max-height:160px;overflow:auto;color:#17243b}.caption-note{font-size:13px;margin:6px 0}
+</style>
 <main><h1>추천 수작업 평가</h1><p>후보 영상을 보고 선택 여부와 수정 이유를 남겨 주세요. 미선택은 오답을 뜻하지 않습니다.</p>
 <div id="message" role="status">평가를 불러오는 중…</div>
-<div class="layout"><section class="player panel"><video id="video" controls preload="metadata" src="/media"></video><p id="playing">후보의 ‘구간 재생’을 누르세요.</p><label>평가자 <input id="reviewer" placeholder="이름 또는 별칭"></label><p>점수 기준: 0 이해·사용 불가 → 2 수정 필요 → 4 그대로 사용 가능</p><p id="progress"></p></section><section id="candidates"></section></div>
+<div class="layout"><section class="player panel"><div class="video-frame"><video id="video" controls preload="metadata" src="/media"></video><p id="caption-overlay" class="caption-overlay" hidden></p></div><label><input id="captions-enabled" type="checkbox" checked> 검토용 자막 표시</label><p id="caption-text" class="caption-text">영상 재생 시 이곳에도 전체 자막이 표시됩니다.</p><p id="caption-note" class="caption-note">저장된 전사와 원본 시간 기준의 검토용 자막입니다. 최종 영상에 합성된 자막이 아닙니다.</p><p id="playing">후보의 ‘구간 재생’을 누르세요.</p><label>평가자 <input id="reviewer" placeholder="이름 또는 별칭"></label><p>점수 기준: 0 이해·사용 불가 → 2 수정 필요 → 4 그대로 사용 가능</p><p id="progress"></p></section><section id="candidates"></section></div>
 <section class="panel"><h2>사람이 고른 기준 구간</h2><p>추천을 보기 전에 골라 둔 구간은 비교 기준으로 사용할 수 있습니다. AI 추천 결과와 구분해 저장합니다.</p><div class="row"><label>기준 시작(초) <input id="reference-start" type="number" min="0" step="0.01" value="0"></label><label>기준 종료(초) <input id="reference-end" type="number" min="0" step="0.01" value="30"></label><button id="add-reference">기준 구간 추가</button></div><div id="references"></div><details><summary>시간별 전사 확인</summary><div id="transcript-segments"></div></details><label>전사에서 발견한 문제 <textarea id="transcription"></textarea></label><label>후보 다양성·전체 의견 <textarea id="diversity"></textarea></label></section>
 <div class="actions"><button id="save" class="primary">평가 저장</button> <button id="reload">저장본 다시 불러오기</button><span id="downloads" hidden> · <a href="/api/download/review">평가 JSON</a> · <a href="/api/download/report">보고서</a> · <a href="/api/download/handoff">자동화 인계</a></span></div>
 </main><script>
 let state,dirty=false,stop=null;const el=id=>document.getElementById(id),video=el('video');
+let captionFrame=null,lastCaptionView='';
+function syncCaptions(){
+ if(!state)return;
+ const t=video.currentTime*1000;
+ const active=(state.subtitles?.cues??[]).filter(c=>c.start_ms<=t&&t<c.end_ms);
+ const text=active.map(c=>c.lines.join('\n')).join('\n');
+ const enabled=el('captions-enabled').checked;
+ const note=active.some(c=>c.timing==='segment')?'단어별 시간이 없는 구간은 원래 문장 전체를 표시합니다. 긴 자막은 전체 문장 박스에서 확인하세요.':active.some(c=>c.review_required)?'표시 길이·읽기 속도 등의 검토가 필요한 자막입니다. 원문과 시간은 보존했습니다.':'저장된 전사와 원본 시간 기준의 검토용 자막입니다. 최종 영상에 합성된 자막이 아닙니다.';
+ const view=JSON.stringify([text,enabled,note]);
+ if(view===lastCaptionView)return;
+ lastCaptionView=view;
+ el('caption-overlay').textContent=text;
+ el('caption-overlay').hidden=!enabled||!text;
+ el('caption-text').textContent=text||'이 시점에 표시할 전사가 없습니다.';
+ el('caption-note').textContent=note;
+}
+function captionTick(){syncCaptions();captionFrame=video.paused||video.ended?null:requestAnimationFrame(captionTick)}
+video.addEventListener('play',()=>{if(captionFrame===null)captionTick()});
+for(const event of ['timeupdate','seeked','loadedmetadata','pause','ended'])video.addEventListener(event,syncCaptions);
+el('captions-enabled').onchange=syncCaptions;
 const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n};
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
 video.addEventListener('timeupdate',()=>{if(stop!==null&&video.currentTime>=stop){video.pause();stop=null}});
@@ -25,7 +50,7 @@ function show(){el('candidates').replaceChildren();for(const c of state.snapshot
  const reasons=node('div','수정·사용 불가 이유 (복수 선택)');for(const [value,label] of [['preference','개인 선호'],['context','문맥 누락'],['boundary','시작·끝 잘림'],['transcription','전사 오류'],['duplicate','중복'],['title','제목 불일치'],['other','기타']]){const l=node('label',label+' '),i=document.createElement('input');i.type='checkbox';i.checked=r.reasons.includes(value);i.onchange=()=>{r.reasons=i.checked?[...new Set([...r.reasons,value])]:r.reasons.filter(x=>x!==value);dirty=true};l.prepend(i);reasons.append(l)}card.append(reasons);
  const l=node('label','구체적인 이유·제안 '),notes=document.createElement('textarea');notes.value=r.notes;notes.oninput=()=>{r.notes=notes.value;dirty=true};l.append(notes);card.append(l);
  const d=node('details','');d.append(node('summary','AI 점수·이유 보기'),node('p',`점수 ${c.score??'없음'} · ${c.reason??''}`));card.append(d);el('candidates').append(card)}
- el('reviewer').value=state.review.reviewer;el('transcription').value=state.review.transcription_notes;el('diversity').value=state.review.diversity_notes;el('downloads').hidden=!state.revision;el('progress').textContent=`추천 후보 ${state.snapshot.candidates.length}개 · 저장 상태: ${state.report.evaluation_status==='complete'?'사람 평가 입력 완료':'평가 진행 중'}`;if(!state.snapshot.candidates.length)el('candidates').append(node('p','추천 후보가 없습니다. 후보 없음은 품질 합격이 아닙니다.'));
+ el('reviewer').value=state.review.reviewer;el('transcription').value=state.review.transcription_notes;el('diversity').value=state.review.diversity_notes;el('downloads').hidden=!state.revision;el('progress').textContent=`추천 후보 ${state.snapshot.candidates.length}개 · 저장 상태: ${state.report.evaluation_status==='complete'?'사람 평가 입력 완료':'평가 진행 중'}`;if(!state.snapshot.candidates.length)el('candidates').append(node('p','추천 후보가 없습니다. 후보 없음은 품질 합격이 아닙니다.'));syncCaptions();
 }
 function references(){el('references').replaceChildren();state.review.references.forEach((r,index)=>{const row=node('p',`${r.start_ms/1000}~${r.end_ms/1000}초 `),play=node('button','기준 구간 재생'),remove=node('button','이 구간 기록 취소');play.onclick=()=>{video.currentTime=r.start_ms/1000;stop=r.end_ms/1000;video.play()};remove.onclick=()=>{state.review.references.splice(index,1);dirty=true;references()};row.append(play,remove);el('references').append(row)})}
 el('add-reference').onclick=()=>{const start=Math.round(Number(el('reference-start').value)*1000),end=Math.round(Number(el('reference-end').value)*1000);if(start<0||end<=start||end>state.snapshot.evaluation_input.duration_ms){el('message').textContent='원본 안에서 시작보다 뒤에 있는 종료 시각을 입력하세요.';return}state.review.references.push({start_ms:start,end_ms:end});dirty=true;references()};

@@ -40,10 +40,14 @@
 
 | 기록 ID | 문제·작업 | 결과 상태 | Wiki 게시 |
 |---|---|---|---|
-| 2026-11-17-recommendation-manual-review | [추천 평가 웹 연결과 Groq 접근 거부 진단](2026-11-17-recommendation-manual-review.md) | 웹 저장 검사·오류 분류 수정, 실제 추천은 접근 거부로 미완료 | 미게시 |
-| 2026-11-17-auth-data-plan | [Google 로그인과 사용자 데이터 관리 구현](2026-11-17-auth-data-plan.md) | 로컬 구현·검증 / 실계정 확인 전 | 미게시 |
-| 2026-11-17-verification-layout | [검증 화면 레이아웃과 전체화면 수정](2026-11-17-verification-layout.md) | 로컬 수정·검증 완료 | 미게시 |
-| 2026-11-17-subtitle-render-spike | [한국어 자막 포함 세로 영상 출력 확인](2026-11-17-subtitle-render-spike.md) | 출력 1단계 완료·기본 334개/통합 64개 통과 | 미게시 |
-| 2026-11-17-prompt-result-records | [프롬프트·결과 기록을 하네스 완료 절차에 연결](2026-11-17-prompt-result-records.md) | 로컬 문서 반영·검증 결과는 기록 참조 | 미게시 |
+| INTEGRATE-001 | [미반영 작업의 main 통합](2026-11-17-main-integration.md) | 통합 검증 중 | 별도 게시 안 함 |
+| FAIL-E2E-001 | [실패 경로 E2E 계획](2026-11-17-failure-path-plan.md) | 계획 작성·제품 구현 전 | 미게시 |
+| 2026-11-17-local-video-upload | [로컬 영상 입력과 비동기 검증](2026-11-17-local-video-upload.md) | 로컬 구현·최종 검증 중 | 미게시 |
+| FLOW-001 | [입력부터 편집·출력·업로드까지 연결](2026-11-17-complete-flow.md) | 로컬 연결·대역 E2E 통과, 실제 품질/계정은 후속 | 미게시 |
+| 2026-11-17-recommendation-manual-review | [추천 평가 웹 연결과 Groq 접근 거부 진단](2026-11-17-recommendation-manual-review.md) | 실제 후보 2개·검토용 동기 자막 연결, 기본 369개·Chrome 검사 통과, 사람 검수 대기 | 게시됨 |
+| 2026-11-17-auth-data-plan | [Google 로그인과 사용자 데이터 관리 구현](2026-11-17-auth-data-plan.md) | 로컬 구현·격리 환경의 실계정 로그인·로그아웃 확인 | 게시됨 |
+| 2026-11-17-verification-layout | [검증 화면 레이아웃과 전체화면 수정](2026-11-17-verification-layout.md) | 로컬 수정·검증 완료 | 게시됨 |
+| 2026-11-17-subtitle-render-spike | [한국어 자막 포함 세로 영상 출력 확인](2026-11-17-subtitle-render-spike.md) | 출력 1단계 완료·기본 334개/통합 64개 통과 | 게시됨 |
+| 2026-11-17-prompt-result-records | [프롬프트·결과 기록을 하네스 완료 절차에 연결](2026-11-17-prompt-result-records.md) | 로컬 문서 반영·검증 결과는 기록 참조 | 게시됨 |
 
 [새 기록 양식](template.md)

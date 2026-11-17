@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.domain.video import VideoError
 from app.services import analysis, video
 from app.worker import celery_app
+from tests.integration.faults import install_analysis_faults
 
 
 class FixtureProviders:
@@ -123,6 +124,7 @@ def main():
 
     video.download = local_download
     analysis.Providers = FixtureProviders
+    install_analysis_faults(analysis, FixtureProviders)
     celery_app.worker_main(["worker", "--loglevel=INFO", "--concurrency=1", "-Q", "analysis"])
 
 

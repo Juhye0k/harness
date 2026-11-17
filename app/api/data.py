@@ -19,6 +19,8 @@ router = APIRouter(tags=["user data"])
 
 
 def active_jobs(s, kind, resource_id):
+    from app.upload_models import Upload
+
     if kind == "user":
         assets = select(Asset.id).where(Asset.user_id == resource_id)
         jobs = select(VideoJob.id).where(VideoJob.user_id == resource_id)
@@ -30,6 +32,13 @@ def active_jobs(s, kind, resource_id):
         jobs = select(VideoJob.id).where(VideoJob.id == resource_id)
     return bool(
         s.scalar(
+            select(Upload.asset_id)
+            .where(
+                Upload.asset_id.in_(assets), Upload.state.in_(("receiving", "queued", "validating"))
+            )
+            .limit(1)
+        )
+        or s.scalar(
             select(VideoJob.id)
             .where(VideoJob.id.in_(jobs), VideoJob.status.in_(("pending", "queued", "running")))
             .limit(1)

@@ -123,6 +123,20 @@ class HighlightCandidate(Base):
     data: Mapped[dict] = mapped_column(JSONB)
 
 
+class AnalysisRequestReceipt(Base):
+    """Bounded request deduplication; no raw input or provider data is duplicated."""
+
+    __tablename__ = "analysis_request_receipts"
+    owner_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    request_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    analysis_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("analysis_jobs.id", ondelete="SET NULL"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class TranscriptReview(Base):
     __tablename__ = "transcript_reviews"
     __table_args__ = (
@@ -149,6 +163,23 @@ class ProviderCall(Base):
     stage: Mapped[str] = mapped_column(String(32))
     state: Mapped[str] = mapped_column(String(32), default="started")
     metadata_json: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class CaptionRevision(Base):
+    """An immutable editor snapshot; the original transcript is never updated."""
+
+    __tablename__ = "caption_revisions"
+    __table_args__ = (UniqueConstraint("candidate_id", "content_hash"),)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    candidate_id: Mapped[UUID] = mapped_column(
+        ForeignKey("highlight_candidates.id", ondelete="CASCADE"), index=True
+    )
+    source_version: Mapped[str] = mapped_column(String(80))
+    content_hash: Mapped[str] = mapped_column(String(64))
+    cues: Mapped[list] = mapped_column(JSONB)
+    reviewed: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    render_job_id: Mapped[UUID | None] = mapped_column(ForeignKey("video_jobs.id"), unique=True)
 
 
 class SnsOAuthState(Base):
