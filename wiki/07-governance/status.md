@@ -6,6 +6,8 @@
 
 ## 현재 상태
 
+자막 포함 세로 출력 1단계: [고정 합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. 한국어 자막을 입힌 10초·720×1280 MP4·클립 기준 SRT·미리보기를 생성한다. 최신 main에서 이번 작업만 분리한 브랜치의 기본 **281개**·Linux 출력 **28개**·실제 인프라 통합 **58개**가 통과했다. 편집 UI·비동기 최종 출력·실제 발화 정렬은 후속이다. 기존 혼합 작업 폴더의 검증 이력은 [작업 기록](../05-development/harness/records/2026-11-17-subtitle-render-spike.md)에서 구분한다. GitHub Wiki 게시 전이다.
+
 SNS-006 실제 계정 검증 완료: OAuth 채널 연결 후 승인된 720×1280·음성 포함 10초 합성 출력을 비공개로 업로드했다. YouTube API의 채널·제목·비공개·아동용 여부·처리 완료와 Studio Shorts 탭의 실제 분류를 확인했다. SNS 분리 워크트리의 기본 151개·통합 54개가 통과했다. OAuth 실패 코드 비노출과 오류 안내 유지 회귀 검사를 반영하며, 통합 브랜치의 기존 로그 보호·초안 재작성·상태 조회 경쟁 수정은 보존한다. [상세 기록](../05-development/harness/changes/sns-006-upload.md). 자동 세로 변환·운영 배포·원격 게시를 완료한 것으로 설명하지 않는다.
 
 전사 자동 검수 로컬 구현: 규칙·선택 신뢰도 기반 의심 구간, 음성 Range 재생, 버전별 사람 판정과 revision 충돌 검사, 보고서·비표시 구간 표본을 추가했다. 기본 검사 **251개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **57개** 통과. [전사 검수 안내](../05-development/transcript-review.md). 기존 전사를 자동 재호출하지 않으며 새 Groq 분석은 quality-v3 캐시를 사용한다. 실제 탐지 품질·검수 시간 절감은 아직 평가하지 않았다.

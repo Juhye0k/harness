@@ -32,6 +32,20 @@
 
 요구사항 변경 시 이 식별자를 유지하고 계약·구현·검사를 함께 검토한다. 실패를 발견하면 [개선 기록](changes/README.md)에 재현 조건과 검사 함수를 연결한다. 이번 정리는 기존 검사를 이동한 작업이며 위 미검증 부분을 새 기능으로 구현하지 않는다.
 
+## 자막 포함 세로 출력의 첫 기술 확인
+
+`2026-11-17-subtitle-render-spike`의 범위는 [고정 합성 샘플 CLI](../portrait-subtitle-sample.md)다. 편집 UI·DB·비동기 출력 작업은 후속이다.
+
+| 요구사항 | 구현 | 검사 |
+|---|---|---|
+| 원본→클립 시간 이동, 경계 잘림·겹침 거절, 입력 보존 | `domain.portrait.clip_captions` | `unit/test_portrait.py` |
+| 고정 평문과 ASS 제어문자 분리 | `domain.portrait` | `unit/test_portrait.py`의 제어문자·줄수·글자수 검사 |
+| 720×1280·길이·음성·디코딩·원본 보존 | `adapters.portrait.render_portrait` | `media/test_portrait_render.py` |
+| 실제 자막 표시 시간·두 줄·구간 시작·여백 | 같은 adapter | 같은 media 검사의 프레임 픽셀·색상 비교 |
+| 기존 파일 보존·시간 초과/실패 정리·폰트 부재 | adapter·sample service | 단위 검사와 media 결과 파일 검사 |
+
+한국어 글리프 모양은 별도 미리보기 확인이며, 실제 음성 정렬·가독성 품질은 위 자동 검사로 판정하지 않는다.
+
 ## 비동기 확장
 
 VIDEO-002는 [별도 요구사항 연결표](video-002-requirements.md)에서 API·상태 전이·중복·실패·다운로드를 관리한다.

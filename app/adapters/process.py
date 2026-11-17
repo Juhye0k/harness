@@ -75,6 +75,7 @@ def run(
     watch_dir: Path | None = None,
     max_bytes: int | None = None,
     input_text: str | None = None,
+    cwd: Path | None = None,
 ) -> str:
     options = (
         {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -95,6 +96,7 @@ def run(
                 stdout=output,
                 stderr=subprocess.DEVNULL,
                 shell=False,
+                cwd=cwd,
                 **options,
             )
         except FileNotFoundError as exc:
