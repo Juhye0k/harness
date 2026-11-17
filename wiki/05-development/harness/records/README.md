@@ -40,9 +40,9 @@
 
 | 기록 ID | 문제·작업 | 결과 상태 | Wiki 게시 |
 |---|---|---|---|
-| INTEGRATE-001 | [미반영 작업의 main 통합](2026-11-17-main-integration.md) | 통합 검증 중 | 별도 게시 안 함 |
-| FAIL-E2E-001 | [실패 경로 E2E 계획](2026-11-17-failure-path-plan.md) | 계획 작성·제품 구현 전 | 미게시 |
-| 2026-11-17-local-video-upload | [로컬 영상 입력과 비동기 검증](2026-11-17-local-video-upload.md) | 로컬 구현·최종 검증 중 | 미게시 |
+| INTEGRATE-001 | [미반영 작업의 main 통합](2026-11-17-main-integration.md) | 로컬 검증 완료·main 반영 준비 | 별도 게시 안 함 |
+| FAIL-E2E-001 | [실패 경로 E2E 계획](2026-11-17-failure-path-plan.md) | receipt·실패 E2E·격리 종료 3개 검증 완료 | 미게시 |
+| 2026-11-17-local-video-upload | [로컬 영상 입력과 비동기 검증](2026-11-17-local-video-upload.md) | 로컬 구현·합성 입력 검증 완료 | 미게시 |
 | FLOW-001 | [입력부터 편집·출력·업로드까지 연결](2026-11-17-complete-flow.md) | 로컬 연결·대역 E2E 통과, 실제 품질/계정은 후속 | 미게시 |
 | 2026-11-17-recommendation-manual-review | [추천 평가 웹 연결과 Groq 접근 거부 진단](2026-11-17-recommendation-manual-review.md) | 실제 후보 2개·검토용 동기 자막 연결, 기본 369개·Chrome 검사 통과, 사람 검수 대기 | 게시됨 |
 | 2026-11-17-auth-data-plan | [Google 로그인과 사용자 데이터 관리 구현](2026-11-17-auth-data-plan.md) | 로컬 구현·격리 환경의 실계정 로그인·로그아웃 확인 | 게시됨 |

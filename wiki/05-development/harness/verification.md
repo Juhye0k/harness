@@ -58,6 +58,6 @@ GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은
 
 ## 이후 검사
 
-실패 경로의 추가 구현은 [FAIL-E2E-001 계획](../failure-path-testing.md)을 따른다. 접수 응답 유실·분석 request_id 보완·도구 실패와 실제 워커 종료 실험을 구분하며, 새 장애 주입기·receipt·실제 종료 검사는 아직 구현 전이다. 일반 실패 검사는 기존 integration에, 실제 컨테이너 종료는 격리된 수동 CI부터 배치할 계획이다.
+실패 경로는 [FAIL-E2E-001](../failure-path-testing.md)에 따라 분석 request_id receipt·응답 유실 복원·도구 실패·중복 전달 검사를 구현했다. 결정적 실패 검사는 기존 integration에 포함한다. `uv run python scripts/run_failure_drills.py`는 생성한 격리 프로젝트에서만 실제 워커/API 종료를 검사하며 별도 수동 CI로 실행한다. 로컬 실행 결과·실패와 수정은 [통합 기록](records/2026-11-17-main-integration.md)을 따른다. 자동 복구·실제 제공자 장애를 검증하는 기능은 아니다.
 
 2단계는 출력 파일·실패·중복 처리를, 3단계는 사용자 흐름을, 4단계는 고정 영상의 추천 품질·비용을 추가한다. 실제 모델 평가는 일반 CI와 분리한다.

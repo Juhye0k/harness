@@ -20,11 +20,11 @@ from tests.integration.faults import Faults
 from tests.integration.test_analysis_flow import BASE
 
 
-def wait(client, path):
+def wait(client, path, terminal=("succeeded", "failed", "unknown")):
     deadline = time.monotonic() + 45
     while time.monotonic() < deadline:
         result = client.get(path).json()
-        if result["status"] in {"succeeded", "failed", "unknown"}:
+        if result["status"] in terminal:
             return result
         time.sleep(0.1)
     raise TimeoutError("Fixture job did not complete")
@@ -186,7 +186,12 @@ def main():
             assert upload["status"] == "unknown" and upload["can_probe"]
             assert not SnsRepository().finish(identifier, "succeeded", remote_id="abcdefghijk")
             assert client.post(f"/sns/uploads/{identifier}/probe").status_code == 202
-            assert wait(client, f"/sns/uploads/{identifier}")["status"] == "succeeded"
+            assert (
+                wait(client, f"/sns/uploads/{identifier}", terminal=("succeeded", "failed"))[
+                    "status"
+                ]
+                == "succeeded"
+            )
             with fault.connection() as redis:
                 counts = redis.hgetall(f"sns-fixture:{identifier}")
                 assert (

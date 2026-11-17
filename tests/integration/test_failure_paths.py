@@ -136,6 +136,13 @@ def test_save_render_and_sns_confirmation_responses_can_be_lost(selected):
         page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
         page.goto(BASE + f"/editor?analysis={aid}&candidate={cid}")
         expect(page.locator("#caption-rows textarea").first).to_be_visible()
+        # Begin from a saved URL, then lose the response for a newer revision.
+        page.locator("#caption-reviewed").check()
+        page.locator("#save-captions").click()
+        expect(page.locator("#editor-message")).to_have_text("편집본을 저장했습니다.")
+        old_url = page.url
+        assert "revision=" in old_url
+        posts.clear()
         page.locator("#caption-rows textarea").first.fill("응답 유실 확인")
         page.locator("#caption-reviewed").check()
 
@@ -150,6 +157,7 @@ def test_save_render_and_sns_confirmation_responses_can_be_lost(selected):
         page.reload()
         expect(page.locator("#render-final")).to_be_enabled()
         expect(page.locator("#caption-rows textarea").first).to_have_value("응답 유실 확인")
+        assert page.url != old_url
         assert len([url for url in posts if url.endswith("/caption-revisions")]) == 1
         page.route("**/caption-revisions/*/exports", lose)
         page.locator("#render-final").click()
