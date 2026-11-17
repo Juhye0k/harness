@@ -1,5 +1,7 @@
 # 현재 API 계약
 
+API는 영상 입력·분석 접수·편집·출력·조회를 연결한다. 202 응답은 접수 완료이며 처리 완료가 아니다. 현재 엔드포인트와 오류 조건을 찾을 때 이 문서를 사용한다.
+
 ## 로컬 파일 업로드
 
 UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, `GET /assets/{id}/upload`를 제공한다. 영상 검사는 worker에서 수행하며 ready인 asset_id는 기존 추출·분석 입력으로 재사용한다. 크기·상태·권한·삭제 경계는 [업로드 계약](../05-development/local-video-upload.md)을 따른다.
