@@ -1,6 +1,7 @@
 """Browser-session owned, same-origin local YouTube API; credentials never leave server."""
 
 import hmac
+import logging
 import re
 import secrets
 from collections.abc import Callable
@@ -20,6 +21,21 @@ from app.services import sns
 
 router = APIRouter(prefix="/sns", tags=["YouTube uploads"])
 COOKIE = "shortform_sns"
+logger = logging.getLogger(__name__)
+OAUTH_FAILURE_CODES = frozenset(
+    {
+        "INVALID_OAUTH_STATE",
+        "OAUTH_DENIED",
+        "SNS_DISABLED",
+        "SNS_NOT_CONFIGURED",
+        "RECONNECT_REQUIRED",
+        "CHANNEL_UNAVAILABLE",
+        "PROVIDER_REJECTED",
+        "PROVIDER_UNREACHABLE",
+        "INVALID_PROVIDER_RESPONSE",
+        "CREDENTIALS_UNAVAILABLE",
+    }
+)
 
 
 def repository():
@@ -104,8 +120,13 @@ def callback(request: Request, repo: Repo, user: Owner):
         if len(state) > 128 or len(code) > 4096:
             raise SnsError("INVALID_OAUTH_STATE", "계정 연결을 다시 시작하세요.", 400)
         sns.complete_oauth(repo, get_settings(), user, state, code)
-    except (SnsError, ProviderFailure):
-        return RedirectResponse("/sns?oauth=error", status_code=303)
+    except (SnsError, ProviderFailure) as exc:
+        code = exc.code if exc.code in OAUTH_FAILURE_CODES else "OAUTH_FAILED"
+        logger.warning("SNS OAuth callback failed: code=%s", code)
+        target = "/sns?oauth=error"
+        if code == "CHANNEL_UNAVAILABLE":
+            target += "&reason=channel_unavailable"
+        return RedirectResponse(target, status_code=303)
     return RedirectResponse("/sns?oauth=connected", status_code=303)
 
 

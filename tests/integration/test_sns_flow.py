@@ -233,3 +233,21 @@ def test_browser_explicit_confirmation_reload_and_query_error(connected):
         page.screenshot(path=str(ARTIFACTS / "sns-mobile.png"), full_page=True)
         assert not errors, errors
         browser.close()
+
+
+def test_browser_oauth_failure_is_not_overwritten_by_empty_accounts():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page()
+        page.route("**/sns/accounts", lambda route: route.fulfill(json=[]))
+        page.goto(f"{BASE}/sns?oauth=error&reason=channel_unavailable")
+        expect(page.locator("#notice")).to_contain_text("YouTube 채널을 확인하지 못했어요")
+        expect(page.locator("#notice")).to_contain_text("채널을 만들거나")
+        expect(page.locator("#upload-form")).to_be_hidden()
+        page.reload()
+        expect(page.locator("#notice")).to_contain_text("YouTube 채널을 확인하지 못했어요")
+        page.goto(f"{BASE}/sns?oauth=error&reason=untrusted-provider-message")
+        expect(page.locator("#notice")).to_have_text(
+            "계정 연결을 완료하지 못했어요. 다시 연결하세요."
+        )
+        browser.close()
