@@ -1,8 +1,11 @@
 # VIDEO-005-SUBTITLES: 긴 전사 구간의 표시 자막 분리
 
-후속 통합에서 Docker를 복구하고 전체 코드 기준 기본 235개·실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 56개를 통과했다. [통합 검증 기록](integration-subtitles-sns.md)을 최신 근거로 삼으며 아래 개별 워크트리의 Docker 차단은 당시 이력이다. 실제 음성 정렬 품질은 별도 평가 대상이다.
+> 긴 전사 구간 하나를 그대로 보여주면 자막을 읽기 어렵습니다. 원문과 시간을 보존하면서 표시용 자막을 나누고 불확실한 구간을 검토 대상으로 남긴 변경을 설명합니다.
 
 [위키 홈](../../../README.md) · [하네스 개선 기록](README.md)
+
+후속 통합에서 Docker를 복구하고 전체 코드 기준 기본 235개·실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 56개를 통과했다. [통합 검증 기록](integration-subtitles-sns.md)을 최신 근거로 삼으며 아래 개별 워크트리의 Docker 차단은 당시 이력이다. 실제 음성 정렬 품질은 별도 평가 대상이다.
+
 
 목적은 원문 전사와 표시 자막을 분리하는 것이다. 완료 기준은 원문 문자 보존, 검증된 단어 시각 사용, 구버전 시각 추정 금지, 웹 확인·SRT 다운로드와 실패 회귀 검사다. 시작 코드는 VIDEO-005 Groq 미커밋 기준선이며 커밋·푸시·Wiki 게시는 하지 않는다.
 

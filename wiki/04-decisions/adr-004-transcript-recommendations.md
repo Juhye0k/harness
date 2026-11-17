@@ -1,8 +1,9 @@
 # ADR-004 — 전사 기반 추천과 제공자 분리
 
-> 상태: 채택 · 기준일: 2026-11-15
+> 첫 추천 방식은 영상 전체를 이해하는 모델 대신 한국어 음성 전사를 사용합니다. 전사와 추천 제공자를 분리해 결과를 재사용하는 이유와 시각 정보 누락의 한계를 설명합니다.
 
 [위키 홈](../README.md) · [의사결정 목차](README.md)
+
 
 ## 문제와 결정
 
@@ -36,3 +37,10 @@
 - [OpenAI 구조화 출력](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [GPT-5.6 Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra)
 - [실행 계약과 제한](../05-development/highlight-recommendations.md)
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 채택 · 기준일: 2026-11-15
+
+</details>

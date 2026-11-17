@@ -1,46 +1,38 @@
 # Shortform 프로젝트 위키
 
-**긴 영상에서 하이라이트를 추천하고, 사용자가 자막을 수정해 숏폼 영상으로 출력하는 서비스를 만든다.** 이 위키는 처음 합류한 개발자가 제품의 목적, 처리 흐름, 개발·검증 방법을 순서대로 이해하도록 안내한다.
+> 긴 영상에서 후보를 추천받고, 자막을 고쳐 짧은 영상으로 만드는 프로젝트입니다. 이 위키는 제품 사용법과 기술 선택의 이유, 실제로 확인한 검사·실패 기록을 함께 설명합니다.
 
-> 기준일: 2026-11-18 · 대상: 신입 개발자·프로젝트 검토자
+## 처음이라면 이 순서로 읽으세요
 
-## 지금 어디까지 만들었나
+1. [어떤 문제를 해결하나요?](01-product/problem-definition.md) — 대상 사용자와 제품 가설을 이해합니다.
+2. [사용자는 어떻게 영상을 만드나요?](05-development/complete-flow.md) — 입력부터 편집·출력까지 따라갑니다.
+3. [어디까지 구현·검증됐나요?](07-governance/status.md) — 기능 동작과 실제 품질의 차이를 확인합니다.
+4. [왜 이렇게 설계했나요?](03-architecture/system-overview.md) — API·DB·워커의 역할과 기술 선택을 읽습니다.
+5. [직접 실행하려면?](05-development/onboarding.md) — 도구를 준비하고 로컬 환경을 시작합니다.
 
-링크·로컬 파일 입력, 한국어 전사 기반 추천, 후보 선택, 자막 편집·저장, 세로 MP4·SRT 다운로드, 확인 후 YouTube 업로드를 연결했다. 자동 검사에서는 AI·YouTube를 시험용 응답으로 대체하고 나머지 API·DB·워커·영상 처리를 실제로 실행한다.
+## 목적에 맞는 글 찾기
 
-실제 영상의 추천·자막 품질, 편집한 완성본의 실계정 게시, 운영 배포는 각각 별도 확인이 필요하다. 최신 결과는 [현재 현황](07-governance/status.md) 한 곳에서 확인한다.
+오른쪽 카테고리를 누르면 글 목록이 펼쳐집니다. 글 제목을 누르면 중간 목차를 거치지 않고 해당 글로 이동합니다. 용어가 낯설면 [용어집](05-development/glossary.md)을 함께 보세요.
 
-## 처음 읽는 순서
-
-| 순서 | 읽을 문서 | 읽고 이해할 내용 |
-|---|---|---|
-| 1 | [문제 정의](01-product/problem-definition.md) | 누구의 어떤 편집 작업을 줄이려는가 |
-| 2 | [전체 사용자 흐름](05-development/complete-flow.md) | 영상 입력부터 다운로드까지 무엇을 하는가 |
-| 3 | [시스템 구조](03-architecture/system-overview.md)·[실행 과정](03-architecture/runtime-flows.md) | API·DB·Redis·워커가 어떻게 연결되는가 |
-| 4 | [개발 환경 시작](05-development/onboarding.md) | 내 컴퓨터에서 어떻게 실행하는가 |
-| 5 | [개발 하네스](05-development/harness/README.md) | AI의 변경을 어떤 규칙과 검사로 확인하는가 |
-| 6 | [남은 단계](02-delivery/roadmap.md) | 다음에 무엇을 검증하고 확장할 것인가 |
-
-## 목적에 맞게 찾아보기
-
-| 카테고리 | 여기서 찾는 답 |
+| 읽고 싶은 내용 | 시작할 글 |
 |---|---|
-| [01 제품](01-product/README.md) | 사용자 문제·MVP 범위·참고 제품 |
-| [02 실행 계획](02-delivery/README.md) | 단계별 목표·작업 순서·완료 조건 |
-| [03 아키텍처](03-architecture/README.md) | 구성 요소·데이터·API·작업 상태 |
-| [04 기술 선택](04-decisions/README.md) | FastAPI·PostgreSQL·Redis/Celery를 고른 이유 |
-| [05 개발과 하네스](05-development/README.md) | 실행·자막·추천·테스트·AI 협업 |
-| [06 운영](06-operations/README.md) | 비용·배포 준비·장애 대응 |
-| [07 현황과 문서 관리](07-governance/README.md) | 현재 결과·미결정 사항·과거 검증 근거 |
+| 제품 목표와 개발 순서 | [제품 범위](01-product/scope-and-reference.md), [단계별 계획](02-delivery/roadmap.md) |
+| 영상 입력·편집·다운로드 | [로컬 파일 업로드](05-development/local-video-upload.md), [전체 사용자 흐름](05-development/complete-flow.md) |
+| 음성 인식·자막·추천 | [전사·추천 설정](05-development/groq-free-ai.md), [표시 자막](05-development/subtitle-segmentation.md), [품질 평가](05-development/transcript-quality-evaluation.md) |
+| 시스템과 기술 선택 | [실행 흐름](03-architecture/runtime-flows.md), [API](03-architecture/api-contract.md), [설계 결정](04-decisions/README.md) |
+| AI와 개발·검증하기 | [하네스 시작](05-development/harness/README.md), [검사 방법](05-development/harness/verification.md), [실패 경로](05-development/failure-path-testing.md) |
+| 실패·개선의 실제 근거 | [문제 해결 기록](05-development/harness/changes/README.md), [프롬프트와 작업 결과](05-development/harness/records/README.md) |
+| 운영 준비와 장애 대응 | [점검 절차](06-operations/runbook.md), [배포·비용](06-operations/deployment-and-cost.md) |
+| 현재 상태와 남은 결정 | [최신 현황](07-governance/status.md), [미결정 사항](07-governance/open-decisions.md) |
 
-## 자주 찾는 문서
+## 현재 사용할 수 있는 범위
 
-- 기능이 동작하는지 확인하기: [검증 절차](05-development/harness/verification.md)
-- 통신이 끊기거나 워커가 종료됐을 때: [실패 경로 검사](05-development/failure-path-testing.md)·[장애 대응](06-operations/runbook.md)
-- 추천과 자막이 실제로 쓸 만한지 평가하기: [추천 평가](05-development/recommendation-improvement-loop.md)·[전사 품질 평가](05-development/transcript-quality-evaluation.md)
-- AI에게 요청한 내용과 결과 찾기: [작업 기록](05-development/harness/records/README.md)
-- 위키에 새 문서 추가하기: [작성 규칙](07-governance/document-guide.md)
+링크·로컬 파일 입력, 한국어 전사와 다중 후보 추천, 후보별 자막 편집·버전 저장, 세로 MP4·SRT 출력과 확인 후 YouTube 연결을 로컬 구현했습니다. Google 로그인과 계정별 자료 보호는 선택적으로 활성화합니다.
 
-공식 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 저장소의 `wiki/`는 게시 원본이며, 코드 저장소 반영과 Wiki 게시를 따로 관리한다.
+합성 영상과 제공자 대역으로 전체 흐름을 검사했습니다. 실제 인식·추천 품질, 최대 업로드 부하와 운영 배포는 별도 검증 대상입니다. 추천 AI와 SNS 업로드는 기본 비활성화이며, 실제 호출·전송에는 설정과 해당 자료에 대한 승인이 필요합니다.
 
-[저장소 README](../README.md) · [작업 규칙](../AGENTS.md)
+[저장소 README](../README.md) · [문서 작성 규칙](07-governance/document-guide.md) · [작업 규칙](../AGENTS.md)
+
+## 새로 연결된 검증 기록
+
+[실제 영상 흐름 검증](05-development/harness/records/2026-11-18-real-video-flow.md) · [실행 환경 반영](05-development/harness/records/2026-11-18-runtime-release.md) · [이전 검사 이력](07-governance/verification-history.md)

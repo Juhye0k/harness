@@ -1,8 +1,9 @@
 # 하이라이트 추천 실행과 검증 — VIDEO-004
 
-> 상태: 구현·로컬 검증 완료 / 실제 모델 품질 미평가 · 기준일: 2026-11-15
+> 한국어 전사에서 여러 후보를 추천하고 사용자가 선택한 구간만 추출합니다. 실행 설정과 전사 재사용, 서버 점수 계산·중복 제거, 실패와 비용 제어를 설명합니다.
 
 [위키 홈](../README.md) · [개발 목차](README.md)
+
 
 ## 사용자 흐름
 
@@ -70,3 +71,10 @@ docker compose -f compose.integration.yaml down -v
 제품 규칙은 `app/domain/recommendations.py`, 외부 호출은 `app/adapters/ai.py`, 상태 저장은 `analysis_repository.py`, 단계 연결은 `app/services/analysis.py`에 있다. 하네스는 AGENTS 규칙, `tests/unit/test_recommendations.py`, `test_ai_providers.py`, `tests/integration/test_analysis_flow.py`, 기존 CI 필수 검사로 구성한다.
 
 전사·추천 완료 뒤 표시 자막·SRT를 제공한다. 원본과 별도 계산하며 구버전 단어 시각이 없으면 추정 없이 검토 필요로 표시한다. [표시 자막 계약](subtitle-segmentation.md)에 캐시 버전·초안·제한을 정리했다. 내용 편집·영상 합성은 후속 범위다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 구현·로컬 검증 완료 / 실제 모델 품질 미평가 · 기준일: 2026-11-15
+
+</details>

@@ -1,5 +1,7 @@
 # 현재 API 계약
 
+> 클라이언트가 어떤 요청을 보내고 어떤 상태·오류를 받아야 하는지 정리합니다. 영상 접수·분석·자막·SNS API의 입력과 결과를 찾아볼 때 사용하는 계약 문서입니다.
+
 API는 영상 입력·분석 접수·편집·출력·조회를 연결한다. 202 응답은 접수 완료이며 처리 완료가 아니다. 현재 엔드포인트와 오류 조건을 찾을 때 이 문서를 사용한다.
 
 ## 로컬 파일 업로드
@@ -10,7 +12,6 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 
 `GET /analyses/{id}/transcript-review`, `PUT /analyses/{id}/transcript-review/{segment_id}`, `GET /analyses/{id}/review-audio`를 추가했다. 조회·재생은 읽기 전용이며 판정은 전사·정책 버전과 revision으로 저장한다. 완료 전/버전·동시 저장 충돌은 409, 없는 분석·구간·음성은 404다. [입력·정책·경계](../05-development/transcript-review.md)를 따른다.
 
-> 상태: VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
 
@@ -95,3 +96,10 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 | POST /sns/uploads/{id}/probe | unknown의 기존 세션만 조회하는 작업 접수. 영상 재전송 없음 |
 
 없는 계정·다른 세션 리소스는 404, 승인 불일치·만료·중복 설정 변경은 409, 입력 오류는 422, 기능 비활성화·설정 누락은 503이다. 확인 발행 실패는 202 응답의 failed/DISPATCH_FAILED로 추적하며 같은 출력의 자동 재요청을 허용하지 않는다. 응답 미확인은 같은 초안 주소의 GET으로 확인한다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+
+</details>
