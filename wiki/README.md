@@ -10,6 +10,8 @@
 
 공식 문서 열람 위치는 [GitHub Wiki](https://github.com/Juhye0k/short-form/wiki)다. 카테고리별 목차와 사이드바에서 세부 문서를 탐색한다. 코드 저장소의 wiki/ 폴더에는 게시 원본을 보관한다.
 
+실제 Google 로그인 검증(2026-11-17): 격리된 로컬 환경에서 테스트 계정의 Google 인증·운영자 승인 후 내 자료 접근·새로고침 시 로그인 유지·로그아웃 후 접근 차단을 확인했다. [설정과 검증 범위](05-development/user-auth-data.md), [작업 기록](05-development/harness/records/2026-11-17-auth-data-plan.md)을 참고한다. 운영 배포는 별도다.
+
 ## 처음 읽는 순서
 
 최근 [실제 자막 품질 평가와 두 변경 통합](05-development/harness/changes/transcript-quality-integration.md)을 진행했다. 원문·시간 범위는 보존했으나 고정 샘플의 표시 가독성 초안은 미달이며, 인식 정확도는 확인된 정답 전사가 필요하다.

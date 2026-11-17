@@ -40,10 +40,10 @@
 
 | 기록 ID | 문제·작업 | 결과 상태 | Wiki 게시 |
 |---|---|---|---|
-| 2026-11-17-recommendation-manual-review | [추천 평가 웹 연결과 Groq 접근 거부 진단](2026-11-17-recommendation-manual-review.md) | 웹 저장 검사·오류 분류 수정, 실제 추천은 접근 거부로 미완료 | 미게시 |
-| 2026-11-17-auth-data-plan | [Google 로그인과 사용자 데이터 관리 구현](2026-11-17-auth-data-plan.md) | 로컬 구현·검증 / 실계정 확인 전 | 미게시 |
-| 2026-11-17-verification-layout | [검증 화면 레이아웃과 전체화면 수정](2026-11-17-verification-layout.md) | 로컬 수정·검증 완료 | 미게시 |
-| 2026-11-17-subtitle-render-spike | [한국어 자막 포함 세로 영상 출력 확인](2026-11-17-subtitle-render-spike.md) | 출력 1단계 완료·기본 334개/통합 64개 통과 | 미게시 |
-| 2026-11-17-prompt-result-records | [프롬프트·결과 기록을 하네스 완료 절차에 연결](2026-11-17-prompt-result-records.md) | 로컬 문서 반영·검증 결과는 기록 참조 | 미게시 |
+| 2026-11-17-recommendation-manual-review | [추천 평가 웹 연결과 Groq 접근 거부 진단](2026-11-17-recommendation-manual-review.md) | 웹 저장 검사·오류 분류 수정, 실제 추천은 접근 거부로 미완료 | 게시됨 |
+| 2026-11-17-auth-data-plan | [Google 로그인과 사용자 데이터 관리 구현](2026-11-17-auth-data-plan.md) | 로컬 구현·격리 환경의 실계정 로그인·로그아웃 확인 | 게시됨 |
+| 2026-11-17-verification-layout | [검증 화면 레이아웃과 전체화면 수정](2026-11-17-verification-layout.md) | 로컬 수정·검증 완료 | 게시됨 |
+| 2026-11-17-subtitle-render-spike | [한국어 자막 포함 세로 영상 출력 확인](2026-11-17-subtitle-render-spike.md) | 출력 1단계 완료·기본 334개/통합 64개 통과 | 게시됨 |
+| 2026-11-17-prompt-result-records | [프롬프트·결과 기록을 하네스 완료 절차에 연결](2026-11-17-prompt-result-records.md) | 로컬 문서 반영·검증 결과는 기록 참조 | 게시됨 |
 
 [새 기록 양식](template.md)

@@ -11,7 +11,7 @@
 2026-11-17 게시 준비: 승인된 전사 복구·숏츠 표시/검증 화면·추천 평가·Google 인증·7일 자료 관리·하네스 기록을 통합했다. 아래의 로컬 미게시 문구와 검사 수치는 각 작업 당시 이력이며 현재 게시 검증 결과는 별도 기록한다.
 
 자막 포함 세로 출력 1단계: [고정 합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. 한국어 자막을 입힌 10초·720×1280 MP4·클립 기준 SRT·미리보기를 생성한다. 최신 main에서 이번 작업만 분리한 브랜치의 기본 **281개**·Linux 출력 **28개**·실제 인프라 통합 **58개**가 통과했다. 편집 UI·비동기 최종 출력·실제 발화 정렬은 후속이다. 기존 혼합 작업 폴더의 검증 이력은 [작업 기록](../05-development/harness/records/2026-11-17-subtitle-render-spike.md)에서 구분한다. GitHub Wiki 게시 전이다.
-AUTH-DATA-001 로컬 구현: Google 로그인·테스트 계정 승인·서버 세션, 업무 API·파일·SNS 소유권 검사, 새 자료 7일 만료·삭제·탈퇴를 추가했다. 기존 자료는 보존하고 자동 귀속하지 않는다. 실제 Google 계정 로그인·기존 DB 전환·운영 배포는 미실행이다. [설정·정리·제한](../05-development/user-auth-data.md)과 [작업 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)을 따른다.
+AUTH-DATA-001 로컬 구현·실계정 로그인 확인: Google 로그인·테스트 계정 승인·서버 세션, 업무 API·파일·SNS 소유권 검사, 새 자료 7일 만료·삭제·탈퇴를 추가했다. 커밋 `94f2474`의 인증 코드와 분리된 8002 API·DB에서 실제 테스트 계정 1개의 Google 인증·pending 등록·승인 후 내 자료 접근·새로고침 시 세션 유지·로그아웃 후 세션 제거와 접근 차단을 확인했다. 기존 자료는 보존하고 자동 귀속하지 않으며 기존 8000 DB 전환·운영 배포·실제 자료 삭제는 미실행이다. [설정·정리·제한](../05-development/user-auth-data.md)과 [작업 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)을 따른다.
 
 자막 편집·최종 출력의 첫 기술 확인(2026-11-17): [합성 샘플 CLI](../05-development/portrait-subtitle-sample.md)를 추가했다. Windows·Linux production 이미지에서 한글 1~2줄을 입힌 10.0초·720×1280 MP4와 클립 기준 SRT·미리보기·검사 보고서를 생성했다. 기본 **334개**, Linux 출력 회귀 **28개**, 실제 PostgreSQL·Redis·Celery·FFmpeg·Chromium 통합 **64개**와 검증 중 갱신된 브라우저 검사 **1개**가 통과했다. 한글 모양·줄바꿈은 PNG로 별도 확인했다. 입력은 고정 합성 영상과 시험음이며 실제 발화 정렬·가독성 평가는 아니다. 편집 저장·UI·비동기 최종 출력·SNS 연결은 후속이다. [작업 기록과 소스 범위](../05-development/harness/records/2026-11-17-subtitle-render-spike.md). 커밋·푸시·Wiki 게시 전이다.
 
