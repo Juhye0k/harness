@@ -2,6 +2,8 @@
 
 > 현재 상태와 과거 작업 이력을 분리하고 핵심 문서를 먼저 읽을 수 있도록 정리한 선행 작업입니다. 후속 전체 문서·접이식 탐색 개편과 구분해 당시 판단과 검사 근거를 보존합니다.
 
+
+
 현재 상태와 과거 작업 이력을 분리하고, 주요 문서를 **핵심 요약 → 배경 → 진행 과정 → 확인 결과 → 다음 행동** 순서로 다듬었다. 홈에서 전체 흐름을 파악한 뒤 필요한 기능 문서와 상세 근거를 찾아갈 수 있다. 제품 코드와 검사 조건은 변경하지 않았다.
 
 
@@ -44,7 +46,7 @@
 
 GitHub Wiki에 개선 문서 34개와 사이드바를 게시했다. 게시 후 홈·현재 현황·실행 흐름 페이지를 실제로 열어 요약과 본문 반영을 확인했다. 위키 내부 링크도 대상 페이지가 있는지 검사했다.
 
-[개선된 홈](https://github.com/Juhye0k/short-form/wiki) · [현재 현황](https://github.com/Juhye0k/short-form/wiki/07-governance-status) · [실행 과정](https://github.com/Juhye0k/short-form/wiki/03-architecture-runtime-flows)
+[개선된 홈](https://github.com/Juhye0k/short-form/wiki) · [현재 현황](../../../07-governance/status.md) · [실행 과정](../../../03-architecture/runtime-flows.md)
 
 게시 후 일부 작업 기록에서 PowerShell의 기본 표준입력 인코딩으로 한글이 물음표로 바뀐 것을 발견했다. UTF-8 파일을 직접 실행하는 방식으로 복구하고 전체 Markdown의 연속 물음표·대체문자와 게시 본문을 다시 확인했다. 제품 코드에는 영향이 없다.
 
