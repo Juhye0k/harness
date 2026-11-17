@@ -9,6 +9,7 @@
 - [AI와 함께 작업하는 절차](harness/workflow.md)
 - [검증 계층과 실행 방법](harness/verification.md)
 - [링크에서 10초 영상 추출](video-extraction.md)
+- [한국어 자막 포함 세로 영상 샘플 — 출력 1단계](portrait-subtitle-sample.md)
 - [비동기 10초 추출과 중단 처리](async-video-jobs.md)
 - [웹 영상 추출과 브라우저 검증 — VIDEO-003](web-video-extraction.md)
 - [하이라이트 추천과 선택 추출 — VIDEO-004](highlight-recommendations.md)

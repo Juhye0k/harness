@@ -22,7 +22,7 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - name: Install media verification tools
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk
       - run: uv run python scripts/verify.py
 
   integration:

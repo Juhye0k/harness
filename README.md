@@ -54,6 +54,8 @@ YouTube 업로드: http://localhost:8000/sns — [OAuth 설정·확인·중복 �
 
 ## 상세 안내
 
+자막 포함 세로 출력의 첫 기술 확인: `uv run python -m app.cli.render_sample`로 외부 호출 없이 합성 영상의 한국어 자막·720×1280 MP4·클립 기준 SRT를 만듭니다. [실행 안내와 검증 범위](wiki/05-development/portrait-subtitle-sample.md). 편집 UI·비동기 최종 출력은 후속입니다.
+
 전사 검수는 분석 결과 화면에서 의심 구간·관측값 확인, 앞뒤 음성 재생, 판정 저장과 JSON 보고서를 제공합니다. 추가 AI 호출이나 원문 수정은 하지 않습니다. [검수 정책·API·실제 평가의 한계](wiki/05-development/transcript-review.md)를 참고하세요.
 
 | 목적 | 문서 |
