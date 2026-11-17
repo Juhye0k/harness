@@ -78,13 +78,21 @@ class AuthMiddleware:
                         )
                     )
             # Parent references in create requests also need a usage claim.
-            chunks, size = [], 0
-            async for chunk in request.stream():
-                size += len(chunk)
-                if size > 65536:
-                    raise JobError("INPUT_TOO_LARGE", "입력 크기 제한을 초과했습니다.", 413)
-                chunks.append(chunk)
-            body = b"".join(chunks)
+            upload_stream = (
+                request.method == "PUT"
+                and len(parts) == 3
+                and parts[0] == "assets"
+                and parts[2] == "content"
+            )
+            body = b""
+            if not upload_stream:
+                chunks, size = [], 0
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > 65536:
+                        raise JobError("INPUT_TOO_LARGE", "입력 크기 제한을 초과했습니다.", 413)
+                    chunks.append(chunk)
+                body = b"".join(chunks)
             if body and request.method in {"POST", "PUT"}:
                 try:
                     import json
@@ -124,7 +132,7 @@ class AuthMiddleware:
                     ]
                 await send(message)
 
-            await self.app(scope, replay, private_send)
+            await self.app(scope, receive if upload_stream else replay, private_send)
         except JobError as exc:
             if exc.status_code == 401 and "text/html" in request.headers.get("accept", ""):
                 return await RedirectResponse("/login", status_code=303)(scope, receive, send)

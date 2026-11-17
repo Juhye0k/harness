@@ -45,6 +45,9 @@ def test_save_restore_conflict_and_automation_handoff(tmp_path, monkeypatch):
     directory, source = prepared(tmp_path, monkeypatch)
     with TestClient(create_app(directory, source)) as client:
         data = client.get("/api/review").json()
+        assert data["subtitles"]["time_origin"] == "source_video"
+        cue = data["subtitles"]["cues"][0]
+        assert (cue["start_ms"], cue["end_ms"], cue["text"]) == (0, 1000, "fixture")
         review = data["review"]
         review["reviewer"] = "fixture-human"
         review["ratings"][0].update(

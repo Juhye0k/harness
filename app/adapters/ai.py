@@ -12,6 +12,7 @@ from app.domain.video import VideoError
 ASR_VERSION = "azure-transcribe-2025-10-15-ko-KR-mono16k-v1"
 GROQ_ASR_MODEL = "whisper-large-v3-turbo"
 GROQ_MODEL = "openai/gpt-oss-120b"
+GROQ_RECOMMENDATION_PROFILE = "groq-records-low-2048-v1"
 GROQ_ASR_VERSION = "groq-whisper-large-v3-turbo-ko-mp3-16k-64k-quality-v3"
 PROMPT_VERSION = "recommendations-v1"
 SYSTEM = (
@@ -65,6 +66,11 @@ def provider_config(settings, mode="recommendation"):
         if recommendation == "groq"
         else (settings.recommendation_model if recommendation == "openai" else None),
         "asr_version": GROQ_ASR_VERSION if asr == "groq" else ASR_VERSION,
+        **(
+            {"recommendation_profile": GROQ_RECOMMENDATION_PROFILE}
+            if recommendation == "groq"
+            else {}
+        ),
     }
 
 
@@ -82,6 +88,12 @@ def validate_job_config(config, settings):
         or config.get("asr_version", current["asr_version"]) != current["asr_version"]
         or (mode == "recommendation" and recommendation != current["recommendation_provider"])
         or (mode == "recommendation" and recommendation == "groq" and config["model"] != GROQ_MODEL)
+        or (
+            mode == "recommendation"
+            and recommendation == "groq"
+            and config.get("recommendation_profile", GROQ_RECOMMENDATION_PROFILE)
+            != GROQ_RECOMMENDATION_PROFILE
+        )
     ):
         raise VideoError("PROVIDER_CONFIG", "접수 시 제공자와 워커 설정이 다릅니다.")
     return current

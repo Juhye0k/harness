@@ -1,10 +1,12 @@
 """Integration-only provider; no external HTTP, real credentials or real videos sent."""
 
+import hashlib
 from urllib.parse import parse_qs, urlsplit
 
 from redis import Redis
 
 from app.adapters.youtube_upload import ProviderFailure
+from tests.integration.faults import Faults
 
 
 class FixtureYouTube:
@@ -29,6 +31,7 @@ class FixtureYouTube:
         return {"id": "fixture-channel", "title": "테스트 채널"}
 
     def initiate(self, token, upload, size):
+        Faults(upload.id).point("sns-initiate")
         with Redis.from_url(self.redis_url) as client:
             client.hincrby(f"sns-fixture:{upload.id}", "initiated", 1)
             client.hset(
@@ -39,16 +42,24 @@ class FixtureYouTube:
 
     def send(self, token, uri, stream, size):
         upload_id = parse_qs(urlsplit(uri).query)["upload_id"][0]
-        assert len(stream.read()) == size
+        Faults(upload_id).point("sns-send")
+        payload = stream.read()
+        assert len(payload) == size
         with Redis.from_url(self.redis_url) as client:
             key = f"sns-fixture:{upload_id}"
             client.hincrby(key, "sent", 1)
+            client.hset(key, "sha256", hashlib.sha256(payload).hexdigest())
             title = client.hget(key, "title").decode()
             if title.startswith("fixture-reject"):
                 raise ProviderFailure("PROVIDER_REJECTED")
             if not title.startswith("fixture-incomplete"):
                 client.hset(key, "remote_id", "abcdefghijk")
             if title.startswith(("fixture-unknown", "fixture-incomplete")):
+                raise ProviderFailure("PROVIDER_UNREACHABLE", ambiguous=True)
+        fault = Faults(upload_id)
+        fault.point("after-send")
+        with fault.connection() as redis:
+            if redis.hget(fault.key + ":config", "ambiguous") == "1":
                 raise ProviderFailure("PROVIDER_UNREACHABLE", ambiguous=True)
         return "abcdefghijk"
 

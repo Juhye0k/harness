@@ -1,5 +1,9 @@
 # 현재 API 계약
 
+## 로컬 파일 업로드
+
+UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, `GET /assets/{id}/upload`를 제공한다. 영상 검사는 worker에서 수행하며 ready인 asset_id는 기존 추출·분석 입력으로 재사용한다. 크기·상태·권한·삭제 경계는 [업로드 계약](../05-development/local-video-upload.md)을 따른다.
+
 ## 전사 검수 API
 
 `GET /analyses/{id}/transcript-review`, `PUT /analyses/{id}/transcript-review/{segment_id}`, `GET /analyses/{id}/review-audio`를 추가했다. 조회·재생은 읽기 전용이며 판정은 전사·정책 버전과 revision으로 저장한다. 완료 전/버전·동시 저장 충돌은 409, 없는 분석·구간·음성은 404다. [입력·정책·경계](../05-development/transcript-review.md)를 따른다.
@@ -44,7 +48,7 @@
 
 영상 실패는 조회 HTTP 200 안의 status=failed와 error로 표현한다. 접수 HTTP 성공과 작업 성공을 구분한다. [실행 예시](../05-development/async-video-jobs.md), [상태 계약](data-and-jobs.md).
 
-웹 파일 업로드·사용자별 영상 소유권·자막 편집은 미구현이다. 추천·SNS 추가 계약은 아래를 따른다. 파일 보존과 다운로드 인증은 외부 사용자 테스트 전에 확정한다.
+웹 파일 업로드·자막 편집·사용자별 자료 소유권은 로컬 구현했다. 아래 추가 계약과 [업로드](../05-development/local-video-upload.md)·[전체 흐름](../05-development/complete-flow.md)·[인증/자료 관리](../05-development/user-auth-data.md)를 따른다. 운영 배포는 별도 검증한다.
 ## VIDEO-004 추천 API 추가
 
 기존 API 계약에 아래 비동기 추천 흐름을 추가한다. [실행 계약](../05-development/highlight-recommendations.md)을 기준으로 한다.
@@ -52,11 +56,14 @@
 | 요청 | 입력·응답 |
 |---|---|
 | POST /analyses | url 또는 준비된 asset_id 중 하나, genre, purpose. 202와 analysis_id·status_url 반환. AI 비활성 시 503 |
+| GET /analysis-requests/{request_id} | 현재 사용자 범위에서 기존 접수를 조회. 미확인 404, 만료/삭제 410. 작업 생성·재발행 없음 |
 | GET /analyses/{id} | 상태·단계·분석 근거·후보·기존 export_job_id. 원본 URL·파일 경로·비밀값 제외 |
 | POST /analyses/{id}/candidates/{candidate_id}/exports | 저장된 후보 시간으로 추출 작업 생성. 반복 호출은 기존 작업 ID 반환 |
 | GET /jobs/{id}, /jobs/{id}/download | 기존 상태·검증된 출력 다운로드 계약 재사용 |
 
 ### VIDEO-005 전사 전용 모드
+
+`POST /analyses`는 선택 UUID `request_id`를 지원한다. 같은 사용자·같은 입력은 기존 분석을 반환하고 다른 입력이면 409다. 웹은 전송 전에 번호를 저장하고 응답 유실·새로고침 시 조회로 복원한다. receipt는 7일이며 만료 후 재접수하지 않는다. 설정 검증과 신규 분석/receipt 저장은 하나의 DB 트랜잭션이며 외부 호출은 없다. 발행 이후 강제 종료는 자동 재발행하지 않고 관리자 절차를 따른다.
 
 `POST /analyses`의 `mode`는 `transcription` 또는 `recommendation`이며 API 생략 기본값은 기존 호환을 위해 recommendation이다. 웹은 transcription을 기본 선택한다. 전사 전용은 LLM을 호출하지 않고 `TRANSCRIBED` 또는 `NO_SPEECH`로 완료한다. 추천 제공자 none일 때 recommendation 요청은 DB 작업 생성 전 `503 RECOMMENDATION_DISABLED`로 거절한다.
 

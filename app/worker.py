@@ -37,6 +37,24 @@ def diagnostic_ping() -> dict[str, str]:
 
 
 @celery_app.task(
+    name="shortform.upload.validate",
+    queue="video",
+    acks_late=False,
+    autoretry_for=(),
+    max_retries=0,
+    soft_time_limit=180,
+    time_limit=240,
+)
+def validate_uploaded_video(asset_id: str) -> None:
+    from uuid import UUID
+
+    from app.adapters.upload_repository import UploadRepository
+    from app.services.uploads import validate_upload
+
+    validate_upload(UUID(asset_id), UploadRepository(), get_settings())
+
+
+@celery_app.task(
     name="shortform.video.extract",
     queue="video",
     acks_late=False,

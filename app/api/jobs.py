@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.adapters.job_publisher import publish_video_job
 from app.adapters.job_repository import JobRepository
@@ -18,7 +18,15 @@ router = APIRouter(prefix="/jobs", tags=["video jobs"])
 
 
 class ExtractionRequest(BaseModel):
-    url: str = Field(min_length=1, max_length=4096)
+    url: str | None = Field(default=None, min_length=1, max_length=4096)
+    asset_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def source(self):
+        if (self.url is None) == (self.asset_id is None):
+            raise ValueError("Exactly one source is required")
+        return self
+
     start_seconds: float = Field(ge=0, allow_inf_nan=False)
 
 
@@ -37,7 +45,11 @@ def create_job(
     repo: Annotated[JobRepository, Depends(repository)],
     publish: Annotated[Callable, Depends(publisher)],
 ):
-    job = submit(repo, publish, body.url, body.start_seconds)
+    if body.asset_id:
+        job = repo.create_from_asset(body.asset_id, body.start_seconds)
+        job = repo.dispatch(job.id, publish)
+    else:
+        job = submit(repo, publish, body.url, body.start_seconds)
     return {
         "job_id": str(job.id),
         "status": job.status,

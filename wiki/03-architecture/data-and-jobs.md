@@ -1,5 +1,7 @@
 # 데이터 모델과 작업 생명주기
 
+UPLOAD-001은 Asset에 연결된 asset_uploads receipt를 추가한다. 수신·검증 상태와 크기·해시를 DB에 기록하고 실제 영상 검증은 video 큐에서 수행한다. 바이트는 업로드 전용 볼륨에 저장하며 Redis로 전달하지 않는다. [업로드 생명주기와 삭제](../05-development/local-video-upload.md)를 따른다.
+
 > 상태: VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)

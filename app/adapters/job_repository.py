@@ -15,6 +15,27 @@ class JobRepository:
     def __init__(self, engine=None):
         self.engine = engine if engine is not None else get_engine()
 
+    def create_from_asset(self, asset_id, start):
+        from app.domain.video import MediaInfo, validate_range
+        from app.models import Asset
+
+        with Session(self.engine, expire_on_commit=False) as s, s.begin():
+            asset = s.scalar(select(Asset).where(Asset.id == asset_id).with_for_update())
+            if asset is None or asset.state != "ready" or asset.deleted_at:
+                raise JobError("ASSET_NOT_READY", "검증이 끝난 원본이 필요합니다.", 409)
+            validate_range(start, MediaInfo(asset.duration_ms / 1000, asset.has_audio))
+            job = VideoJob(
+                source_url=asset.source_url,
+                asset_id=asset.id,
+                start_seconds=start,
+                user_id=asset.user_id,
+                legacy=asset.legacy,
+                expires_at=asset.expires_at,
+            )
+            s.add(job)
+            s.flush()
+            return job
+
     def create(self, url: str, start: float) -> VideoJob:
         with Session(self.engine, expire_on_commit=False) as session, session.begin():
             job = VideoJob(source_url=url, start_seconds=start, **ownership_values())

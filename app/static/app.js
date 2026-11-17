@@ -99,7 +99,7 @@ $("extract-form").addEventListener("submit", async (event) => {
   try {
     const response = await request("/jobs/video-extractions", {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({url: $("video-url").value.trim(), start_seconds: start}),
+      body: JSON.stringify({... (window.uploadedAssetId ? {asset_id:window.uploadedAssetId} : {url:$("video-url").value.trim()}), start_seconds:start}),
     });
     const data = await response.json();
     if (version !== generation) return;

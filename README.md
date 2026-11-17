@@ -1,6 +1,6 @@
 # Shortform Harness
 
-FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 인식 정확도는 미검증이며 자막 편집은 아직 없습니다. 승인된 합성 영상의 실제 비공개 Shorts 업로드와 Studio 분류를 확인했습니다.
+FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 후보별 자막 편집·버전 저장·세로 MP4 출력·다운로드·YouTube 연결은 [FLOW-001](wiki/05-development/complete-flow.md)로 로컬 구현했습니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 인식 정확도는 미검증입니다. 승인된 합성 영상의 실제 비공개 Shorts 업로드와 Studio 분류를 확인했으며 이번 편집 흐름의 대역 검증과는 별도입니다.
 
 **[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
@@ -53,6 +53,10 @@ YouTube 업로드: http://localhost:8000/sns — [OAuth 설정·확인·중복 �
 준비 상태 점검은 PostgreSQL·Redis 연결만 확인합니다. 워커 실행은 별도 통합 검사로 확인합니다. Compose는 로컬 개발용이며 공개 배포 구성이 아닙니다.
 
 ## 상세 안내
+
+로컬 파일 입력: 추출·전사·추천 화면에서 최대 500MiB·20분 파일을 업로드하고, 원본 검증 완료 후 기존 작업에 재사용합니다. [지원 형식·전송 상태·저장·삭제 계약](wiki/05-development/local-video-upload.md)을 따릅니다.
+
+입력부터 끝까지: [자막 편집·비동기 출력·YouTube 흐름과 엔드투엔드 검사](wiki/05-development/complete-flow.md). 원본 전사와 편집본을 분리하고, 확인한 버전으로만 최종 영상을 만듭니다. 일반 CI의 모델·YouTube는 대역이며 실제 품질·계정 게시를 보장하지 않습니다.
 
 자막 포함 세로 출력의 첫 기술 확인: `uv run python -m app.cli.render_sample`로 외부 호출 없이 합성 영상의 한국어 자막·720×1280 MP4·클립 기준 SRT를 만듭니다. [실행 안내와 검증 범위](wiki/05-development/portrait-subtitle-sample.md). 편집 UI·비동기 최종 출력은 후속입니다.
 

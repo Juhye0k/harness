@@ -50,10 +50,14 @@ VIDEO-003부터 같은 runner가 Playwright Chromium 브라우저 검사도 실�
 
 ## CI와 검사 증거
 
+FLOW-001은 [시작부터 끝까지의 브라우저 검사](../../../tests/integration/test_complete_flow.py)를 기존 integration에 포함한다. 실패하면 단계별 trace·화면을 확인하고 제품 수정과 회귀 검사를 같은 작업 기록에 연결한다. 새로고침·중복 클릭·편집 버전·다운로드/전송 파일 일치·사람 확인 전 전송 차단을 검사하며, 실제 인식·추천 품질은 판정하지 않는다. CI 합성 증거 수집과 범위는 [전체 흐름 안내](../complete-flow.md)를 따른다.
+
 GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은 일반 이미지 빌드와 격리 Compose 검사를 수행한다. 배포·유료 모델 호출은 없다. 통합 실패 시 Compose 로그를 출력하고 종료 시 테스트 환경을 정리한다.
 
 코드를 바꾸지 않는 문서 변경은 링크·구현 일치 검토가 중심이다. 저장소 지침상 기본 검사는 실행하되 문서 변경을 이유로 새 업무 테스트를 만들지 않는다.
 
 ## 이후 검사
+
+실패 경로는 [FAIL-E2E-001](../failure-path-testing.md)에 따라 분석 request_id receipt·응답 유실 복원·도구 실패·중복 전달 검사를 구현했다. 결정적 실패 검사는 기존 integration에 포함한다. `uv run python scripts/run_failure_drills.py`는 생성한 격리 프로젝트에서만 실제 워커/API 종료를 검사하며 별도 수동 CI로 실행한다. 로컬 실행 결과·실패와 수정은 [통합 기록](records/2026-11-17-main-integration.md)을 따른다. 자동 복구·실제 제공자 장애를 검증하는 기능은 아니다.
 
 2단계는 출력 파일·실패·중복 처리를, 3단계는 사용자 흐름을, 4단계는 고정 영상의 추천 품질·비용을 추가한다. 실제 모델 평가는 일반 CI와 분리한다.

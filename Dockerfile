@@ -11,7 +11,8 @@ RUN uv sync --locked --no-dev
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini ./
-RUN useradd --create-home --uid 10001 appuser && mkdir -p /data/jobs && chown -R appuser:appuser /data
+RUN useradd --create-home --uid 10001 appuser && mkdir -p /data/jobs /uploads \
+    && chown -R appuser:appuser /data /uploads
 USER appuser
 EXPOSE 8000
 CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -25,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
     && chmod -R a+rX /opt/playwright
 COPY tests ./tests
 COPY scripts ./scripts
+COPY AGENTS.md compose.integration.yaml ./
 USER appuser
 
 FROM runtime AS production

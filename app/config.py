@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://shortform:local-dev-only@localhost:5432/shortform"
     redis_url: str = "redis://localhost:6379/0"
     video_data_dir: Path = Path(".artifacts/jobs")
+    upload_data_dir: Path = Path(".artifacts/uploads")
     enable_paid_ai: bool = False
     enable_free_ai: bool = False
     groq_free_tier_confirmed: bool = False

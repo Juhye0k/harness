@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.adapters.ai import PROMPT_VERSION, enabled, provider_config
 from app.adapters.analysis_repository import AnalysisRepository
+from app.adapters.analysis_requests import create_once, input_hash, lookup
 from app.adapters.download import validate_url
 from app.adapters.job_publisher import publish_analysis_job, publish_video_job
 from app.adapters.job_repository import JobRepository
@@ -24,6 +25,7 @@ router = APIRouter(tags=["recommendations"])
 
 
 class AnalysisRequest(BaseModel):
+    request_id: UUID | None = None
     mode: Literal["transcription", "recommendation"] = "recommendation"
     url: str | None = Field(default=None, min_length=1, max_length=4096)
     asset_id: UUID | None = None
@@ -53,25 +55,46 @@ def create_analysis(
     repo: Annotated[AnalysisRepository, Depends(repository)],
     publish: Annotated[Callable, Depends(publisher)],
 ):
-    settings = get_settings()
-    try:
-        enabled(settings, body.mode)
-    except VideoError as exc:
-        raise JobError(exc.code, str(exc), 503) from exc
     url = validate_url(body.url)[1] if body.url else None
-    job = repo.create(
-        url,
-        body.asset_id,
-        body.genre,
-        body.purpose,
-        {
+    settings = get_settings()
+
+    def config():
+        try:
+            enabled(settings, body.mode)
+        except VideoError as exc:
+            raise JobError(exc.code, str(exc), 503) from exc
+        return {
             **provider_config(settings, body.mode),
             "prompt_version": PROMPT_VERSION,
             "ranking_version": VERSION,
-        },
-    )
-    job = repo.dispatch(job.id, publish)
+        }
+
+    if body.request_id:
+        values = {**body.model_dump(mode="json", exclude={"request_id"}), "url": url}
+        digest = input_hash(values)
+        job = lookup(repo, body.request_id, digest)
+        if job is None:
+            job, created = create_once(
+                repo, body.request_id, digest, url, body.asset_id, body.genre, body.purpose, config
+            )
+            if created:
+                job = repo.dispatch(job.id, publish)
+    else:
+        # Legacy clients retain the original contract; response-loss recovery requires a key.
+        resolved_config = config()
+        job = repo.create(url, body.asset_id, body.genre, body.purpose, resolved_config)
+        job = repo.dispatch(job.id, publish)
     # A failed dispatch still returns a trackable resource, never an untraceable retry hint.
+    return {"analysis_id": str(job.id), "status": job.status, "status_url": f"/analyses/{job.id}"}
+
+
+@router.get("/analysis-requests/{request_id}")
+def analysis_request(request_id: UUID, repo: Annotated[AnalysisRepository, Depends(repository)]):
+    job = lookup(repo, request_id)
+    if job is None:
+        raise JobError(
+            "REQUEST_NOT_FOUND", "아직 접수를 확인하지 못했습니다. 다시 조회하세요.", 404
+        )
     return {"analysis_id": str(job.id), "status": job.status, "status_url": f"/analyses/{job.id}"}
 
 

@@ -1,13 +1,27 @@
 "use strict";
 const el = (id) => document.getElementById(id);
 let generation = 0, timer, currentId;
+let submitting = false;
+const pendingKey = "shortform.pending-analysis";
+function pendingAnalysis(){try{return JSON.parse(sessionStorage.getItem(pendingKey)||"null");}catch{return null;}}
+function requestId(){
+  const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+  const hex=Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+}
+function pendingControls(){
+  const pending=Boolean(pendingAnalysis());
+  el("analyze").disabled=submitting||pending;
+  el("recover-analysis").hidden=!pending;el("resubmit-analysis").hidden=!pending;
+  el("recover-analysis").disabled=submitting;el("resubmit-analysis").disabled=submitting;
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function request(url, body) {
   const response = await fetch(url, {method: body ? "POST" : "GET",
     headers: body ? {"Content-Type": "application/json"} : {},
     body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000)});
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || `조회 오류 (${response.status})`);
+  if (!response.ok) {const error=new Error(data.error?.message || `조회 오류 (${response.status})`);error.status=response.status;throw error;}
   return data;
 }
 function node(tag, text) { const n = document.createElement(tag); n.textContent = text; return n; }
@@ -23,6 +37,10 @@ function render(data, epoch) {
     const details = document.createElement("details"); details.append(node("summary", "전사 내용과 근거 보기"));
     details.append(node("p", item.segments.map(s => s.text).join(" ")),
       node("p", `근거: ${item.evidence_ids.join(", ")}`)); article.append(details);
+    const edit = node("a", "이 구간 선택 · 자막 편집 →");
+    edit.className = "edit-candidate";
+    edit.href = `/editor?analysis=${data.analysis_id}&candidate=${item.id}`;
+    article.append(edit);
     if (item.export_job_id) {
       const link = node("a", "추출 상태 · 미리보기 · 다운로드 →");
       link.href = `/?job=${encodeURIComponent(item.export_job_id)}`; article.append(link);
@@ -112,18 +130,41 @@ function load() {
   if (!uuid.test(currentId)) { el("analysis-state").textContent = "분석 번호가 올바르지 않습니다."; return; }
   poll(currentId, generation);
 }
-el("analysis-form").onsubmit = async (event) => {
-  event.preventDefault(); if (el("analyze").disabled) return;
+async function submitAnalysis(pending) {
+  if(submitting)return;
   const epoch = generation;
-  el("analyze").disabled = true; el("message").textContent = "";
+  submitting=true;pendingControls();el("message").textContent="";
   try {
-    const result = await request("/analyses", {mode:el("mode").value, url:el("url").value, genre:el("genre").value, purpose:el("purpose").value});
+    const result=await request("/analyses",pending.body);
     if (epoch !== generation) return;
+    sessionStorage.removeItem(pendingKey);
     history.pushState({}, "", `/recommendations?analysis=${encodeURIComponent(result.analysis_id)}`); load();
   } catch (error) {
-    if (epoch === generation) el("message").textContent = `${error.message} 접수 여부가 불명확하면 자동으로 다시 요청하지 마세요.`;
-  } finally { el("analyze").disabled = false; }
+    if(error.status===422 || error.status===410)sessionStorage.removeItem(pendingKey);
+    if(epoch===generation)el("message").textContent=`${error.message} 접수 여부를 확인하지 못했다면 이전 접수 상태를 조회하세요. 자동 재접수하지 않습니다.`;
+  }finally{submitting=false;pendingControls();}
+}
+async function recoverAnalysis(){
+  const pending=pendingAnalysis();if(!pending||submitting)return;
+  submitting=true;pendingControls();const epoch=generation;
+  try{
+    const result=await request(`/analysis-requests/${pending.body.request_id}`);
+    if(epoch!==generation)return;
+    sessionStorage.removeItem(pendingKey);history.replaceState({},"",`/recommendations?analysis=${result.analysis_id}`);load();
+    el("message").textContent="기존 접수를 복원했습니다. 새 분석을 만들지 않았습니다.";
+  }catch(error){
+    if(error.status===410)sessionStorage.removeItem(pendingKey);
+    if(epoch===generation)el("message").textContent=`${error.message} 새 분석을 자동으로 만들지 않습니다. 필요하면 앞서 입력한 내용을 같은 요청 번호로 다시 접수하세요.`;
+  }finally{submitting=false;pendingControls();}
+}
+el("analysis-form").onsubmit = event => {
+  event.preventDefault();if(submitting||pendingAnalysis())return;
+  const pending={created_at:Date.now(),body:{request_id:requestId(),mode:el("mode").value,
+    ...(window.uploadedAssetId?{asset_id:window.uploadedAssetId}:{url:el("url").value}),genre:el("genre").value,purpose:el("purpose").value}};
+  sessionStorage.setItem(pendingKey,JSON.stringify(pending));submitAnalysis(pending);
 };
+el("recover-analysis").onclick=recoverAnalysis;
+el("resubmit-analysis").onclick=()=>{const pending=pendingAnalysis();if(!pending||submitting)return;if(Date.now()-pending.created_at>=7*86400000){el("message").textContent="접수 확인 기간이 지났습니다. 기존 자료와 작업을 먼저 확인하세요.";return;}submitAnalysis(pending);};
 el("refresh").onclick = () => load();
 el("mode").onchange = () => {
   const transcription = el("mode").value === "transcription";
@@ -133,3 +174,5 @@ el("mode").onchange = () => {
 el("mode").onchange();
 addEventListener("popstate", load);
 load();
+pendingControls();
+if(!currentId && pendingAnalysis())recoverAnalysis();

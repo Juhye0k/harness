@@ -29,6 +29,11 @@ def verification_page():
     return FileResponse(STATIC / "verification.html", headers={"Cache-Control": "no-store"})
 
 
+@router.get("/editor", include_in_schema=False)
+def caption_editor():
+    return FileResponse(STATIC / "editor.html", headers={"Cache-Control": "no-store"})
+
+
 @router.get("/login", include_in_schema=False)
 def login_page():
     return FileResponse(STATIC / "login.html")

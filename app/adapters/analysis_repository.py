@@ -26,18 +26,22 @@ class AnalysisRepository:
 
     def create(self, url, asset_id, genre, purpose, config):
         with Session(self.engine, expire_on_commit=False) as s, s.begin():
-            if asset_id:
-                asset = s.get(Asset, asset_id)
-                if asset is None or asset.state != "ready":
-                    raise JobError("ASSET_NOT_READY", "사용할 수 있는 원본이 없습니다.", 409)
-            else:
-                asset = Asset(source_url=url, **ownership_values())
-                s.add(asset)
-                s.flush()
-            job = AnalysisJob(asset_id=asset.id, genre=genre, purpose=purpose, config=config)
-            s.add(job)
+            return self.create_in_session(s, url, asset_id, genre, purpose, config)
+
+    @staticmethod
+    def create_in_session(s, url, asset_id, genre, purpose, config):
+        if asset_id:
+            asset = s.get(Asset, asset_id)
+            if asset is None or asset.state != "ready":
+                raise JobError("ASSET_NOT_READY", "사용할 수 있는 원본이 없습니다.", 409)
+        else:
+            asset = Asset(source_url=url, **ownership_values())
+            s.add(asset)
             s.flush()
-            return job
+        job = AnalysisJob(asset_id=asset.id, genre=genre, purpose=purpose, config=config)
+        s.add(job)
+        s.flush()
+        return job
 
     def get(self, job_id):
         with Session(self.engine) as s:
