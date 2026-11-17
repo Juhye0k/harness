@@ -41,7 +41,7 @@
 
 | 기록 ID | 문제·작업 | 결과 상태 | Wiki 게시 |
 |---|---|---|---|
-| WIKI-READ-001 | [Wiki 가독성과 탐색 개편](2026-11-18-wiki-readability.md) | 전체 문서·카테고리 개편 | 별도 게시 확인 |
+| WIKI-READ-001 | [Wiki 가독성과 탐색 개편](2026-11-18-wiki-navigation.md) | 전체 문서·카테고리 개편 | 별도 게시 확인 |
 | INTEGRATE-001 | [미반영 작업의 main 통합](2026-11-17-main-integration.md) | 로컬 검증 완료·main 반영 준비 | 별도 게시 안 함 |
 | FAIL-E2E-001 | [실패 경로 E2E 계획](2026-11-17-failure-path-plan.md) | receipt·실패 E2E·격리 종료 3개 검증 완료 | 미게시 |
 | 2026-11-17-local-video-upload | [로컬 영상 입력과 비동기 검증](2026-11-17-local-video-upload.md) | 로컬 구현·합성 입력 검증 완료 | 미게시 |
