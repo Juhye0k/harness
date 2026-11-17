@@ -354,6 +354,26 @@
     {
       "path": "07-governance/wiki-publication-history.md",
       "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "07-governance/verification-history.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-real-video-flow.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-release-integration.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-runtime-release.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-wiki-readability.md",
+      "category": "실험·문제 해결·작업 기록"
     }
   ]
 }

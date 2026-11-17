@@ -2,8 +2,10 @@
 
 > 검사 종류마다 확인할 수 있는 범위가 다릅니다. 기본 검사, 실제 영상·인프라·브라우저 검사와 품질 평가를 구분하고 실행·판정 방법을 안내합니다.
 
-[위키 홈](../../README.md) · [하네스 목차](README.md)
+코드를 바꾼 뒤 기본 검사로 오류를 확인하고, DB·큐·영상 흐름을 바꿨다면 실제 인프라와 브라우저까지 검사한다. 검사 통과와 실제 추천·자막 품질은 별도로 판단한다.
 
+
+[위키 홈](../../README.md) · [하네스 목차](README.md)
 
 ## 검사 범위
 
@@ -35,7 +37,7 @@ uv run python scripts/verify.py
 ## 실제 워커 통합 검사 — 격리 환경
 
 ```powershell
-docker compose -f compose.integration.yaml up --build -d api worker
+docker compose -f compose.integration.yaml up --build -d api worker analysis-worker sns-worker
 docker compose -f compose.integration.yaml run --rm runner
 docker compose -f compose.integration.yaml logs --tail=200
 docker compose -f compose.integration.yaml down --volumes
@@ -43,7 +45,7 @@ docker compose -f compose.integration.yaml down --volumes
 
 마지막 명령은 `shortform-integration` 전용 테스트 볼륨만 정리한다. 일반 개발 Compose에 `down --volumes`를 실행하지 않는다. 테스트 환경은 호스트 포트를 열지 않고 개발 DB·Redis·영상 볼륨을 공유하지 않는다.
 
-통합 이미지에는 tests와 개발 의존성을 포함한다. 일반 production 이미지는 포함하지 않는다. 테스트 워커는 다운로드만 합성 영상 복사로 대체하며 실제 HTTP·DB·Redis·Celery·FFmpeg·다운로드를 검사한다. `RUN_INTEGRATION=1`은 DB/진단, `RUN_VIDEO_INTEGRATION=1`은 이 전용 워커가 필요한 영상 흐름을 활성화한다.
+통합 이미지에는 tests와 개발 의존성을 포함한다. 일반 production 이미지는 포함하지 않는다. 외부 다운로드·AI·YouTube는 합성 대역으로 대체하고 실제 HTTP·DB·Redis·Celery·FFmpeg·다운로드를 검사한다. `RUN_INTEGRATION=1`은 DB/진단, `RUN_VIDEO_INTEGRATION=1`은 이 전용 워커가 필요한 영상 흐름을 활성화한다.
 
 VIDEO-003부터 같은 runner가 Playwright Chromium 브라우저 검사도 실행한다. 테스트 이미지에 Chromium·시스템 라이브러리를 설치하며 production 이미지에는 추가하지 않는다. 실제 영상 흐름과 오류 응답 대역을 분리해 새로고침·중복 제출·통신 오류·미리보기·다운로드를 검증한다.
 
@@ -57,7 +59,7 @@ GitHub Actions는 checks와 integration 작업을 실행한다. 통합 작업은
 
 코드를 바꾸지 않는 문서 변경은 링크·구현 일치 검토가 중심이다. 저장소 지침상 기본 검사는 실행하되 문서 변경을 이유로 새 업무 테스트를 만들지 않는다.
 
-## 이후 검사
+## 실패 검사와 실제 품질 평가
 
 실패 경로는 [FAIL-E2E-001](../failure-path-testing.md)에 따라 분석 request_id receipt·응답 유실 복원·도구 실패·중복 전달 검사를 구현했다. 결정적 실패 검사는 기존 integration에 포함한다. `uv run python scripts/run_failure_drills.py`는 생성한 격리 프로젝트에서만 실제 워커/API 종료를 검사하며 별도 수동 CI로 실행한다. 로컬 실행 결과·실패와 수정은 [통합 기록](records/2026-11-17-main-integration.md)을 따른다. 자동 복구·실제 제공자 장애를 검증하는 기능은 아니다.
 

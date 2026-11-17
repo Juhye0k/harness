@@ -32,3 +32,7 @@
 합성 영상과 제공자 대역으로 전체 흐름을 검사했습니다. 실제 인식·추천 품질, 최대 업로드 부하와 운영 배포는 별도 검증 대상입니다. 추천 AI와 SNS 업로드는 기본 비활성화이며, 실제 호출·전송에는 설정과 해당 자료에 대한 승인이 필요합니다.
 
 [저장소 README](../README.md) · [문서 작성 규칙](07-governance/document-guide.md) · [작업 규칙](../AGENTS.md)
+
+## 새로 연결된 검증 기록
+
+[실제 영상 흐름 검증](05-development/harness/records/2026-11-18-real-video-flow.md) · [실행 환경 반영](05-development/harness/records/2026-11-18-runtime-release.md) · [이전 검사 이력](07-governance/verification-history.md)
