@@ -1,10 +1,9 @@
 # 단계별 실행 계획
 
-> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
-
-> 상태: 진행 계획 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
+> 개발 단계는 일정 약속보다 진입 조건과 검증 증거로 관리합니다. 초기 계획부터 현재 구현까지의 관계와 실제 품질·운영 검증으로 남은 일을 안내합니다.
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
+
 
 ## 단계 운영 원칙
 
@@ -14,7 +13,15 @@ FLOW-001은 개별 품질 개선에 앞서 [시작부터 끝까지의 한 흐름
 
 추천 개선은 [RECO-EVAL-001](../05-development/recommendation-improvement-loop.md)에 따라 수작업 평가·수정·재검증 1~3회로 절차를 확인한 뒤 반복 하네스로 옮긴다. 실제 추천 품질 평가와 자율 AI 작업자 연결은 도구 구현과 구분한다.
 
-VIDEO-005는 [Groq 무료 연동](../05-development/groq-free-ai.md)과 승인된 한국어 샘플의 전사 생성을 진행했다. TR-EVAL-002의 [정답 입력·품질 평가](../05-development/transcript-quality-evaluation.md)와 SUB-ALIGN-003의 [구간별 단어 복구](../05-development/word-alignment-recovery.md)를 통합했다. 고정 샘플의 원문·시간 범위 보존은 통과했으나 표시 가독성 초안은 미달이다. 다음은 남은 긴 자막·짧은 표시 개선과 원음을 확인한 정답 전사에 근거한 인식 정확도 평가다. 코드 검사 통과를 실제 품질 통과로 해석하지 않는다.
+VIDEO-005는 [Groq 무료 연동](../05-development/groq-free-ai.md)과 승인된 한국어 샘플의 전사 생성을 진행했다.
+
+TR-EVAL-002의 [정답 입력·품질 평가](../05-development/transcript-quality-evaluation.md)와 SUB-ALIGN-003의 [구간별 단어 복구](../05-development/word-alignment-recovery.md)를 통합했다.
+
+고정 샘플의 원문·시간 범위 보존은 통과했으나 표시 가독성 초안은 미달이다.
+
+다음은 남은 긴 자막·짧은 표시 개선과 원음을 확인한 정답 전사에 근거한 인식 정확도 평가다.
+
+코드 검사 통과를 실제 품질 통과로 해석하지 않는다.
 
 전사와 추천은 독립 설정이며 현재 기본은 Groq 전사·추천 비활성이다. 먼저 대사와 시간 정보만 평가하고, 이후 저장된 전사를 추천 실험에 재사용한다.
 
@@ -54,3 +61,12 @@ VIDEO-005는 [Groq 무료 연동](../05-development/groq-free-ai.md)과 승인�
 표시 자막 분할·원본 영상 기준 SRT는 VIDEO-005 후속 로컬 구현이다. [제품 초안과 계약](../05-development/subtitle-segmentation.md)을 따르며 내용 편집·자막 합성·실제 가독성 평가는 후속이다.
 
 자막 편집·최종 출력의 첫 단계로 [한국어 자막 포함 세로 영상 샘플](../05-development/portrait-subtitle-sample.md)을 로컬 CLI로 추가한다. 합성 입력의 시간 변환·폰트·여백·출력 검사를 확인하는 범위이며 편집 저장·UI·비동기 업무 출력·실제 발화 정렬은 후속이다. 실행 근거는 해당 작업 기록을 따른다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 게시 이력: 이전 원본 `0167efd`의 PR #5와 세로 출력 샘플 PR #6은 main에 병합됐다. 이번 통합 변경은 `feat/integrate-transcript-quality` 브랜치 게시 대상이며 운영 배포·실제 Google 로그인 검증과 구분한다.
+
+> 상태: 진행 계획 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
+
+</details>

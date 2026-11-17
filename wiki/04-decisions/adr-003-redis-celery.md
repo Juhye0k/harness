@@ -1,8 +1,9 @@
 # ADR-003 — Celery + Redis 채택과 Redis Streams 비교
 
-> 상태: 채택 · VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+> 작업 실행기를 직접 만드는 대신 Celery와 Redis로 영상 처리를 전달합니다. Redis Streams와의 차이, PostgreSQL에서 실행을 선점하는 이유, 자동 복구를 제공하지 않는 현재 한계를 설명합니다.
 
 [위키 홈](../README.md) · [카테고리 목차](README.md)
+
 
 ## 결정과 판단 기준
 
@@ -50,3 +51,10 @@ RabbitMQ + Celery도 적합하다. 라우팅·전달 정책 요구가 커지면 
 ## 공식 근거
 
 2026-11-15 확인: [Celery Redis 전송·visibility timeout](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html), [Redis Streams 소비자 그룹·확인·재인수](https://redis.io/docs/latest/develop/data-types/streams/). 기능 비교는 문서에 근거하며, 채택과 복구 범위는 이 프로젝트의 결정이다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 채택 · VIDEO-002 로컬 구현 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+
+</details>

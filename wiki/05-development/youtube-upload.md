@@ -1,14 +1,15 @@
 # YouTube 계정 연결과 확인 후 업로드 — SNS-006
 
-> 상태: 로컬 구현 · 실제 비공개 Shorts 업로드·Studio 분류 확인 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
+> 확인한 출력 영상을 연결한 YouTube 채널에 한 번 전송합니다. 계정 연결·승인·비공개 기본값과 결과가 불확실할 때 재전송 대신 세션을 조회하는 절차를 안내합니다.
 
 [위키 홈](../README.md) · [개발 목차](README.md)
+
 
 ## 범위와 사용자 흐름
 
 6단계의 첫 제공자는 YouTube다. 성공한 영상 작업에서 **YouTube에 업로드하기**를 누르거나 `/sns`에서 작업 번호를 입력한다. Google OAuth는 사용자가 비밀번호를 앱에 전달하지 않고 업로드 권한을 허용하는 절차다. 연결한 채널과 출력 영상·제목·공개 범위·아동용 여부를 먼저 확인하며, 별도의 동의 체크와 최종 버튼을 눌러야 전송한다. 기본 공개 범위는 비공개다.
 
-인증된 다중 사용자 서비스가 아닌 localhost 개발 기능이다. SNS 계정과 업로드는 HttpOnly 브라우저 세션 쿠키에 속하고, 다른 세션은 조회·확인·연결 해제를 할 수 없다. 기존 영상 작업의 사용자 소유권은 구현되지 않았으므로 외부 사용자에게 공개하지 않는다. 쿠키를 지우면 기존 연결·업로드에 접근할 수 없으며, 다시 연결한 새 로컬 계정 기록과 이전 기록 사이의 중복은 막지 못한다.
+기본은 localhost 개발 기능이다. Google 로그인 활성화 시 계정별 자료 소유권도 검사한다. [인증 설정](user-auth-data.md)은 YouTube 전송 권한과 별도로 관리한다. SNS 계정과 업로드는 HttpOnly 브라우저 세션 쿠키에 속하고, 다른 세션은 조회·확인·연결 해제를 할 수 없다. 인증을 끈 개발 모드의 기존 자료는 legacy 정책을 따른다. 운영 HTTPS·백업·비용 제한을 확인하기 전 외부 사용자에게 공개하지 않는다. 쿠키를 지우면 기존 연결·업로드에 접근할 수 없으며, 다시 연결한 새 로컬 계정 기록과 이전 기록 사이의 중복은 막지 못한다.
 
 ## 설정과 실행
 
@@ -51,7 +52,21 @@ docker compose -p shortform-sns-local -f compose.integration.yaml run --rm runne
 docker compose -p shortform-sns-local -f compose.integration.yaml down --volumes
 ```
 
-이 테스트 프로젝트만 정리한다. 호스트 포트를 열거나 개발 DB·Redis·영상 볼륨을 공유하지 않는다. [검사 연결·작업 기록](harness/changes/sns-006-upload.md)에서 실제 실행 결과를 확인한다. 실제 Google 동의와 채널 연결은 별도 승인된 로컬 테스트에서 확인했다. 토큰 만료 및 철회·계정별 업로드 한도·YouTube 처리 품질은 미검증이다. 승인된 가로 합성 영상 1건의 일반 업로드와 세로 합성 영상 1건의 비공개 Shorts 업로드를 확인했다. 세로 파일은 720×1280·10.000초이며 YouTube 처리 완료와 Studio Shorts 탭 분류를 확인했다. 실제 계정·출력 버전·제목·공개 범위의 별도 명시적 승인 전에는 실제 요청을 실행하지 않는다.
+이 테스트 프로젝트만 정리한다.
+
+호스트 포트를 열거나 개발 DB·Redis·영상 볼륨을 공유하지 않는다.
+
+[검사 연결·작업 기록](harness/changes/sns-006-upload.md)에서 실제 실행 결과를 확인한다.
+
+실제 Google 동의와 채널 연결은 별도 승인된 로컬 테스트에서 확인했다.
+
+토큰 만료 및 철회·계정별 업로드 한도·YouTube 처리 품질은 미검증이다.
+
+승인된 가로 합성 영상 1건의 일반 업로드와 세로 합성 영상 1건의 비공개 Shorts 업로드를 확인했다.
+
+세로 파일은 720×1280·10.000초이며 YouTube 처리 완료와 Studio Shorts 탭 분류를 확인했다.
+
+실제 계정·출력 버전·제목·공개 범위의 별도 명시적 승인 전에는 실제 요청을 실행하지 않는다.
 
 ## Shorts 출력 확인
 
@@ -69,3 +84,10 @@ docker compose -p shortform-sns-local -f compose.integration.yaml down --volumes
 - [영상 업로드](https://developers.google.com/youtube/data/reference/rest/v3/videos/insert)
 - [재개 가능한 업로드와 상태 조회](https://developers.google.com/youtube/data/guides/using_resumable_upload_protocol)
 - [YouTube API 변경 이력](https://developers.google.com/youtube/data/revision_history)
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 로컬 구현 · 실제 비공개 Shorts 업로드·Studio 분류 확인 · 기준일: 2026-11-16 · 유지관리: 프로젝트 개발자
+
+</details>

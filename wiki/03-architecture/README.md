@@ -1,11 +1,14 @@
 # 시스템 설계
 
+> 시스템 설계에 속한 문서를 찾는 목차입니다. 아래 글의 설명을 읽고 필요한 주제로 이동하세요.
+
 [위키 홈](../README.md)
+
 
 현재 동작과 목표 구조, 데이터·API 경계를 이해한다.
 
-- [시스템 구조와 책임 경계](system-overview.md)
-- [현재 실행 흐름과 목표 사용자 흐름](runtime-flows.md)
-- [데이터 모델과 작업 생명주기](data-and-jobs.md)
-- [현재 API와 후속 API 설계 원칙](api-contract.md)
-- [Google 로그인과 사용자 데이터 관리 계획 — AUTH-DATA-001](user-auth-data-management.md)
+- [시스템 구조와 책임 경계](system-overview.md) — 오래 걸리는 영상 처리를 웹 요청에서 분리하고 업무 상태와 파일을 따로 관리합니다
+- [현재 실행 흐름과 목표 사용자 흐름](runtime-flows.md) — 영상 입력에서 다운로드까지 API·DB·대기열·워커가 어떻게 연결되는지 설명합니다
+- [데이터 모델과 작업 생명주기](data-and-jobs.md) — 같은 메시지가 두 번 도착해도 영상 작업이 중복 실행되지 않도록 DB 상태를 기준으로 판단합니다
+- [현재 API와 후속 API 설계 원칙](api-contract.md) — 클라이언트가 어떤 요청을 보내고 어떤 상태·오류를 받아야 하는지 정리합니다
+- [Google 로그인과 사용자 데이터 관리 계획 — AUTH-DATA-001](user-auth-data-management.md) — 로그인만 붙여서는 다른 사람의 영상 접근과 오래된 자료 보관 문제를 해결할 수 없습니다

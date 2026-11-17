@@ -1,8 +1,9 @@
 # Google 로그인과 사용자 데이터 관리 계획 — AUTH-DATA-001
 
-> 상태: 로컬 구현·격리 환경의 실제 Google 로그인 확인 / 초기 계획 보존 · 기준일: 2026-11-17
+> 로그인만 붙여서는 다른 사람의 영상 접근과 오래된 자료 보관 문제를 해결할 수 없습니다. Google 인증·서버 세션·소유권·삭제를 함께 설계한 근거와 구현 순서를 설명합니다.
 
 [위키 홈](../README.md) · [설계 목차](README.md)
+
 
 ## 목표와 범위
 
@@ -32,7 +33,17 @@ Google로 로그인한 사용자가 본인의 영상·분석·전사·검수·�
 
 검증된 OIDC 라이브러리를 구현 단계에서 선정한다. 기존 의존성에는 OIDC 클라이언트가 없으므로 토큰 검증을 직접 재구현하기보다 검증 기능을 제공하는 최소 의존성 하나를 검토하고 이유·uv.lock을 함께 반영한다. 새 인증 서버나 유료 서비스는 추가하지 않는다.
 
-앱 세션은 충분히 무작위인 토큰을 쿠키로 전달하고, PostgreSQL에는 토큰 해시·user_id·만료·폐기 상태를 저장한다. 로그인 성공 시 새 토큰을 발급하고 로그아웃하면 서버에서 무효화한다. 쿠키는 HttpOnly·SameSite=Lax·Path=/, 운영 HTTPS에서는 Secure·host 전용으로 설정한다. 로컬 HTTP 예외는 development/test에만 허용한다. 세션 유휴 24시간·절대 7일은 초기 정책안이며 UI 상태 조회만으로 유휴 기한을 연장하지 않는다. [OWASP 세션 관리](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), 확인일 2026-11-17.
+앱 세션은 충분히 무작위인 토큰을 쿠키로 전달하고, PostgreSQL에는 토큰 해시·user_id·만료·폐기 상태를 저장한다.
+
+로그인 성공 시 새 토큰을 발급하고 로그아웃하면 서버에서 무효화한다.
+
+쿠키는 HttpOnly·SameSite=Lax·Path=/, 운영 HTTPS에서는 Secure·host 전용으로 설정한다.
+
+로컬 HTTP 예외는 development/test에만 허용한다.
+
+세션 유휴 24시간·절대 7일은 초기 정책안이며 UI 상태 조회만으로 유휴 기한을 연장하지 않는다.
+
+[OWASP 세션 관리](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), 확인일 2026-11-17.
 
 업무 변경 요청에는 세션에 묶인 CSRF 토큰과 설정한 Origin 검사를 적용한다. CSRF는 다른 사이트가 사용자의 로그인 상태를 이용해 변경 요청을 보내는 공격이다. 쿠키의 SameSite만으로 대체하지 않는다. 콜백은 별도의 일회성 로그인 검증 흐름으로 다룬다. 리다이렉트 복귀 경로는 앱 내부 허용 경로만 받는다. [OWASP CSRF 지침](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), 확인일 2026-11-17.
 
@@ -126,3 +137,10 @@ API 입력으로 user_id를 받지 않고 인증된 세션에서 정한다. 저�
 Google 로그인은 사용자 선택으로 확정했다. 7일 자료 보관·세션 기한·30일 최소 기록/백업은 제안이며 구현 단계에서 설정과 화면 안내를 함께 확정한다. 운영 도메인·로그인 클라이언트·테스트 계정, 백업 저장 위치와 복구 절차, OIDC 의존성은 착수 시 정한다. 법적 보관 의무나 준수 인증을 완료한 계획으로 표현하지 않는다.
 
 [프롬프트·결과 기록](../05-development/harness/records/2026-11-17-auth-data-plan.md)
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 로컬 구현·격리 환경의 실제 Google 로그인 확인 / 초기 계획 보존 · 기준일: 2026-11-17
+
+</details>

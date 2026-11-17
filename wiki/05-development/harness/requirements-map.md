@@ -1,10 +1,12 @@
 # VIDEO-001 요구사항과 검사 연결
 
-전사 검수는 [검수 계약](../transcript-review.md)을 단위·통합 `test_transcript_review.py`에 연결한다. 임계값/결측/표본/원본 보존, 판정 버전/동시 저장 충돌, 음성 경로 제한/Range, 브라우저 저장 실패/재생/새로고침/보고서와 AI 호출 0건 증가를 검사한다. 실제 오류 탐지율과 시간 절감은 별도 사람 평가다.
-
-> 상태: 현재 구현·검사 대응표 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+> 요구사항이 실제 검사와 연결돼 있는지 확인하는 문서입니다. 영상 길이·필수 트랙·원본 보존과 후속 기능별 회귀 검사의 위치를 안내합니다.
 
 [위키 홈](../../README.md) · [하네스 목차](README.md)
+
+전사 검수는 [검수 계약](../transcript-review.md)을 단위·통합 `test_transcript_review.py`에 연결한다. 임계값/결측/표본/원본 보존, 판정 버전/동시 저장 충돌, 음성 경로 제한/Range, 브라우저 저장 실패/재생/새로고침/보고서와 AI 호출 0건 증가를 검사한다. 실제 오류 탐지율과 시간 절감은 별도 사람 평가다.
+
+
 
 수치·입출력 정책의 기준은 [영상 추출 계약](../video-extraction.md)이다. 이 문서는 해당 계약을 어떤 코드와 검사로 확인하는지 연결한다. 테스트 개수는 품질 점수가 아니며 아래 미검증 부분까지 통과했다는 의미도 아니다.
 
@@ -71,7 +73,9 @@ VIDEO-003은 [웹 사용자 흐름과 검사 연결표](../web-video-extraction.
 
 VIDEO-005의 [Groq 무료 연동](../groq-free-ai.md)은 `test_groq_provider.py`에서 무료 확인·모드 충돌·단일 호출·오류·타임스탬프·JSON 계약을, `test_analysis_pipeline.py`에서 제공자 변경 거부·캐시 분리를 검증한다. 통합 검사는 실제 MP3 전처리·추천 대역·선택 추출 흐름을 확인한다. 실제 무료 잔량·추천 품질은 검사 대상이 아니다.
 
-전사 전용 확장은 `test_transcription_only_never_calls_recommendation`과 `test_recommendation_disabled_fails_before_transcription`으로 호출 경계를, `test_transcript_get_does_not_read_incomplete_job`으로 조회 조건을 검증한다. `test_transcription_only_then_recommendation_reuses_transcript`는 전사 1회 이후 추천만 추가하는 DB 기록을, `test_transcription_browser_refresh_does_not_resubmit`은 시간별 표시와 재접수 없는 새로고침을 검증한다.
+전사 전용 확장은 `test_transcription_only_never_calls_recommendation`과 `test_recommendation_disabled_fails_before_transcription`으로 호출 경계를, `test_transcript_get_does_not_read_incomplete_job`으로 조회 조건을 검증한다.
+
+`test_transcription_only_then_recommendation_reuses_transcript`는 전사 1회 이후 추천만 추가하는 DB 기록을, `test_transcription_browser_refresh_does_not_resubmit`은 시간별 표시와 재접수 없는 새로고침을 검증한다.
 
 VIDEO-005-SUBTITLES는 [표시 자막 계약](../subtitle-segmentation.md)을 `test_subtitles.py`의 21초·173자 무손실·문자/시간 오류·구버전 fallback·불가능한 제약·읽기 전용 SRT 검사와 연결한다. Groq 대역은 word/segment 동시 요청·v1 거절을, `test_analysis_flow.py`는 실제 DB·Celery 보존과 브라우저 SRT·재접수 방지를 검증한다. 실제 음성 정렬은 일반 CI 밖이다.
 
@@ -79,3 +83,10 @@ SNS-006은 [YouTube 확인·중복·미확정 처리 연결표](changes/sns-006-
 # 빠른 숏츠 표시 정책 추가 연결
 
 SHORTS-001의 정책·완성본 차단·검증 화면은 [정책 계약](../shorts-display-policy.md)을 따른다. `test_shorts_policy.py`가 21초/9줄·짧은 표시·어절 내부 토큰·서버 차단·호환 API·이전 코드 검사 기록을 확인하고, `test_shorts_verification.py`가 실제 DB·워커·브라우저로 새 정책과 웹 상태를 확인한다. 단어 시간이 없는 원문을 생략하거나 타이밍을 추정해 검사를 통과시키지 않는다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 현재 구현·검사 대응표 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+
+</details>

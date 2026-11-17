@@ -1,8 +1,36 @@
 # Google 로그인과 7일 자료 관리 — AUTH-DATA-001
 
-> 상태: 로컬 구현 / 격리 환경의 실제 Google 로그인·로그아웃 확인 · 기준일: 2026-11-17
+> Google 로그인으로 사용자를 식별하고 영상·출력을 계정별로 보호합니다. 설정과 테스트 사용자 승인, 새 자료 7일 보관, 삭제·탈퇴 및 사용 중 자료 처리 방법을 안내합니다.
 
 [위키 홈](../README.md) · [개발 목차](README.md)
+
+
+## Google 로그인과 서버 세션
+
+```mermaid
+sequenceDiagram
+    actor U as 사용자
+    participant A as 앱 서버
+    participant G as Google
+    participant D as PostgreSQL
+    U->>A: 로그인 시작
+    A-->>U: Google 인증 화면으로 이동
+    U->>G: 계정 선택·동의
+    G-->>A: 콜백 인증 코드
+    A->>G: 코드 교환·신원 확인
+    A->>D: 연결 계정·사용자 상태 확인
+    alt 승인된 활성 사용자
+        A->>D: 서버 세션 저장
+        A-->>U: HttpOnly 세션 쿠키
+    else 승인 대기
+        A-->>U: 승인 대기 안내
+    end
+    U->>A: 내 자료 요청
+    A->>D: 세션·소유권·만료 확인
+    A-->>U: 접근 가능한 자료만 응답
+```
+
+Google 신원 확인과 앱의 사용자 승인은 별도입니다. 이 로그인은 YouTube 게시 권한을 부여하지 않으며, 그 권한은 SNS 연결에서 따로 요청합니다.
 
 ## 동작과 설정
 
@@ -62,3 +90,10 @@ Compose에서는 인증 설정 후 `auth` 프로필의 cleanup 프로세스를 �
 2026-11-17에는 커밋 `94f2474`의 인증 코드를 고정한 별도 로컬 API·DB·Redis에서 실제 Google 테스트 계정 1개의 로그인을 확인했다. 로그인 전용 웹 클라이언트와 `http://localhost:8002/auth/google/callback`을 등록하고, 계정 선택·동의 후 pending 등록, 운영자 승인 후 내 자료 접근, 새로고침 시 세션 유지, 로그아웃 후 서버 세션 제거와 보호 화면 접근 차단을 검증했다. API 접근 로그는 끄고 비밀값은 Git 제외 `.env`로만 주입했다. 기존 8000 개발 DB·자료·SNS 연결은 전환하지 않았다.
 
 기본 검사, 전용 DB 검사, 격리 Celery·Chromium 통합 결과와 미실행 항목은 [작업 기록](harness/records/2026-11-17-auth-data-plan.md)에 남긴다. 운영 배포·HTTPS 운영 쿠키·기존 사용자 자료 삭제·다른 계정의 실제 로그인은 이번 실계정 검증에 포함하지 않는다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 로컬 구현 / 격리 환경의 실제 Google 로그인·로그아웃 확인 · 기준일: 2026-11-17
+
+</details>

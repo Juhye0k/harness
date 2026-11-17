@@ -1,20 +1,28 @@
 # 하네스 개선 기록
 
-> 상태: 수동 기록 기준 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+> 하네스 개선 기록에 속한 문서를 찾는 목차입니다. 아래 글의 설명을 읽고 필요한 주제로 이동하세요.
 
 [위키 홈](../../../README.md) · [하네스 목차](../README.md)
 
+
 같은 실패를 다시 잡을 수 있도록 검사·지침·실행 환경을 개선한 경우 기록한다. 단순 파일명 수정마다 문서를 만들지는 않는다. 제품 실행 JSON이나 원본 대화를 이곳에 복사하지 않는다.
 
-- [기록 양식](template.md)
-- [RECO-EVAL-001: 선택 피드백과 종료 조건 기반 개선 루프](recommendation-improvement-loop.md)
-- [TR-001: 전사 검수 자동 분류와 판정 저장](transcript-review-v1.md)
-- [TR-001 후속: 실제 전사 응답 복구와 SNS 선점 경쟁 수정](transcription-response-recovery.md)
-- [전사 평가·단어 정렬 통합과 실제 샘플 품질](transcript-quality-integration.md)
-- [자막·SNS 변경 통합과 검사 환경 복구](integration-subtitles-sns.md)
-- [VIDEO-001: 시간 초과 후 자식 프로세스가 남는 문제](video-001-process-timeout.md)
-- [VIDEO-005: Groq 무료 모드와 통합 이미지 검사](video-005-groq-free.md)
-- [VIDEO-005-SUBTITLES: 긴 전사 구간의 표시 자막 분리](video-005-subtitles.md)
-- [SNS-006: 확인된 출력만 한 번 업로드하기](sns-006-upload.md)
+- [기록 양식](template.md) — 새 기록에 필요한 목적·원인·검사 항목을 확인합니다.
+- [RECO-EVAL-001: 선택 피드백과 종료 조건 기반 개선 루프](recommendation-improvement-loop.md) — 사람의 후보 평가를 저장해 다음 추천 실험의 비교 근거로 사용합니다
+- [TR-001: 전사 검수 자동 분류와 판정 저장](transcript-review-v1.md) — 전사 오류를 자동 확정하지 않고 사람이 확인할 구간을 먼저 찾습니다
+- [TR-001 후속: 실제 전사 응답 복구와 SNS 선점 경쟁 수정](transcription-response-recovery.md) — 제공자 응답의 일부 단어 정보가 잘못돼도 원 전사까지 잃지 않도록 복구 경계를 나눴습니다
+- [전사 평가·단어 정렬 통합과 실제 샘플 품질](transcript-quality-integration.md) — 전사 평가와 단어 정렬 복구를 합친 뒤 실제 저장 샘플을 같은 기준으로 비교했습니다
+- [자막·SNS 변경 통합과 검사 환경 복구](integration-subtitles-sns.md) — 개별 작업이 통과해도 자막과 SNS 변경을 합치면 새로운 오류가 생길 수 있습니다
+- [VIDEO-001: 시간 초과 후 자식 프로세스가 남는 문제](video-001-process-timeout.md) — 시간 제한으로 부모 프로세스를 멈춰도 자식 도구가 계속 실행될 수 있습니다
+- [VIDEO-005: Groq 무료 모드와 통합 이미지 검사](video-005-groq-free.md) — 무료 제공자 연동에서도 응답 형식·시간 제한·실패 기록을 검증해야 합니다
+- [VIDEO-005-SUBTITLES: 긴 전사 구간의 표시 자막 분리](video-005-subtitles.md) — 긴 전사 구간 하나를 그대로 보여주면 자막을 읽기 어렵습니다
+- [SNS-006: 확인된 출력만 한 번 업로드하기](sns-006-upload.md) — 외부 전송은 중복 실행과 성공 여부 불확실성을 함께 다뤄야 합니다
 
 새 기록은 작업 ID를 파일명에 포함하고 이 목차에 추가한다. 목적·실패 재현·원인·수정·관측 결과·남은 제한을 구분한다. 현황 문서에는 요약과 링크만 남긴다. 커밋·모델·비용 등 확인할 수 없는 값은 미확인으로 적는다.
+
+<details>
+<summary>작성 시점과 상태 이력</summary>
+
+> 상태: 수동 기록 기준 · 기준일: 2026-11-15 · 유지관리: 프로젝트 개발자
+
+</details>

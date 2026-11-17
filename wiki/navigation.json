@@ -1,0 +1,359 @@
+{
+  "categories": [
+    "프로젝트 소개와 시작",
+    "사용자 흐름과 영상 처리",
+    "음성 전사·자막·추천",
+    "시스템 구조와 API",
+    "기술 선택과 설계 결정",
+    "개발 하네스와 검증",
+    "실험·문제 해결·작업 기록",
+    "운영과 장애 대응",
+    "계획·현황·문서 관리"
+  ],
+  "pages": [
+    {
+      "path": "README.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "01-product/problem-definition.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "01-product/README.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "01-product/scope-and-reference.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "02-delivery/phase-00-discovery.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-01-foundation.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-02-video-jobs.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-03-web-mvp.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-04-ai-evaluation.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-05-extension.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/phase-06-sns-upload.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/README.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "02-delivery/roadmap.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "03-architecture/api-contract.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "03-architecture/data-and-jobs.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "03-architecture/README.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "03-architecture/runtime-flows.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "03-architecture/system-overview.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "03-architecture/user-auth-data-management.md",
+      "category": "시스템 구조와 API"
+    },
+    {
+      "path": "04-decisions/adr-001-python-runtime.md",
+      "category": "기술 선택과 설계 결정"
+    },
+    {
+      "path": "04-decisions/adr-002-postgresql-storage.md",
+      "category": "기술 선택과 설계 결정"
+    },
+    {
+      "path": "04-decisions/adr-003-redis-celery.md",
+      "category": "기술 선택과 설계 결정"
+    },
+    {
+      "path": "04-decisions/adr-004-transcript-recommendations.md",
+      "category": "기술 선택과 설계 결정"
+    },
+    {
+      "path": "04-decisions/README.md",
+      "category": "기술 선택과 설계 결정"
+    },
+    {
+      "path": "05-development/async-video-jobs.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/complete-flow.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/failure-path-testing.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/glossary.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "05-development/groq-free-ai.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/harness/changes/integration-subtitles-sns.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/README.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/recommendation-improvement-loop.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/sns-006-upload.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/template.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/transcript-quality-integration.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/transcript-review-v1.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/transcription-response-recovery.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/video-001-process-timeout.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/video-005-groq-free.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/changes/video-005-subtitles.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/README.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-auth-data-plan.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-complete-flow.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-failure-path-plan.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-local-video-upload.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-main-integration.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-prompt-result-records.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-recommendation-manual-review.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-subtitle-render-spike.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-17-verification-layout.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/README.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/template.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/requirements-map.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness/review.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness/verification.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness/video-002-requirements.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness/workflow.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/harness-workflow.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/highlight-recommendations.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/local-video-upload.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/onboarding.md",
+      "category": "프로젝트 소개와 시작"
+    },
+    {
+      "path": "05-development/portrait-subtitle-sample.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/README.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/recommendation-improvement-loop.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/recommendation-quality-baseline.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/review-and-done.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/shorts-display-policy.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/subtitle-segmentation.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/transcript-quality-evaluation.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/transcript-review.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/user-auth-data.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/verification.md",
+      "category": "개발 하네스와 검증"
+    },
+    {
+      "path": "05-development/video-extraction.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/web-video-extraction.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "05-development/word-alignment-recovery.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/youtube-upload.md",
+      "category": "사용자 흐름과 영상 처리"
+    },
+    {
+      "path": "06-operations/deployment-and-cost.md",
+      "category": "운영과 장애 대응"
+    },
+    {
+      "path": "06-operations/README.md",
+      "category": "운영과 장애 대응"
+    },
+    {
+      "path": "06-operations/runbook.md",
+      "category": "운영과 장애 대응"
+    },
+    {
+      "path": "07-governance/document-guide.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "07-governance/open-decisions.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "07-governance/README.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "07-governance/status.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "07-governance/video-002-work-log.md",
+      "category": "계획·현황·문서 관리"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-wiki-readability.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "07-governance/wiki-publication-history.md",
+      "category": "계획·현황·문서 관리"
+    }
+  ]
+}
