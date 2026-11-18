@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import subprocess
@@ -17,6 +18,17 @@ def parse_words(tsv):
     ]
 
 
+def verified_crop(root, row):
+    name = row.get("crop_name")
+    if not isinstance(name, str) or Path(name).name != name or "/" in name or "\\" in name:
+        raise ValueError("Invalid crop basename")
+    path = root / name
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != row.get("crop_sha256"):
+        raise ValueError("Crop bytes do not match observation")
+    return path
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
@@ -28,10 +40,10 @@ def main():
         parser.error("Output exists; preserve previous runs")
     data = json.loads(args.input.read_text(encoding="utf-8"))
     output = []
-    for index, row in enumerate(data["frames"], 1):
-        path = args.frames / f"frame-{index:04d}.{args.input.stem}.png"
+    for row in data["frames"]:
         words = []
         if row["region"] is not None:
+            path = verified_crop(args.frames, row)
             result = subprocess.run(
                 [
                     "tesseract",
@@ -52,6 +64,7 @@ def main():
                 check=True,
             )
             words = parse_words(result.stdout)
+            verified_crop(args.frames, row)
         output.append(
             {
                 **row,

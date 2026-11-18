@@ -6,7 +6,7 @@ from collections import Counter
 
 from app.domain.transcript_evaluation import edit_distance, normalize_text, ratio
 
-VERSION = "source-caption-evaluation-v1"
+VERSION = "source-caption-evaluation-v2"
 
 
 def references(observation, start_ms, end_ms, fold):
@@ -32,6 +32,7 @@ def references(observation, start_ms, end_ms, fold):
             bool(groups)
             and bool(normalized)
             and bool(groups[-1]["normalized"])
+            and groups[-1]["normalized"] != normalized
             and (
                 edit_distance(groups[-1]["normalized"], normalized) * 10
                 <= max(len(groups[-1]["normalized"]), len(normalized))
@@ -53,6 +54,9 @@ def references(observation, start_ms, end_ms, fold):
                     "confidence": [frame.get("confidence")],
                 }
             )
+    horizon = frames[-1]["time_ms"] + step
+    for group in groups:
+        group["end_ms"] = min(group["end_ms"], horizon)
     cues, blocked = [], []
     for group in groups:
         if group["end_ms"] <= start_ms or group["start_ms"] >= end_ms:
@@ -113,6 +117,18 @@ def evaluate(reference, cues):
     expected = normalize_text("".join(row["text"] for row in rows))
     actual = normalize_text("".join(cue_text(row) for row in selected))
     distance = edit_distance(expected, actual)
+    interval_edits = 0
+    missing_midpoint = 0
+    for row in rows:
+        local = [
+            c
+            for c in selected
+            if row["start_ms"] <= (c["start_ms"] + c["end_ms"]) / 2 < row["end_ms"]
+        ]
+        missing_midpoint += not local
+        interval_edits += edit_distance(
+            normalize_text(row["text"]), normalize_text("".join(cue_text(c) for c in local))
+        )
     temporal = []
     empty = 0
     for row in rows:
@@ -137,6 +153,9 @@ def evaluate(reference, cues):
         "hypothesis_characters": len(actual),
         "character_edits": distance,
         "screen_reference_cer": ratio(distance, len(expected)),
+        "interval_character_edits": interval_edits,
+        "interval_screen_reference_cer": ratio(interval_edits, len(expected)),
+        "reference_intervals_without_midpoint_caption": missing_midpoint,
         "compared_cues": len(selected),
         "unscored_cues": len(cues) - len(used),
         "reference_intervals_without_any_caption": empty,
@@ -236,6 +255,13 @@ def decision(baseline, proposal):
         reasons.append("NO_STABLE_REFERENCE")
     elif proposal["screen_reference_cer"] >= baseline["screen_reference_cer"]:
         reasons.append("CONTENT_NOT_IMPROVED")
+    if (
+        baseline.get("interval_screen_reference_cer") is None
+        or proposal.get("interval_screen_reference_cer") is None
+    ):
+        reasons.append("NO_INTERVAL_EVALUATION")
+    elif proposal["interval_screen_reference_cer"] > baseline["interval_screen_reference_cer"]:
+        reasons.append("INTERVAL_ALIGNMENT_WORSE")
     if proposal["policy_violations"]:
         reasons.append("READABILITY_POLICY")
     return {

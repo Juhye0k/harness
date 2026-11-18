@@ -87,21 +87,45 @@ def test_worse_ocr_or_bad_policy_cannot_replace_baseline():
         == "keep_existing"
     )
     good = decision(
-        {"screen_reference_cer": 0.2},
+        {"screen_reference_cer": 0.2, "interval_screen_reference_cer": 0.2},
         {
             "screen_reference_cer": 0.1,
+            "interval_screen_reference_cer": 0.1,
             "policy_violations": {},
         },
     )
     assert good["action"] == "experimental_draft_only"
     assert good["production_approval"] is False
+    assert decision(
+        {"screen_reference_cer": 0.2, "interval_screen_reference_cer": 0.2},
+        {
+            "screen_reference_cer": 0.1,
+            "interval_screen_reference_cer": 0.3,
+            "policy_violations": {},
+        },
+    )["reasons"] == ["INTERVAL_ALIGNMENT_WORSE"]
 
 
 def test_absent_reference_does_not_turn_zero_difference_into_pass():
-    assert decision(
-        {"screen_reference_cer": None},
-        {
-            "screen_reference_cer": None,
-            "policy_violations": {},
-        },
-    )["reasons"] == ["NO_STABLE_REFERENCE"]
+    assert (
+        decision(
+            {"screen_reference_cer": None},
+            {
+                "screen_reference_cer": None,
+                "policy_violations": {},
+            },
+        )["action"]
+        == "keep_existing"
+    )
+
+
+def test_final_word_without_next_onset_is_unresolved_not_silently_dropped():
+    result = propose(
+        [{"text": "첫", "start_ms": 0}, {"text": "끝", "start_ms": 700}],
+        [{"id": "s", "start_ms": 0, "end_ms": 2000}],
+        0,
+        1500,
+    )
+    assert result["cues"] == []
+    assert result["status"] == "UNRESOLVED_FINAL_WORD"
+    assert result["unresolved_words"][0]["text"] == "끝"

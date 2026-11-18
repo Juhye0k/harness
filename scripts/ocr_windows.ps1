@@ -81,13 +81,22 @@ $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage([Windows.Globaliz
 if ($null -eq $engine) { throw 'Installed Korean Windows OCR is required; no automatic download' }
 if (Test-Path -LiteralPath $Output) { throw 'Output already exists; preserve previous runs' }
 $manifestData = Get-Content -LiteralPath $Manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+$cropRoot = [IO.Path]::GetFullPath($Output) + '.crops-' + [guid]::NewGuid().ToString('N')
+$null = New-Item -ItemType Directory -Path $cropRoot
 $rows = @()
+$frameIndex = 0
 foreach ($frame in $manifestData.frames) {
-    $cropPath = [IO.Path]::ChangeExtension($frame.path, ('.' + [IO.Path]::GetFileNameWithoutExtension($Output) + '.png'))
-    if (Test-Path -LiteralPath $cropPath) { throw 'OCR crop already exists' }
+    $frameIndex++
+    $actualHash = (Get-FileHash -LiteralPath $frame.path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $frame.sha256) { throw 'Frame bytes do not match manifest' }
+    $cropName = 'frame-{0:D4}.png' -f $frameIndex
+    $cropPath = Join-Path $cropRoot $cropName
     $region = [CaptionRegion]::Extract($frame.path, $cropPath)
+    if ((Get-FileHash -LiteralPath $frame.path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $actualHash) { throw 'Frame changed during crop' }
     $text = ''
+    $cropHash = $null
     if ($null -ne $region) {
+        $cropHash = (Get-FileHash -LiteralPath $cropPath -Algorithm SHA256).Hash.ToLowerInvariant()
         $file = Await-Result ([Windows.Storage.StorageFile]::GetFileFromPathAsync($cropPath)) ([Windows.Storage.StorageFile])
         $stream = Await-Result ($file.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
         try {
@@ -98,13 +107,16 @@ foreach ($frame in $manifestData.frames) {
                 $text = $result.Text
             } finally { $bitmap.Dispose() }
         } finally { $stream.Dispose() }
+        if ((Get-FileHash -LiteralPath $cropPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $cropHash) { throw 'Crop changed during OCR' }
     }
-    $rows += [ordered]@{time_ms=$frame.time_ms; text=$text; region=$region; frame_sha256=$frame.sha256; confidence=$null}
+    $rows += [ordered]@{time_ms=$frame.time_ms; text=$text; region=$region; frame_sha256=$actualHash; crop_name=$cropName; crop_sha256=$cropHash; confidence=$null}
 }
 $report = [ordered]@{
     schema_version='source-caption-ocr-v1'; engine='windows-media-ocr'; language='ko';
     source_sha256=$manifestData.source_sha256; sample_step_ms=$manifestData.sample_step_ms;
-    roi=$manifestData.roi; frames=$rows; external_calls=0; human_verified=$false
+    roi=$manifestData.roi; crop_directory=$cropRoot; frames=$rows; external_calls=0; human_verified=$false
 }
-[IO.File]::WriteAllText([IO.Path]::GetFullPath($Output), ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+$reportBytes = [Text.UTF8Encoding]::new($false).GetBytes(($report | ConvertTo-Json -Depth 8))
+$reportStream = [IO.File]::Open([IO.Path]::GetFullPath($Output), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+try { $reportStream.Write($reportBytes, 0, $reportBytes.Length) } finally { $reportStream.Dispose() }
 Write-Output ('OCR frames processed: ' + $rows.Count)

@@ -57,17 +57,20 @@ def main():
             "-t",
             str(args.end - args.start),
             "-vf",
-            f"fps={args.fps},crop={width}:{height}:{x}:{y}",
+            f"fps={args.fps},crop={width}:{height}:{x}:{y}:exact=1",
             str(frames_dir / "frame-%04d.png"),
         ],
         timeout=60,
         check=True,
     )
-    assert sha256(args.source) == before, "Source changed while extracting frames"
+    if sha256(args.source) != before:
+        raise ValueError("Source changed while extracting frames")
+    start_ms = round(args.start * 1000)
+    step_ms = 1000 // args.fps
     frames = [
         {
             "path": str(path.resolve()),
-            "time_ms": round(args.start * 1000 + index * 1000 / args.fps),
+            "time_ms": start_ms + index * step_ms,
             "sha256": sha256(path),
         }
         for index, path in enumerate(sorted(frames_dir.glob("frame-*.png")))

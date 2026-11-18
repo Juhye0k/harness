@@ -11,6 +11,19 @@ from app.domain.source_caption_evaluation import compare
 from app.domain.source_caption_proposal import propose, youtube_onsets
 
 
+def verified_track(raw_bytes, provenance, editor, duration_ms):
+    if (
+        provenance.get("source_sha256") != editor.get("source_sha256")
+        or provenance.get("caption_sha256") != hashlib.sha256(raw_bytes).hexdigest()
+        or not editor.get("source_video_id")
+        or provenance.get("source_video_id") != editor["source_video_id"]
+        or provenance.get("acquired_video_id") != editor["source_video_id"]
+        or provenance.get("duration_ms") != duration_ms
+    ):
+        raise ValueError("Caption acquisition provenance does not match original or track")
+    return json.loads(raw_bytes)
+
+
 def render(report, video_url=None):
     details = report.get("proposal_details", {})
     cut = "".join(
@@ -25,17 +38,20 @@ def render(report, video_url=None):
         else "제안 없음"
     )
     rows = []
-    for name, label in (("baseline", "기존 편집본"), ("screen_draft", "화면 자막 기반 초안")):
+    for name, label in (("baseline", "기존 편집본"), ("screen_draft", "비교 초안")):
         row = report[name]
         cer = row["screen_reference_cer"]
+        interval = row["interval_screen_reference_cer"]
         rows.append(
             f"<tr><td>{label}</td><td>{'미평가' if cer is None else f'{cer:.1%}'}</td>"
+            f"<td>{'미평가' if interval is None else f'{interval:.1%}'}</td>"
             f"<td>{row['character_edits']} / {row['reference_characters']}</td>"
             f"<td>{html.escape(json.dumps(row['policy_violations'], ensure_ascii=False))}</td></tr>"
         )
     captions = "".join(
         f"<tr><td>{c['start_ms'] / 1000:.2f}–{c['end_ms'] / 1000:.2f}초</td>"
-        f"<td>{html.escape(c['text'])}</td><td>{c['samples']}</td></tr>"
+        f"<td>{html.escape(c['text'])}</td>"
+        f"<td>{html.escape(str(c.get('samples', '미제공')))}</td></tr>"
         for c in report["reference_cues"]
     )
     blocked = "".join(
@@ -43,13 +59,17 @@ def render(report, video_url=None):
         f"<td>{html.escape(c['reason'])}</td></tr>"
         for c in report["reference"]["blocked"]
     )
-    proposals = "".join(
-        f'<tr><td><button type="button" data-seek="{c["start_ms"] / 1000}">'
-        f"{c['start_ms'] / 1000:.2f}초 재생</button></td>"
-        f"<td>{(c['end_ms'] - c['start_ms']) / 1000:.2f}초</td>"
-        f"<td>{html.escape(' / '.join(c.get('lines', [c.get('text', '')])))}</td></tr>"
-        for c in proposed
-    )
+    proposals = []
+    for c in proposed:
+        stamp = f"{c['start_ms'] / 1000:.2f}초"
+        if video_url:
+            stamp = (
+                f'<button type="button" data-seek="{c["start_ms"] / 1000}">{stamp} 재생</button>'
+            )
+        proposals.append(
+            f"<tr><td>{stamp}</td><td>{(c['end_ms'] - c['start_ms']) / 1000:.2f}초</td>"
+            f"<td>{html.escape(' / '.join(c.get('lines', [c.get('text', '')])))}</td></tr>"
+        )
     video = (
         f'<video controls preload="metadata" src="{html.escape(video_url, quote=True)}"></video>'
         if video_url
@@ -68,7 +88,8 @@ def render(report, video_url=None):
         cue_count=len(proposed),
         suggested_range=suggested_range,
         cut_words=cut,
-        proposals=proposals,
+        proposals="".join(proposals),
+        range_label="단어 시작 시각 기준 제안 범위" if details else "OCR 초안 표시 범위",
     )
 
 
@@ -80,6 +101,7 @@ def main():
     parser.add_argument("--video-url")
     parser.add_argument("--reference", type=Path)
     parser.add_argument("--youtube-captions", type=Path)
+    parser.add_argument("--caption-provenance", type=Path)
     parser.add_argument("--duration-ms", type=int)
     args = parser.parse_args()
     inputs = {
@@ -92,8 +114,17 @@ def main():
     editor = json.loads(inputs["editor"])
     proposal = None
     if args.youtube_captions:
+        if not args.caption_provenance:
+            parser.error("--caption-provenance is required with --youtube-captions")
         inputs["youtube_captions"] = args.youtube_captions.read_bytes()
-        words = youtube_onsets(json.loads(inputs["youtube_captions"]), args.duration_ms)
+        inputs["caption_provenance"] = args.caption_provenance.read_bytes()
+        track = verified_track(
+            inputs["youtube_captions"],
+            json.loads(inputs["caption_provenance"]),
+            editor,
+            args.duration_ms,
+        )
+        words = youtube_onsets(track, args.duration_ms)
         proposal = propose(words, editor["segments"], editor["start_ms"], editor["end_ms"])
         if not proposal["cues"]:
             raise ValueError("No complete readable source caption proposal")
@@ -111,10 +142,11 @@ def main():
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     (args.output / "report.html").write_text(render(report, args.video_url), encoding="utf-8")
-    assert all(
+    if not all(
         path.read_bytes() == inputs[name]
         for name, path in (("ocr", args.ocr), ("editor", args.editor))
-    )
+    ):
+        raise ValueError("Frozen evaluation inputs changed during comparison")
     print(
         json.dumps(
             {

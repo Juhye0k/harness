@@ -42,6 +42,14 @@ def youtube_onsets(raw, duration_ms):
 def propose(words, segments, start_ms, end_ms):
     if not words or not segments or not 0 <= start_ms < end_ms:
         raise ValueError("Missing words, source links, or valid range")
+    if start_ms <= words[-1]["start_ms"] < end_ms:
+        return {
+            "status": "UNRESOLVED_FINAL_WORD",
+            "cues": [],
+            "unresolved_words": [words[-1]],
+            "cut_words": [],
+            "words_dropped_for_readability": 0,
+        }
     selected, cut = [], []
     for word, following in zip(words, words[1:], strict=False):
         if word["start_ms"] >= end_ms or following["start_ms"] <= start_ms:

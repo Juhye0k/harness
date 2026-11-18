@@ -1,4 +1,5 @@
 import copy
+import hashlib
 
 import pytest
 
@@ -10,8 +11,8 @@ from app.domain.source_caption_evaluation import (
     policy_violations,
     references,
 )
-from scripts.evaluate_source_captions import render
-from scripts.ocr_tesseract import parse_words
+from scripts.evaluate_source_captions import render, verified_track
+from scripts.ocr_tesseract import parse_words, verified_crop
 
 
 def observation(text="자막을 확인합니다", count=20):
@@ -154,9 +155,54 @@ def test_untrusted_screen_text_is_not_executable_in_report():
             "start_ms": 0,
             "end_ms": 1000,
             "text": '<script>alert("x")</script>',
-            "samples": 2,
+            "samples": '<img src=x onerror="alert(1)">',
         }
     ]
     page = render(result)
     assert '<script>alert("x")</script>' not in page
     assert "&lt;script&gt;" in page
+    assert "<img src=x" not in page
+    assert 'data-seek="' not in page
+
+
+def test_odd_fold_tail_is_bounded_by_observation_horizon():
+    ref = references(observation(), 0, 2000, 1)
+    assert ref["cues"][0]["end_ms"] == 2000
+
+
+def test_moving_earlier_text_into_later_interval_cannot_hide_timing_error():
+    ref = {
+        "cues": [
+            {"start_ms": 0, "end_ms": 1000, "text": "첫"},
+            {"start_ms": 1000, "end_ms": 2000, "text": "끝"},
+        ]
+    }
+    moved = [{"start_ms": 1100, "end_ms": 1900, "text": "첫 끝"}]
+    score = evaluate(ref, moved)
+    assert score["screen_reference_cer"] == 0
+    assert score["interval_screen_reference_cer"] == 1
+    assert score["reference_intervals_without_midpoint_caption"] == 1
+
+
+def test_wrong_caption_track_and_wrong_crop_rejected(tmp_path):
+    raw = b'{"events": []}'
+    saved = {"source_sha256": "a" * 64, "source_video_id": "video-A"}
+    provenance = {
+        **saved,
+        "acquired_video_id": "video-A",
+        "caption_sha256": hashlib.sha256(raw).hexdigest(),
+        "duration_ms": 2000,
+    }
+    assert verified_track(raw, provenance, saved, 2000) == {"events": []}
+    with pytest.raises(ValueError, match="provenance"):
+        verified_track(raw + b" ", provenance, saved, 2000)
+    provenance["acquired_video_id"] = "video-B"
+    with pytest.raises(ValueError, match="provenance"):
+        verified_track(raw, provenance, saved, 2000)
+    crop = tmp_path / "crop.png"
+    crop.write_bytes(b"first crop")
+    row = {"crop_name": crop.name, "crop_sha256": hashlib.sha256(crop.read_bytes()).hexdigest()}
+    assert verified_crop(tmp_path, row) == crop
+    crop.write_bytes(b"different frame")
+    with pytest.raises(ValueError, match="Crop bytes"):
+        verified_crop(tmp_path, row)
