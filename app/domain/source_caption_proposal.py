@@ -1,9 +1,9 @@
-"""Reuse YouTube word onsets as proposed DISPLAY intervals, not verified speech ends."""
+"""Offer readable display intervals from word timings and observed screen changes."""
 
 from bisect import bisect_left, bisect_right
 
 from app.domain.shorts_subtitles import POLICY
-from app.domain.subtitles import wrap
+from app.domain.subtitles import word_units, wrap
 
 
 def youtube_onsets(raw, duration_ms):
@@ -62,6 +62,59 @@ def propose(words, segments, start_ms, end_ms, *, screen_changes=(), snap_ms=0):
         selected.append({**word, "end_ms": following["start_ms"]})
     if not selected:
         raise ValueError("No complete onset intervals inside candidate")
+    cues, boundaries = partition_words(selected, segments, screen_changes, snap_ms)
+    if not cues:
+        return {
+            "status": "NO_COMPLETE_READABLE_PARTITION",
+            "cues": [],
+            "cut_words": cut,
+            "selected_words": len(selected),
+            "words_dropped_for_readability": 0,
+        }
+    return {
+        "status": "draft",
+        "cues": cues,
+        "cut_words": cut,
+        "selected_words": len(selected),
+        "words_dropped_for_readability": 0,
+        "timing_source": "youtube_word_onsets_with_next_onset_display_end",
+        "snapped_screen_boundaries_ms": boundaries,
+        "speech_end_verified": False,
+        "human_reviewed": False,
+    }
+
+
+def propose_from_transcript(segments, start_ms, end_ms, screen_changes, snap_ms):
+    """Reuse measured start/end times and leave pauses and cut words for review."""
+    units = []
+    last_end = 0
+    for segment in segments:
+        segment_units = []
+        for word in word_units(segment):
+            if word["start_ms"] < last_end:
+                raise ValueError("Overlapping transcript timings")
+            last_end = word["end_ms"]
+            if segment_units and not word["text"][:1].isspace():
+                segment_units[-1]["text"] += word["text"]
+                segment_units[-1]["end_ms"] = last_end
+            else:
+                segment_units.append(word)
+        units.extend(segment_units)
+    intersecting = [
+        word for word in units if word["end_ms"] > start_ms and word["start_ms"] < end_ms
+    ]
+    complete = [
+        word for word in intersecting if start_ms <= word["start_ms"] and word["end_ms"] <= end_ms
+    ]
+    if not complete:
+        raise ValueError("No complete transcript words in candidate")
+    cues, boundaries = partition_words(
+        complete, segments, screen_changes, snap_ms, pause_ms=POLICY.pause_ms
+    )
+    return cues, boundaries, len(intersecting) - len(complete)
+
+
+def partition_words(selected, segments, screen_changes, snap_ms, *, pause_ms=None):
     onsets = [word["start_ms"] for word in selected]
     boundaries = set()
     for change in screen_changes:
@@ -89,6 +142,13 @@ def propose(words, segments, start_ms, end_ms, *, screen_changes=(), snap_ms=0):
                 or len(lines) > 2
                 or any(len(line) > 14 for line in lines)
                 or len(text) * 1000 > duration * 15
+                or (
+                    pause_ms is not None
+                    and any(
+                        right["start_ms"] - left["end_ms"] >= pause_ms
+                        for left, right in zip(group, group[1:], strict=False)
+                    )
+                )
             ):
                 continue
             owner = max(
@@ -112,22 +172,4 @@ def propose(words, segments, start_ms, end_ms, *, screen_changes=(), snap_ms=0):
             )
         if choices:
             best[index] = min(choices, key=lambda row: row[0])
-    if 0 not in best:
-        return {
-            "status": "NO_COMPLETE_READABLE_PARTITION",
-            "cues": [],
-            "cut_words": cut,
-            "selected_words": len(selected),
-            "words_dropped_for_readability": 0,
-        }
-    return {
-        "status": "draft",
-        "cues": best[0][1],
-        "cut_words": cut,
-        "selected_words": len(selected),
-        "words_dropped_for_readability": 0,
-        "timing_source": "youtube_word_onsets_with_next_onset_display_end",
-        "snapped_screen_boundaries_ms": boundaries,
-        "speech_end_verified": False,
-        "human_reviewed": False,
-    }
+    return best.get(0, (0, []))[1], boundaries

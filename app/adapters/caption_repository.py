@@ -8,6 +8,16 @@ from app.domain.caption_edit import content_hash, validate_cues
 from app.domain.jobs import JobError
 from app.models import AnalysisJob, Asset, CaptionRevision, HighlightCandidate, VideoJob
 
+ANY_REVISION = object()
+
+
+def candidate_revisions(candidate_id):
+    return (
+        select(CaptionRevision)
+        .where(CaptionRevision.candidate_id == candidate_id)
+        .order_by(CaptionRevision.created_at.desc(), CaptionRevision.id)
+    )
+
 
 def candidate_context(s, analysis_id, candidate_id, lock=False):
     query = select(HighlightCandidate).where(
@@ -38,7 +48,7 @@ class CaptionRepository:
     def __init__(self, engine=None):
         self.engine = engine if engine is not None else get_engine()
 
-    def save(self, analysis_id, candidate_id, cues, reviewed):
+    def save(self, analysis_id, candidate_id, cues, reviewed, expected_latest=ANY_REVISION):
         with Session(self.engine) as s, s.begin():
             candidate, analysis, _ = candidate_context(s, analysis_id, candidate_id, lock=True)
             data = candidate.data
@@ -51,6 +61,15 @@ class CaptionRepository:
                     CaptionRevision.content_hash == digest,
                 )
             )
+            if expected_latest is not ANY_REVISION:
+                latest = s.scalar(candidate_revisions(candidate_id).limit(1))
+                latest_id = latest.id if latest else None
+                if latest_id != expected_latest and (existing is None or latest_id != existing.id):
+                    raise JobError(
+                        "REVISION_CONFLICT",
+                        "다른 편집본이 저장됐습니다. 최신 버전을 확인하세요.",
+                        409,
+                    )
             if existing:
                 return revision_data(existing)
             row = CaptionRevision(
@@ -68,15 +87,20 @@ class CaptionRepository:
         with Session(self.engine) as s:
             # Scope every revision by the analysis and candidate in the URL.
             candidate_context(s, analysis_id, candidate_id)
-            query = select(CaptionRevision).where(CaptionRevision.candidate_id == candidate_id)
+            query = candidate_revisions(candidate_id)
             if revision_id:
                 query = query.where(CaptionRevision.id == revision_id)
-            row = s.scalar(
-                query.order_by(CaptionRevision.created_at.desc(), CaptionRevision.id).limit(1)
-            )
+            row = s.scalar(query.limit(1))
             if revision_id and row is None:
                 raise JobError("REVISION_NOT_FOUND", "편집 버전을 찾을 수 없습니다.", 404)
             return revision_data(row) if row else None
+
+    def recent(self, session, candidate_id):
+        rows = session.scalars(candidate_revisions(candidate_id).limit(2)).all()
+        return (
+            revision_data(rows[0]) if rows else None,
+            str(rows[1].id) if len(rows) > 1 else None,
+        )
 
     def export(self, analysis_id, candidate_id, revision_id):
         with Session(self.engine, expire_on_commit=False) as s, s.begin():

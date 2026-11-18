@@ -24,6 +24,7 @@
       <h2>자막 문구와 시간</h2>
       <p class="verification-note">1~3어절 · 줄당 14자 · 최대 2줄 · 0.45~1.8초 · 15자/초 이하. 원음과 어긋나거나 긴 자막은 직접 나눠 주세요. 새 자막은 원 구간을 선택해 연결합니다.</p>
       <p id="draft-status"></p>
+      <a id="compare-revision" class="secondary" target="_blank" rel="noopener" hidden></a>
       <div id="caption-rows"></div>
       <button id="add-cue" type="button" class="secondary">자막 추가</button>
       <details><summary>선택 후보의 원본 전사 보기</summary><div id="editor-transcript"></div></details>
@@ -33,7 +34,7 @@
     </section>
     <section id="final-panel" class="card" hidden>
       <h2>세로 영상 완성</h2><p id="revision-status"></p>
-      <p class="verification-note">720×1280 · 한글 자막 포함 · 원본 음성 유지. 원본 비율을 유지하고 남는 부분은 검은 여백으로 채웁니다.</p>
+      <p class="verification-note">720×1280 · 원본 비율과 음성 유지 · 한글 자막을 영상 아래에 표시합니다.</p>
       <button id="render-final" type="button" disabled>확정한 자막으로 영상 만들기</button>
       <p id="render-state" role="status"></p>
       <button id="retry-render" type="button" class="secondary" hidden>출력 상태 다시 조회</button>

@@ -12,6 +12,7 @@ from app.domain.recommendations import candidates, normalize, rank
 from app.domain.video import MAX_SECONDS, VideoError
 from app.services import video
 from app.services.access import worker_guard
+from app.services.caption_alignment import align_candidate_captions
 
 
 def measured(repo, job, stage, call):
@@ -126,7 +127,7 @@ def process_analysis(job_id, repo, root, settings, providers=None):
             repo.finish(job.id, outcome="TRANSCRIBED")
             return
         # Word timings serve display subtitles, not recommendation prompts.
-        segments = [
+        prompt_segments = [
             {k: v for k, v in segment.items() if k not in ("words", "quality")}
             for segment in segments
         ]
@@ -136,10 +137,10 @@ def process_analysis(job_id, repo, root, settings, providers=None):
             job,
             "proposal",
             lambda: providers.recommend(
-                "proposal", {**context, "segments": segments}, job.config["model"]
+                "proposal", {**context, "segments": prompt_segments}, job.config["model"]
             ),
         )
-        valid, rejected = candidates(raw, segments, asset.duration_ms)
+        valid, rejected = candidates(raw, prompt_segments, asset.duration_ms)
         selected = []
         if valid:
             raw = measured(
@@ -151,6 +152,7 @@ def process_analysis(job_id, repo, root, settings, providers=None):
                 ),
             )
             selected = rank(raw, valid)
+        align_candidate_captions(root, asset, segments, selected)
         if video.checksum(source) != asset.sha256:
             raise VideoError("SOURCE_CHANGED", "저장한 원본이 변경되었습니다.")
         repo.finish(
