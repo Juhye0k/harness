@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 from string import Template
 
-from app.domain.source_caption_evaluation import compare, screen_transitions
+from app.domain.source_caption_evaluation import (
+    compare,
+    screen_transitions,
+    validate_observation_source,
+)
 from app.domain.source_caption_proposal import propose, youtube_onsets
 
 
@@ -120,6 +124,8 @@ def main():
         fixed = json.loads(inputs["reference"])
     editor = json.loads(inputs["editor"])
     observation = json.loads(inputs["ocr"])
+    if args.align_to_ocr:
+        validate_observation_source(observation, editor)
     proposal = None
     if args.youtube_captions:
         if not args.caption_provenance:

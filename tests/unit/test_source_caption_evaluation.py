@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 
 import pytest
 
@@ -10,8 +11,9 @@ from app.domain.source_caption_evaluation import (
     frame_agreement,
     policy_violations,
     references,
+    screen_transitions,
 )
-from scripts.evaluate_source_captions import render, verified_track
+from scripts.evaluate_source_captions import main, render, verified_track
 from scripts.ocr_tesseract import parse_words, verified_crop
 
 
@@ -49,6 +51,50 @@ def test_missing_source_fingerprint_cannot_compare_unrelated_video():
     rows.pop("source_sha256")
     with pytest.raises(ValueError, match="fingerprint"):
         compare(rows, editor())
+
+
+def test_aligned_cli_rejects_wrong_source_before_using_caption_inputs(tmp_path, monkeypatch):
+    rows = observation()
+    rows["source_sha256"] = "b" * 64
+    ocr_path, editor_path = tmp_path / "ocr.json", tmp_path / "editor.json"
+    ocr_path.write_text(json.dumps(rows), encoding="utf-8")
+    editor_path.write_text(json.dumps(editor()), encoding="utf-8")
+    output = tmp_path / "report"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "evaluate_source_captions",
+            "--ocr",
+            str(ocr_path),
+            "--editor",
+            str(editor_path),
+            "--output",
+            str(output),
+            "--youtube-captions",
+            str(tmp_path / "never-opened-track.json"),
+            "--caption-provenance",
+            str(tmp_path / "never-opened-provenance.json"),
+            "--align-to-ocr",
+        ],
+    )
+    with pytest.raises(ValueError, match="fingerprint"):
+        main()
+    assert not output.exists()
+
+
+def test_transition_at_candidate_edge_keeps_context_without_processing_distant_frames(monkeypatch):
+    rows = observation("먼 프레임", count=20)
+    for index, text in zip((4, 6, 8, 10), ("첫 문구", "첫 문구", "다음", "다음"), strict=True):
+        rows["frames"][index]["text"] = text
+    calls = []
+
+    def normalize(text):
+        calls.append(text)
+        return text
+
+    monkeypatch.setattr("app.domain.source_caption_evaluation.normalize_text", normalize)
+    assert screen_transitions(rows, 800, 900) == (100, [800])
+    assert calls == ["첫 문구", "첫 문구", "다음", "다음"]
 
 
 def test_missing_frames_rejected_rather_than_extending_reference_over_gap():

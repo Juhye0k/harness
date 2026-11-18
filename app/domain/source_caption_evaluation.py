@@ -2,7 +2,9 @@
 
 import math
 import re
+from bisect import bisect_left
 from collections import Counter
+from operator import itemgetter
 
 from app.domain.transcript_evaluation import edit_distance, normalize_text, ratio
 
@@ -30,6 +32,10 @@ def screen_transitions(observation, start_ms, end_ms):
     """Use only even frames to detect persistent changes in the screen text."""
     step, frames = observation_samples(observation)
     samples = frames[::2]
+    first = bisect_left(samples, start_ms, key=itemgetter("time_ms"))
+    stop = bisect_left(samples, end_ms, key=itemgetter("time_ms"))
+    # Keep two earlier observations and one later observation for edge transitions.
+    samples = samples[max(0, first - 2) : stop + 1]
     texts = [normalize_text(frame["text"]) for frame in samples]
     changes = [
         0.0 if before == after else edit_distance(before, after) / max(len(before), len(after))
@@ -297,7 +303,7 @@ def decision(baseline, proposal):
     }
 
 
-def compare(observation, editor, fixed_reference=None, proposed_cues=None):
+def validate_observation_source(observation, editor):
     fingerprint = observation.get("source_sha256", "")
     if (
         not isinstance(fingerprint, str)
@@ -306,6 +312,10 @@ def compare(observation, editor, fixed_reference=None, proposed_cues=None):
         or observation.get("schema_version") != "source-caption-ocr-v1"
     ):
         raise ValueError("Original video fingerprint mismatch")
+
+
+def compare(observation, editor, fixed_reference=None, proposed_cues=None):
+    validate_observation_source(observation, editor)
     training = references(observation, editor["start_ms"], editor["end_ms"], 0)
     validation = references(observation, editor["start_ms"], editor["end_ms"], 1)
     if fixed_reference is not None:
