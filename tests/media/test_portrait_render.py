@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 
 from app.adapters.media import probe
-from app.adapters.portrait import render_portrait
+from app.adapters.portrait import korean_font, render_portrait
 from app.adapters.process import executable, run
+from app.domain.portrait import EDITED_PROFILE
 from app.domain.video import VideoError
 from app.services.portrait_sample import execute
 from app.services.video import checksum
@@ -149,3 +150,119 @@ def test_offline_sample_has_matching_srt_and_preview(tmp_path):
     assert "두 줄 자막\n표시 확인" in subtitle
     assert Path(result["preview_path"]).read_bytes().startswith(b"\x89PNG")
     assert json.loads(Path(result["result_path"]).read_text(encoding="utf-8")) == result
+
+
+@pytest.fixture(scope="module")
+def edited_layout(tmp_path_factory):
+    directory = tmp_path_factory.mktemp("edited-layout")
+    source = directory / "source.mp4"
+    _, family = korean_font()
+    (directory / "source.ass").write_text(
+        "[Script Info]\nScriptType: v4.00+\nPlayResX: 320\nPlayResY: 180\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, Alignment, MarginV\n"
+        f"Style: Default,{family},18,&H00FFFFFF,&H00000000,2,12\n"
+        "[Events]\nFormat: Layer, Start, End, Style, Text\n"
+        "Dialogue: 0,0:00:00.00,0:00:02.20,Default,원본 글자\n",
+        encoding="utf-8",
+    )
+    run(
+        [
+            executable("ffmpeg"),
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=0x506176:s=320x180:r=30:d=4.1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=4.1",
+            "-vf",
+            "drawbox=0:0:32:180:0x21836a:t=fill,"
+            "drawbox=288:0:32:180:0xb65849:t=fill,"
+            "drawbox=232:18:48:32:0x4d96d8:t=fill,ass=source.ass",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            str(source),
+        ],
+        30,
+        cwd=directory,
+    )
+    cues = [
+        {
+            "start_ms": 1300,
+            "end_ms": 2800,
+            "lines": ["가나다라마바사아자차카타파하", "하파타카차자아사바마라다나가"],
+        }
+    ]
+    observed, unknown = directory / "observed.mp4", directory / "unknown.mp4"
+    before = checksum(source)
+    rendered = render_portrait(
+        source,
+        observed,
+        cues,
+        1000,
+        3000,
+        profile=EDITED_PROFILE,
+        source_caption_spans=[{"start_ms": 1000, "end_ms": 2200}],
+    )
+    render_portrait(source, unknown, cues, 1000, 3000, profile=EDITED_PROFILE)
+    return source, observed, unknown, before, rendered
+
+
+def bright_points(frame, width):
+    return [
+        ((i // 3) % width, (i // 3) // width)
+        for i in range(0, len(frame), 3)
+        if min(frame[i : i + 3]) > 180
+    ]
+
+
+def test_edited_layout_keeps_visible_source_and_fills_black_padding(edited_layout):
+    source, observed, _, before, result = edited_layout
+    assert all(result["checks"].values())
+    assert (result["width"], result["height"]) == (720, 1280)
+    assert abs(probe(observed).duration - 3) <= 0.1 and probe(observed).has_audio
+    assert checksum(source) == before == result["source_sha256"]
+    assert result["cues"][0]["start_ms"] == 300
+    assert result["cues"][0]["end_ms"] == 1800
+
+    left, right, inset, middle, top, bottom = [
+        pixels(observed, 0.8, f"crop=4:4:{x}:{y},scale=1:1")
+        for x, y in ((6, 348), (710, 738), (540, 390), (168, 700), (6, 6), (6, 1270))
+    ]
+    assert left[1] > left[0] + 30
+    assert right[0] > right[1] + 30
+    assert inset[2] > inset[0] + 60
+    assert middle[2] > middle[0] + 20
+    assert min(top) > 16 and min(bottom) > 16
+    assert max(top) < 100 and max(bottom) < 100
+
+
+def test_edited_layout_uses_original_caption_then_replaces_it_in_its_absence(edited_layout):
+    _, observed, unknown, _, _ = edited_layout
+    original_crop = "crop=320:68:200:674"
+    caption_crop = "crop=720:192:0:746"
+    before_gap, inside_gap, after_cue = 0.8, 1.5, 2.2
+    assert len(bright_points(pixels(observed, before_gap, original_crop), 320)) > 100
+    assert not bright_points(pixels(observed, inside_gap, original_crop), 320)
+    assert not bright_points(pixels(observed, before_gap, caption_crop), 720)
+    assert not bright_points(pixels(observed, after_cue, caption_crop), 720)
+    # Unobserved intervals retain the edited caption even if an original happens to exist.
+    assert len(bright_points(pixels(unknown, before_gap, caption_crop), 720)) > 500
+
+    points = bright_points(pixels(observed, inside_gap, caption_crop), 720)
+    xs, ys = zip(*points, strict=True)
+    assert len(points) > 500
+    assert 48 < min(xs) < 160 and 560 < max(xs) < 672
+    assert 15 < min(ys) < 55 and 75 < max(ys) < 135
+    rows = sorted(set(ys))
+    assert any(b - a > 2 for a, b in zip(rows, rows[1:], strict=False))

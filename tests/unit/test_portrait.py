@@ -5,7 +5,15 @@ from copy import deepcopy
 import pytest
 
 from app.adapters import portrait
-from app.domain.portrait import ass_document, clip_captions
+from app.domain.portrait import (
+    EDITED_PROFILE,
+    LEGACY_EDITED_PROFILE,
+    ass_document,
+    clip_captions,
+    render_input_hash,
+    unsuppressed_captions,
+    visible_spans,
+)
 from app.domain.video import VideoError
 from app.services import portrait_sample
 
@@ -56,6 +64,45 @@ def test_fixture_rejects_ass_controls_and_unsupported_text(lines):
     with pytest.raises(VideoError) as failure:
         clip_captions([{"start_ms": 0, "end_ms": 1000, "lines": lines}], 0, 1000)
     assert failure.value.code == "SUBTITLE_INVALID"
+
+
+def test_source_captions_only_suppress_the_confirmed_intersection():
+    cues = [{"start_ms": 1, "end_ms": 1000, "lines": ["글자"]}]
+    spans = [{"start_ms": 1203, "end_ms": 1406}, {"start_ms": 1600, "end_ms": 2000}]
+    assert unsuppressed_captions(cues, [], 1000) == cues
+    assert unsuppressed_captions(cues, spans, 1000) == [
+        {"start_ms": 0, "end_ms": 210, "lines": ["글자"]},
+        {"start_ms": 400, "end_ms": 600, "lines": ["글자"]},
+    ]
+    assert unsuppressed_captions(cues, [{"start_ms": 1000, "end_ms": 2000}], 1000) == []
+    assert cues[0]["start_ms"] == 1
+
+
+def test_render_key_canonicalizes_spans_and_pins_profile_and_source():
+    intervals = [{"start_ms": 1200, "end_ms": 1400}, {"start_ms": 1400, "end_ms": 1600}]
+    merged = visible_spans(intervals, 1000, 2000)
+    assert merged == [{"start_ms": 1200, "end_ms": 1600}]
+    source = "a" * 64
+    digest = render_input_hash(EDITED_PROFILE, source, merged)
+    assert digest != render_input_hash(EDITED_PROFILE, source, [])
+    assert digest != render_input_hash(EDITED_PROFILE, "b" * 64, merged)
+    assert digest != render_input_hash(LEGACY_EDITED_PROFILE, source, merged)
+
+
+@pytest.mark.parametrize(
+    "intervals",
+    [
+        [{"start_ms": 900, "end_ms": 1500}],
+        [{"start_ms": 1200, "end_ms": 2100}],
+        [{"start_ms": 1200, "end_ms": 1200}],
+        [{"start_ms": 1600, "end_ms": 1700}, {"start_ms": 1500, "end_ms": 1800}],
+        [{"start_ms": True, "end_ms": 1300}],
+    ],
+)
+def test_unordered_overlapping_or_out_of_bounds_observations_are_rejected(intervals):
+    with pytest.raises(VideoError) as failure:
+        visible_spans(intervals, 1000, 2000)
+    assert failure.value.code == "SOURCE_CAPTIONS_INVALID"
 
 
 def test_existing_result_and_source_are_not_overwritten(tmp_path):

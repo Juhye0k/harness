@@ -1,9 +1,16 @@
-"""Fixed portrait proof-of-concept: explicit timing, plain captions, no ASR changes."""
+"""Versioned portrait layout and explicit caption timing."""
+
+from hashlib import sha256
+from json import dumps
 
 from app.domain.video import VideoError
 
 VERSION = "portrait-subtitle-sample-v1"
+LEGACY_EDITED_PROFILE = "portrait-edited-v1"
+EDITED_PROFILE = "portrait-edited-v2"
 WIDTH, HEIGHT = 720, 1280
+CAPTION_BAND_HEIGHT = 192
+MAX_VISIBLE_SPANS = 200
 
 
 def clip_captions(cues: list[dict], start_ms: int, duration_ms: int) -> list[dict]:
@@ -51,7 +58,66 @@ def clip_captions(cues: list[dict], start_ms: int, duration_ms: int) -> list[dic
     return converted
 
 
-def ass_document(cues: list[dict], font_family: str) -> str:
+def visible_spans(spans: list[dict], start_ms: int, end_ms: int) -> list[dict]:
+    """Validate source-relative positive observations and merge adjacent ranges."""
+    if len(spans) > MAX_VISIBLE_SPANS:
+        raise VideoError("SOURCE_CAPTIONS_INVALID", "원본 자막 관측 구간은 최대 200개입니다.")
+    merged = []
+    previous = start_ms
+    for span in spans:
+        begin, end = span.get("start_ms"), span.get("end_ms")
+        if (
+            type(begin) is not int
+            or type(end) is not int
+            or begin < previous
+            or end <= begin
+            or end > end_ms
+        ):
+            raise VideoError(
+                "SOURCE_CAPTIONS_INVALID",
+                "원본 자막 관측 구간은 겹치지 않고 후보 안에 있어야 합니다.",
+            )
+        if merged and begin == previous:
+            merged[-1]["end_ms"] = end
+        else:
+            merged.append({"start_ms": begin, "end_ms": end})
+        previous = end
+    return merged
+
+
+def render_input_hash(profile: str, source_sha256: str, spans: list[dict]) -> str:
+    payload = {"profile": profile, "source_sha256": source_sha256, "visible_spans": spans}
+    return sha256(dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def unsuppressed_captions(cues: list[dict], spans: list[dict], start_ms: int) -> list[dict]:
+    """Keep cue portions outside confirmed spans, at ASS's centisecond resolution."""
+    suppressed_times = []
+    for span in spans:
+        begin = ((span["start_ms"] - start_ms + 9) // 10) * 10
+        end = ((span["end_ms"] - start_ms) // 10) * 10
+        if begin < end:
+            suppressed_times.append((begin, end))
+    if not suppressed_times:
+        return cues
+    visible = []
+    for cue in cues:
+        cursor = (cue["start_ms"] // 10) * 10
+        last = (cue["end_ms"] // 10) * 10
+        for begin, end in suppressed_times:
+            if begin >= last:
+                break
+            if end <= cursor:
+                continue
+            if begin > cursor:
+                visible.append({**cue, "start_ms": cursor, "end_ms": begin})
+            cursor = end
+        if cursor < last:
+            visible.append({**cue, "start_ms": cursor, "end_ms": last})
+    return visible
+
+
+def ass_document(cues: list[dict], font_family: str, *, caption_band: bool = False) -> str:
     """Internal ASS only. Called with validated clip-relative cues and a known font family."""
 
     def timestamp(ms):
@@ -60,15 +126,20 @@ def ass_document(cues: list[dict], font_family: str) -> str:
         hours, minutes = divmod(minutes, 60)
         return f"{hours}:{minutes:02}:{seconds:02}.{centiseconds:02}"
 
+    play_height = CAPTION_BAND_HEIGHT if caption_band else HEIGHT
+    alignment, margin_v = (8, 22) if caption_band else (2, 180)
+    # Fit all 14 characters inside the horizontal safe area, including wide Korean glyphs.
+    font_size = 42 if caption_band else 46
     header = (
         "[Script Info]\nScriptType: v4.00+\n"
-        f"PlayResX: {WIDTH}\nPlayResY: {HEIGHT}\nWrapStyle: 2\nScaledBorderAndShadow: yes\n\n"
+        f"PlayResX: {WIDTH}\nPlayResY: {play_height}\nWrapStyle: 2\n"
+        "ScaledBorderAndShadow: yes\n\n"
         "[V4+ Styles]\n"
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
         "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        f"Style: Default,{font_family},46,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,"
-        "0,0,0,0,100,100,0,0,1,3,0,2,48,48,180,1\n\n"
+        f"Style: Default,{font_family},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,"
+        f"0,0,0,0,100,100,0,0,1,3,0,{alignment},48,48,{margin_v},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )

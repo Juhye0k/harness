@@ -6,7 +6,21 @@ from sqlalchemy.orm import Session
 from app.db import get_engine
 from app.domain.caption_edit import content_hash, validate_cues
 from app.domain.jobs import JobError
-from app.models import AnalysisJob, Asset, CaptionRevision, HighlightCandidate, VideoJob
+from app.domain.portrait import (
+    EDITED_PROFILE,
+    LEGACY_EDITED_PROFILE,
+    render_input_hash,
+    visible_spans,
+)
+from app.domain.video import VideoError
+from app.models import (
+    AnalysisJob,
+    Asset,
+    CaptionRenderJob,
+    CaptionRevision,
+    HighlightCandidate,
+    VideoJob,
+)
 
 ANY_REVISION = object()
 
@@ -33,15 +47,27 @@ def candidate_context(s, analysis_id, candidate_id, lock=False):
     return candidate, analysis, asset
 
 
-def revision_data(row):
+def revision_data(row, render=None):
+    job_id = render.job_id if render else row.render_job_id
     return {
         "revision_id": str(row.id),
         "source_version": row.source_version,
         "cues": row.cues,
         "reviewed": row.reviewed,
         "created_at": row.created_at,
-        "render_job_id": str(row.render_job_id) if row.render_job_id else None,
+        "render_job_id": str(job_id) if job_id else None,
+        "render_profile": (render.profile if render else LEGACY_EDITED_PROFILE) if job_id else None,
     }
+
+
+def latest_render(session, row):
+    return session.scalar(
+        select(CaptionRenderJob)
+        .join(VideoJob, VideoJob.id == CaptionRenderJob.job_id)
+        .where(CaptionRenderJob.revision_id == row.id, CaptionRenderJob.profile == EDITED_PROFILE)
+        .order_by(VideoJob.created_at.desc(), CaptionRenderJob.job_id)
+        .limit(1)
+    )
 
 
 class CaptionRepository:
@@ -71,7 +97,7 @@ class CaptionRepository:
                         409,
                     )
             if existing:
-                return revision_data(existing)
+                return revision_data(existing, latest_render(s, existing))
             row = CaptionRevision(
                 candidate_id=candidate_id,
                 source_version=version,
@@ -93,16 +119,16 @@ class CaptionRepository:
             row = s.scalar(query.limit(1))
             if revision_id and row is None:
                 raise JobError("REVISION_NOT_FOUND", "편집 버전을 찾을 수 없습니다.", 404)
-            return revision_data(row) if row else None
+            return revision_data(row, latest_render(s, row)) if row else None
 
     def recent(self, session, candidate_id):
         rows = session.scalars(candidate_revisions(candidate_id).limit(2)).all()
         return (
-            revision_data(rows[0]) if rows else None,
+            revision_data(rows[0], latest_render(session, rows[0])) if rows else None,
             str(rows[1].id) if len(rows) > 1 else None,
         )
 
-    def export(self, analysis_id, candidate_id, revision_id):
+    def export(self, analysis_id, candidate_id, revision_id, source_captions=None):
         with Session(self.engine, expire_on_commit=False) as s, s.begin():
             candidate, analysis, asset = candidate_context(s, analysis_id, candidate_id, lock=True)
             row = s.scalar(
@@ -118,14 +144,33 @@ class CaptionRepository:
                 raise JobError(
                     "SUBTITLE_REVIEW_REQUIRED", "원음과 자막을 확인한 버전을 먼저 저장하세요.", 409
                 )
-            if row.render_job_id:
-                existing = s.get(VideoJob, row.render_job_id)
+            data = candidate.data
+            spans = []
+            if source_captions is not None:
+                if source_captions["source_sha256"] != asset.sha256:
+                    raise JobError(
+                        "SOURCE_CAPTIONS_MISMATCH", "원본 자막 관측이 현재 영상과 다릅니다.", 409
+                    )
+                try:
+                    spans = visible_spans(
+                        source_captions["visible_spans"], data["start_ms"], data["end_ms"]
+                    )
+                except VideoError as exc:
+                    raise JobError(exc.code, str(exc), 422) from exc
+            digest = render_input_hash(EDITED_PROFILE, asset.sha256, spans)
+            render = s.scalar(
+                select(CaptionRenderJob).where(
+                    CaptionRenderJob.revision_id == row.id,
+                    CaptionRenderJob.input_hash == digest,
+                )
+            )
+            if render:
+                existing = s.get(VideoJob, render.job_id)
                 if existing.deleted_at:
                     raise JobError(
                         "RESOURCE_GONE", "삭제한 출력입니다. 새 편집본을 저장하세요.", 410
                     )
                 return existing, False
-            data = candidate.data
             # Keep the original candidate's extraction cache independent from final rendering.
             job = VideoJob(
                 source_url=asset.source_url,
@@ -138,15 +183,33 @@ class CaptionRepository:
             )
             s.add(job)
             s.flush()
-            row.render_job_id = job.id
+            s.add(
+                CaptionRenderJob(
+                    job_id=job.id,
+                    revision_id=row.id,
+                    profile=EDITED_PROFILE,
+                    input_hash=digest,
+                    source_caption_spans=spans,
+                )
+            )
             s.flush()
             return job, True
 
     def for_job(self, job_id):
         with Session(self.engine) as s:
-            row = s.scalar(select(CaptionRevision).where(CaptionRevision.render_job_id == job_id))
+            render = s.get(CaptionRenderJob, job_id)
+            row = (
+                s.get(CaptionRevision, render.revision_id)
+                if render
+                else s.scalar(
+                    select(CaptionRevision).where(CaptionRevision.render_job_id == job_id)
+                )
+            )
             if row is None:
                 return None
             candidate = s.get(HighlightCandidate, row.candidate_id)
             analysis = s.get(AnalysisJob, candidate.analysis_id)
-            return revision_data(row), candidate.data, analysis.asset_id
+            saved = revision_data(row, render)
+            saved["source_caption_spans"] = render.source_caption_spans if render else []
+            saved["render_input_hash"] = render.input_hash if render else None
+            return saved, candidate.data, analysis.asset_id

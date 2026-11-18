@@ -4,8 +4,9 @@ from uuid import uuid4
 
 from app.adapters.media import probe
 from app.adapters.portrait import render_portrait
-from app.domain.caption_edit import PROFILE, validate_cues
+from app.domain.caption_edit import validate_cues
 from app.domain.jobs import output_file
+from app.domain.portrait import render_input_hash
 from app.domain.video import VideoError
 from app.services.video import checksum
 
@@ -25,6 +26,11 @@ def execute_final(asset, job, revision, root, data_root):
     source = output_file(data_root, asset.path)
     if checksum(source) != asset.sha256:
         raise VideoError("OUTPUT_INVALID", "원본 보존 검사를 통과하지 못했습니다.")
+    profile = saved["render_profile"]
+    spans = saved["source_caption_spans"]
+    digest = saved["render_input_hash"]
+    if digest and digest != render_input_hash(profile, asset.sha256, spans):
+        raise VideoError("OUTPUT_INVALID", "저장된 출력 설정과 원본이 일치하지 않습니다.")
     directory = root.resolve() / uuid4().hex
     directory.mkdir(parents=True, exist_ok=False)
     target = directory / "clip.mp4"
@@ -35,6 +41,8 @@ def execute_final(asset, job, revision, root, data_root):
             saved["cues"],
             candidate["start_ms"],
             candidate["end_ms"] - candidate["start_ms"],
+            profile=profile,
+            source_caption_spans=spans,
         )
         info = probe(target, output=True)
         if checksum(source) != asset.sha256:
@@ -55,7 +63,7 @@ def execute_final(asset, job, revision, root, data_root):
         },
         "checks": rendered["checks"],
         "render": {
-            "profile": PROFILE,
+            "profile": profile,
             "revision_id": saved["revision_id"],
             "subtitle_time_origin": "clip",
         },

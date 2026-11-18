@@ -1,4 +1,4 @@
-"""Local portrait renderer for the fixed sample; no network or user-supplied filter code."""
+"""Local portrait rendering with fixed filters and validated captions."""
 
 import hashlib
 import json
@@ -9,8 +9,39 @@ from pathlib import Path
 
 from app.adapters.media import container, probe
 from app.adapters.process import executable, run
-from app.domain.portrait import HEIGHT, WIDTH, ass_document, clip_captions
+from app.domain.portrait import (
+    CAPTION_BAND_HEIGHT,
+    EDITED_PROFILE,
+    HEIGHT,
+    LEGACY_EDITED_PROFILE,
+    VERSION,
+    WIDTH,
+    ass_document,
+    clip_captions,
+    unsuppressed_captions,
+    visible_spans,
+)
 from app.domain.video import VideoError, validate_output, validate_range
+
+LEGACY_FILTER = (
+    "setpts=PTS-STARTPTS,"
+    "scale=720:1280:force_original_aspect_ratio=decrease:force_divisible_by=2,"
+    "setsar=1,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,"
+    "ass=filename=captions.ass:fontsdir=fonts"
+)
+SOURCE_HEIGHT = HEIGHT - CAPTION_BAND_HEIGHT
+SURROUND = "0x24333b"
+# Use display aspect ratio (including non-square source pixels), then fit the whole
+# frame. Crop only the separately added caption band to render at a fixed font size.
+EDITED_FILTER = (
+    "setpts=PTS-STARTPTS,"
+    f"scale=w='max(2,min({WIDTH},2*trunc({SOURCE_HEIGHT}*dar/2)))':"
+    f"h='max(2,min({SOURCE_HEIGHT},2*trunc({WIDTH}/dar/2)))',setsar=1,"
+    f"pad={WIDTH}:ih+{CAPTION_BAND_HEIGHT}:(ow-iw)/2:0:{SURROUND},split[frame][strip];"
+    f"[strip]crop={WIDTH}:{CAPTION_BAND_HEIGHT}:0:ih-oh,"
+    "ass=filename=captions.ass:fontsdir=fonts[text];"
+    f"[frame][text]overlay=0:H-h,pad={WIDTH}:{HEIGHT}:0:(oh-ih)/2:{SURROUND}"
+)
 
 
 def checksum(path: Path) -> str:
@@ -32,7 +63,14 @@ def korean_font() -> tuple[Path, str]:
 
 
 def render_portrait(
-    source: Path, target: Path, cues: list[dict], start_ms: int, duration_ms: int
+    source: Path,
+    target: Path,
+    cues: list[dict],
+    start_ms: int,
+    duration_ms: int,
+    *,
+    profile: str = VERSION,
+    source_caption_spans: list[dict] | None = None,
 ) -> dict:
     """Render validated source-relative cues and publish only after media checks."""
     if target.is_symlink():
@@ -41,6 +79,16 @@ def render_portrait(
     if source == target or target.exists():
         raise VideoError("OUTPUT_CONFLICT", "원본이나 기존 결과를 덮어쓸 수 없습니다.")
     subtitles = clip_captions(cues, start_ms, duration_ms)
+    if profile not in (VERSION, LEGACY_EDITED_PROFILE, EDITED_PROFILE):
+        raise VideoError("SUBTITLE_INVALID", "지원하지 않는 세로 출력 프로필입니다.")
+    caption_band = profile == EDITED_PROFILE
+    spans = source_caption_spans or []
+    if spans and not caption_band:
+        raise VideoError(
+            "SOURCE_CAPTIONS_INVALID", "이 출력 프로필은 원본 자막 관측을 지원하지 않습니다."
+        )
+    spans = visible_spans(spans, start_ms, start_ms + duration_ms)
+    displayed = unsuppressed_captions(subtitles, spans, start_ms)
     original = probe(source)
     validate_range(start_ms / 1000, original, duration_ms / 1000)
     font_path, family = korean_font()
@@ -51,7 +99,9 @@ def render_portrait(
         work = Path(directory).resolve()
         (work / "fonts").mkdir()
         shutil.copyfile(font_path, work / "fonts" / f"caption{font_path.suffix}")
-        (work / "captions.ass").write_text(ass_document(subtitles, family), encoding="utf-8")
+        (work / "captions.ass").write_text(
+            ass_document(displayed, family, caption_band=caption_band), encoding="utf-8"
+        )
         output = work / "clip.mp4"
         run(
             [
@@ -80,10 +130,7 @@ def render_portrait(
                 "-map_chapters",
                 "-1",
                 "-vf",
-                "setpts=PTS-STARTPTS,"
-                "scale=720:1280:force_original_aspect_ratio=decrease:force_divisible_by=2,"
-                "setsar=1,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,"
-                "ass=filename=captions.ass:fontsdir=fonts",
+                EDITED_FILTER if caption_band else LEGACY_FILTER,
                 "-c:v",
                 "libx264",
                 "-preset",
