@@ -175,6 +175,8 @@ def frame_agreement(observation, proposed, start_ms, end_ms, fold=1):
 
 def policy_violations(cues):
     counts = Counter()
+    if not cues:
+        counts["empty_captions"] += 1
     previous = 0
     for cue in cues:
         duration = cue["end_ms"] - cue["start_ms"]
@@ -210,6 +212,8 @@ def fixed_screen_reference(data, observation, start_ms, end_ms):
             or not isinstance(cue["text"], str)
             or not normalize_text(cue["text"])
             or not cue["start_ms"] <= cue["evidence_time_ms"] < cue["end_ms"]
+            or not isinstance(cue.get("evidence_frame_sha256"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", cue["evidence_frame_sha256"])
             or (cue["evidence_time_ms"], cue["evidence_frame_sha256"]) not in frame_evidence
         ):
             raise ValueError("Screen label does not match its source frame or range")

@@ -95,6 +95,7 @@ def test_no_original_editor_mutation_and_no_human_or_production_approval():
 
 
 def test_valid_screen_content_can_still_violate_product_duration_and_density():
+    assert policy_violations([]) == {"empty_captions": 1}
     assert policy_violations(
         [
             {
@@ -138,6 +139,10 @@ def test_visual_reference_cannot_be_rebound_to_a_different_frame():
             }
         ],
     }
+    with pytest.raises(ValueError, match="source frame"):
+        fixed_screen_reference(fixed, rows, 0, 2000)
+    rows["frames"][0]["frame_sha256"] = None
+    fixed["cues"][0]["evidence_frame_sha256"] = None
     with pytest.raises(ValueError, match="source frame"):
         fixed_screen_reference(fixed, rows, 0, 2000)
 
