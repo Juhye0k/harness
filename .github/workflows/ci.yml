@@ -26,7 +26,8 @@ jobs:
         run: |
           # EC2 mirror downloads repeatedly exceeded the job limit. Keep Ubuntu
           # package signatures and suites; use its primary archive in this runner.
-          for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+          # Ubuntu runners can load their regional mirror through a mirror+file URI.
+          for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources /etc/apt/apt-mirrors.txt; do
             if [ -f "$source_file" ]; then
               sudo sed -E -i 's#https?://[a-z0-9-]+\.ec2\.archive\.ubuntu\.com/ubuntu#https://archive.ubuntu.com/ubuntu#g' "$source_file"
             fi
