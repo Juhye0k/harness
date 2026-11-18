@@ -374,6 +374,14 @@
     {
       "path": "05-development/harness/records/2026-11-18-wiki-readability.md",
       "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/source-caption-evaluation.md",
+      "category": "음성 전사·자막·추천"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-source-caption-loop.md",
+      "category": "실험·문제 해결·작업 기록"
     }
   ]
 }

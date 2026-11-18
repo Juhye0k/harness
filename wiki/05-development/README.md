@@ -33,6 +33,7 @@
 | 단어 시각이 부족한 구간 다루기 | [단어 정렬 복구](word-alignment-recovery.md) |
 | 의심 전사와 원음 확인 | [전사 검수](transcript-review.md) |
 | 정답 전사로 인식 정확도 측정 | [전사 품질 평가](transcript-quality-evaluation.md) |
+| 원본 화면 자막과 비교하고 시간·문구 초안 만들기 | [원본 자막 평가 루프](source-caption-evaluation.md) |
 | 추천 후보의 사용 가능성 평가 | [기준선 측정](recommendation-quality-baseline.md)·[피드백과 반복 개선](recommendation-improvement-loop.md) |
 
 ## 계정·자료·게시
