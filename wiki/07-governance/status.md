@@ -45,7 +45,7 @@ YouTube 연결은 기존 로컬 콜백을 재사용해 API 설정·SNS 전용 �
 
 이후 같은 29개 문구로 확인 상태의 별도 출력 버전이 생긴 것을 조회했다. 이미 완료된 MP4의 720×1280·32.3323초·음성 유지·전체 디코딩과 SRT의 고정 버전 일치를 검사했다. 평가 작업에서 확인 상태를 바꾸거나 출력을 접수하지 않았으며, 원음 확인을 수행한 사람·세션은 미확인이다. 파일 검사 통과를 사람의 원음 검수 완료로 대신 해석하지 않는다.
 
-**편집·출력 후속 변경:** 원본 화면 관측이 준비돼 있으면 분석 워커가 저장 단어 시각으로 편집 초안을 만든다. 기존 전사 초안으로 돌아갈 때는 검토 상태를 표시한다. 새 세로 출력은 원본 화면을 보존하고 아래에 자막 띠를 둔다. 검증용 PR 적용, 실제 원음 확인·출력, 승인된 SNS와 추가 영상 검증은 각각 완료 근거가 필요하다. [웹 편집](../05-development/harness/records/2026-11-18-flow-caption-web.md) · [출력 화면 구성](../05-development/harness/records/2026-11-18-flow-output-layout.md) · [실제 영상 검증](../05-development/harness/records/2026-11-18-final-output-e2e.md).
+**편집·출력 후속 변경:** 원본 화면 관측이 준비돼 있으면 분석 워커가 저장 단어 시각으로 편집 초안을 만든다. 기존 전사 초안으로 돌아갈 때는 검토 상태를 표시한다. 새 세로 출력은 원본 화면을 보존하고 아래에 자막 띠를 둔다. 검증용 PR 적용, 실제 원음 확인·출력, 승인된 SNS와 추가 영상 검증은 각각 완료 근거가 필요하다. [웹 편집](../05-development/harness/records/2026-11-18-flow-caption-web.md) · [출력 화면 구성](../05-development/harness/records/2026-11-18-flow-output-layout.md) · [실제 영상 검증](../05-development/harness/records/2026-11-18-final-output-e2e.md) · [SNS와 추가 영상 검증](../05-development/harness/records/2026-11-18-sns-final-output-validation.md).
 
 ## 다음 작업의 순서
 
