@@ -2,16 +2,16 @@
 
 import math
 import re
+from bisect import bisect_left
 from collections import Counter
+from operator import itemgetter
 
 from app.domain.transcript_evaluation import edit_distance, normalize_text, ratio
 
 VERSION = "source-caption-evaluation-v2"
 
 
-def references(observation, start_ms, end_ms, fold):
-    if fold not in (0, 1) or not 0 <= start_ms < end_ms:
-        raise ValueError("Invalid range or fold")
+def observation_samples(observation):
     step = observation.get("sample_step_ms")
     frames = observation.get("frames")
     if type(step) is not int or not 20 <= step <= 1000 or not frames or len(frames) > 10000:
@@ -25,6 +25,37 @@ def references(observation, start_ms, end_ms, fold):
             or (index and frame["time_ms"] - frames[index - 1]["time_ms"] != step)
         ):
             raise ValueError("Invalid or missing frame observations")
+    return step, frames
+
+
+def screen_transitions(observation, start_ms, end_ms):
+    """Use only even frames to detect persistent changes in the screen text."""
+    step, frames = observation_samples(observation)
+    samples = frames[::2]
+    first = bisect_left(samples, start_ms, key=itemgetter("time_ms"))
+    stop = bisect_left(samples, end_ms, key=itemgetter("time_ms"))
+    # Keep two earlier observations and one later observation for edge transitions.
+    samples = samples[max(0, first - 2) : stop + 1]
+    texts = [normalize_text(frame["text"]) for frame in samples]
+    changes = [
+        0.0 if before == after else edit_distance(before, after) / max(len(before), len(after))
+        for before, after in zip(texts, texts[1:], strict=False)
+    ]
+    # Require agreement on both sides. Blank frames can also establish a transition.
+    return step, [
+        samples[index]["time_ms"]
+        for index in range(2, len(samples) - 1)
+        if start_ms <= samples[index]["time_ms"] < end_ms
+        and changes[index - 2] <= 0.40
+        and changes[index - 1] >= 0.55
+        and changes[index] <= 0.40
+    ]
+
+
+def references(observation, start_ms, end_ms, fold):
+    if fold not in (0, 1) or not 0 <= start_ms < end_ms:
+        raise ValueError("Invalid range or fold")
+    step, frames = observation_samples(observation)
     groups = []
     for frame in frames[fold::2]:
         normalized = normalize_text(frame["text"])
@@ -272,7 +303,7 @@ def decision(baseline, proposal):
     }
 
 
-def compare(observation, editor, fixed_reference=None, proposed_cues=None):
+def validate_observation_source(observation, editor):
     fingerprint = observation.get("source_sha256", "")
     if (
         not isinstance(fingerprint, str)
@@ -281,6 +312,10 @@ def compare(observation, editor, fixed_reference=None, proposed_cues=None):
         or observation.get("schema_version") != "source-caption-ocr-v1"
     ):
         raise ValueError("Original video fingerprint mismatch")
+
+
+def compare(observation, editor, fixed_reference=None, proposed_cues=None):
+    validate_observation_source(observation, editor)
     training = references(observation, editor["start_ms"], editor["end_ms"], 0)
     validation = references(observation, editor["start_ms"], editor["end_ms"], 1)
     if fixed_reference is not None:

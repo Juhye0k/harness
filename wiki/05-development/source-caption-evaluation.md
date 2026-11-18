@@ -80,6 +80,8 @@ uv run python -m scripts.evaluate_source_captions --ocr .artifacts/caption-eval/
 
 이때 `--caption-provenance <JSON>`도 필수다. 취득 시 확인한 `source_video_id`·`acquired_video_id`, 독립 검증한 `source_sha256`, 내려받은 파일의 `caption_sha256`, 실제 원본의 `duration_ms`를 기록한다. 스냅샷·파일과 맞지 않으면 평가하지 않는다. 이는 취득 기록의 일관성 검사이며 운영자가 잘못된 출처를 기입하는 것까지 증명하는 인증서는 아니다. 다음 단어 시각이 없는 마지막 단어가 후보 안에 있으면 미해결로 거절한다.
 
+`--align-to-ocr`는 원본 해시를 먼저 확인한 뒤, 후보 근처의 짝수 OCR 프레임으로 화면 자막이 바뀌는 곳을 찾는다. 전후 두 프레임씩 문구가 이어지고 양쪽 문구 사이에 큰 차이가 있을 때만 경계로 사용한다. 경계에서 프레임 한 칸 이내의 가장 가까운 단어 시작을 찾고, 그곳을 넘는 분할에 비용을 더한다. 한 줄 유지와 표시 길이의 비용도 함께 비교하므로 경계를 넘는 분할이 더 적합할 때도 있다. 단어 문구와 개별 시작 시각은 그대로 사용하며 OCR 문구·평가 기준선은 초안에 넣지 않는다. 홀수 프레임은 기존 교차 확인에 쓴다. [표시 정렬 기록](harness/records/2026-11-18-caption-alignment.md).
+
 Tesseract는 Windows 전처리 보고서의 `crop_directory`를 `--frames`로 받는다. 각 `crop_name`·`crop_sha256`으로 이미지와 판독의 연결을 확인한다. 새 Windows OCR 실행은 시도마다 별도 이미지 디렉터리를 만들므로 실패 결과를 지우지 않고 다른 출력 이름으로 다시 실행할 수 있다.
 
 ## 평가를 읽는 방법

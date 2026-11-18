@@ -1,5 +1,7 @@
 """Reuse YouTube word onsets as proposed DISPLAY intervals, not verified speech ends."""
 
+from bisect import bisect_left, bisect_right
+
 from app.domain.shorts_subtitles import POLICY
 from app.domain.subtitles import wrap
 
@@ -39,7 +41,7 @@ def youtube_onsets(raw, duration_ms):
     return words
 
 
-def propose(words, segments, start_ms, end_ms):
+def propose(words, segments, start_ms, end_ms, *, screen_changes=(), snap_ms=0):
     if not words or not segments or not 0 <= start_ms < end_ms:
         raise ValueError("Missing words, source links, or valid range")
     if start_ms <= words[-1]["start_ms"] < end_ms:
@@ -60,6 +62,15 @@ def propose(words, segments, start_ms, end_ms):
         selected.append({**word, "end_ms": following["start_ms"]})
     if not selected:
         raise ValueError("No complete onset intervals inside candidate")
+    onsets = [word["start_ms"] for word in selected]
+    boundaries = set()
+    for change in screen_changes:
+        position = bisect_left(onsets, change)
+        # Reject unsupported transitions. Ties favor the earlier word onset.
+        nearest = min(onsets[max(0, position - 1) : position + 1], key=lambda t: abs(t - change))
+        if abs(nearest - change) <= snap_ms:
+            boundaries.add(nearest)
+    boundaries = sorted(boundaries)
     # Complete partition: never hide a word just to improve readability metrics.
     best = {len(selected): (0, [])}
     for index in range(len(selected) - 1, -1, -1):
@@ -92,8 +103,12 @@ def propose(words, segments, start_ms, end_ms):
                 "lines": lines,
             }
             cost, tail = best[stop]
+            crossed = bisect_left(boundaries, end) - bisect_right(boundaries, begin)
             choices.append(
-                (cost + 1 + abs(duration - 900) / 1000 + (len(lines) - 1) * 10000, [cue, *tail])
+                (
+                    cost + 1 + abs(duration - 900) / 1000 + (len(lines) - 1) * 10000 + 2 * crossed,
+                    [cue, *tail],
+                )
             )
         if choices:
             best[index] = min(choices, key=lambda row: row[0])
@@ -112,6 +127,7 @@ def propose(words, segments, start_ms, end_ms):
         "selected_words": len(selected),
         "words_dropped_for_readability": 0,
         "timing_source": "youtube_word_onsets_with_next_onset_display_end",
+        "snapped_screen_boundaries_ms": boundaries,
         "speech_end_verified": False,
         "human_reviewed": False,
     }
