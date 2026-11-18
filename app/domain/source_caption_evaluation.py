@@ -9,9 +9,7 @@ from app.domain.transcript_evaluation import edit_distance, normalize_text, rati
 VERSION = "source-caption-evaluation-v2"
 
 
-def references(observation, start_ms, end_ms, fold):
-    if fold not in (0, 1) or not 0 <= start_ms < end_ms:
-        raise ValueError("Invalid range or fold")
+def observation_samples(observation):
     step = observation.get("sample_step_ms")
     frames = observation.get("frames")
     if type(step) is not int or not 20 <= step <= 1000 or not frames or len(frames) > 10000:
@@ -25,6 +23,33 @@ def references(observation, start_ms, end_ms, fold):
             or (index and frame["time_ms"] - frames[index - 1]["time_ms"] != step)
         ):
             raise ValueError("Invalid or missing frame observations")
+    return step, frames
+
+
+def screen_transitions(observation, start_ms, end_ms):
+    """Use only even frames to detect persistent changes in the screen text."""
+    step, frames = observation_samples(observation)
+    samples = frames[::2]
+    texts = [normalize_text(frame["text"]) for frame in samples]
+    changes = [
+        0.0 if before == after else edit_distance(before, after) / max(len(before), len(after))
+        for before, after in zip(texts, texts[1:], strict=False)
+    ]
+    # Require agreement on both sides. Blank frames can also establish a transition.
+    return step, [
+        samples[index]["time_ms"]
+        for index in range(2, len(samples) - 1)
+        if start_ms <= samples[index]["time_ms"] < end_ms
+        and changes[index - 2] <= 0.40
+        and changes[index - 1] >= 0.55
+        and changes[index] <= 0.40
+    ]
+
+
+def references(observation, start_ms, end_ms, fold):
+    if fold not in (0, 1) or not 0 <= start_ms < end_ms:
+        raise ValueError("Invalid range or fold")
+    step, frames = observation_samples(observation)
     groups = []
     for frame in frames[fold::2]:
         normalized = normalize_text(frame["text"])

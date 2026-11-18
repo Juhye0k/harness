@@ -1,6 +1,7 @@
 import pytest
 
-from app.domain.source_caption_evaluation import decision
+from app.domain.caption_edit import validate_cues
+from app.domain.source_caption_evaluation import decision, screen_transitions
 from app.domain.source_caption_proposal import propose, youtube_onsets
 
 
@@ -73,6 +74,48 @@ def test_candidate_boundary_words_are_explicit_not_trimmed_or_forged():
     assert result["cues"][-1]["end_ms"] == 1200
     assert result["human_reviewed"] is False
     assert result["speech_end_verified"] is False
+
+
+def test_screen_transition_uses_only_even_frames_and_rejects_transient_noise():
+    even = ["첫 화면", "첫 화면", "잡음", "첫 화면", "첫 화면", "다음 화면 내용", "다음 화면 내용"]
+    frames = []
+    for index, text in enumerate(even):
+        frames.extend(
+            [
+                {"time_ms": index * 200, "text": text},
+                {"time_ms": index * 200 + 100, "text": "판정에 쓰지 않는 프레임"},
+            ]
+        )
+    observation = {"sample_step_ms": 100, "frames": frames}
+    assert screen_transitions(observation, 0, 1400) == (100, [1000])
+
+
+def test_break_near_screen_change_uses_existing_word_intervals_and_keeps_all_words():
+    words = [
+        {"start_ms": time, "text": text}
+        for time, text in zip((0, 600, 900, 1500), ("처음", "다음", "문구", "밖"), strict=True)
+    ]
+    segments = [{"id": "s1", "start_ms": 0, "end_ms": 1500}]
+    original = propose(words, segments, 0, 1500)
+    aligned = propose(words, segments, 0, 1500, screen_changes=[680, 690, 1100], snap_ms=100)
+    assert [cue["end_ms"] for cue in original["cues"]] == [1500]
+    assert [cue["end_ms"] for cue in aligned["cues"]] == [600, 1500]
+    assert aligned["snapped_screen_boundaries_ms"] == [600]
+    assert [cue["lines"] for cue in aligned["cues"]] == [["처음"], ["다음 문구"]]
+    assert validate_cues(aligned["cues"], segments, 0, 1500, False) == aligned["cues"]
+    assert aligned["human_reviewed"] is False
+
+
+def test_screen_break_can_be_crossed_to_keep_short_words_readable():
+    words = [
+        {"start_ms": 0, "text": "안"},
+        {"start_ms": 200, "text": "녕"},
+        {"start_ms": 800, "text": "밖"},
+    ]
+    segments = [{"id": "s1", "start_ms": 0, "end_ms": 800}]
+    result = propose(words, segments, 0, 800, screen_changes=[200], snap_ms=100)
+    assert result["snapped_screen_boundaries_ms"] == [200]
+    assert [cue["lines"] for cue in result["cues"]] == [["안 녕"]]
 
 
 def test_worse_ocr_or_bad_policy_cannot_replace_baseline():
