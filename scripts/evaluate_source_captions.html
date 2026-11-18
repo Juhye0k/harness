@@ -1,0 +1,51 @@
+<!doctype html><html lang="ko"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>원본 자막 비교</title>
+<style>
+body{font:17px/1.7 system-ui;background:#f5f7f8;color:#18332c;max-width:1100px;margin:40px auto;padding:0 24px}
+section{background:white;border-radius:16px;padding:24px;margin:24px 0}
+video{width:100%;max-height:60vh;background:#111}
+table{width:100%;border-collapse:collapse}
+td,th{padding:12px;text-align:left;border-bottom:1px solid #ddd}
+code{word-break:break-all}.note{padding:16px;background:#fff1d2;border-radius:12px}
+</style>
+<h1>원본 화면 자막으로 비교한 결과</h1>
+<p>같은 영상·편집본을 고정해 비교했습니다. 사람이 모든 시각을 입력하지 않아도
+화면 자막에서 문구와 표시 구간을 관측합니다.
+판독 불확실·자막 없는 구간은 평가에서 제외하고 아래에 남깁니다.</p>
+<p class="note">이 수치는 화면 자막과의 일치입니다.
+원음 정답 정확도·사람 검수·완성 영상 통과를 뜻하지 않습니다.
+초안은 자동 승인하거나 기존 편집본에 덮어쓰지 않았습니다.</p>
+$video
+<section><h2>비교 범위</h2>
+<p>자동 판단: <strong>$decision</strong> · 초안 출처: <code>$proposal_origin</code></p>
+<p>제안 자막: <strong>$cue_count 개</strong> · 완전한 단어의 시작·끝 기준 범위 제안: $suggested_range</p>
+<p>안정된 원본 자막 기준 시간: $coverage_seconds 초 ($coverage_ratio).
+화면 전환 시각은 샘플링 간격에 따른 오차가 있습니다.</p>
+<p>기존 편집 버전: <code>$revision_id</code></p>
+<table><tr><th>대상</th><th>화면 자막 대비 문자 차이율</th>
+<th>다른 글자 수 / 기준 글자 수</th><th>표시 규칙 위반</th></tr>$rows</table>
+<p>OCR 초안은 짝수 프레임으로 만들고 홀수 프레임에서 교차 확인합니다.
+고정 프레임 판독 기준선을 지정한 경우 모든 초안을 같은 기준선으로 비교합니다.
+YouTube 자동 자막도 제작자의 원본 자막과는 다른 자료이므로 별도 후보로 평가합니다.
+같은 영상의 실험이므로 다른 영상·장르의 품질 향상으로 일반화하지 않습니다.
+표시 단위 차이와 OCR 오류도 차이율에 영향을 줍니다.</p></section>
+<section><h2>새 미확정 자막 초안</h2>
+<p>시간 버튼을 누르면 원본의 해당 위치를 재생합니다. 화면 기준 비교가 통과해도 원음 확인은 별도입니다.</p>
+<table><tr><th>원본 시작</th><th>표시 길이</th><th>제안 문구</th></tr>$proposals</table></section>
+<section><h2>대조용 프레임에서 읽은 원본 자막</h2>
+<table><tr><th>원본 시간</th><th>관측한 문구</th><th>관측 횟수</th></tr>$captions</table></section>
+<section><h2>자동 평가를 보류한 구간</h2>
+<p>NO_REFERENCE는 자막 부재 또는 검출 실패, OCR_UNCERTAIN은 판독 불확실입니다.
+이 구간을 삭제해 성공률을 높이지 않았습니다.</p>
+<table><tr><th>원본 시간</th><th>보류 이유</th></tr>$blocked</table></section>
+<section><h2>단어가 걸친 추출 경계</h2>
+<p>다음 단어를 일부만 포함하는 범위를 감지했습니다. 위 범위는 완전한 단어 기준의 제안이며,
+기존 후보 범위는 변경하지 않았습니다. 종료 시각은 다음 단어 시작을 이용한 표시 구간으로,
+실제 발화 종료를 검증한 값은 아닙니다.</p><ul>$cut_words</ul></section>
+<script>
+document.addEventListener('click', function(event) {
+  const button = event.target.closest('[data-seek]');
+  const video = document.querySelector('video');
+  if (button && video) { video.currentTime = Number(button.dataset.seek); video.play().catch(() => {}); }
+});
+</script></html>

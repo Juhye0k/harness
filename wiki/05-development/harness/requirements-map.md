@@ -63,6 +63,8 @@
 
 ## 비동기·인증·다른 확장
 
+CAPTION-OCR-001의 [원본 자막 비교 루프](../source-caption-evaluation.md)는 `test_source_caption_evaluation.py`에서 원본 해시·평가 범위·미평가·OCR 판독 불확실성·미확정 판단을, `test_source_caption_proposal.py`에서 단어 시작 시각·동일 시각 보존·경계 보고·무손실 분할을 검사한다. 일반 CI는 합성 데이터만 사용하며 실제 OCR·YouTube·사람의 원음 검수는 별도 실험이다.
+
 UPLOAD-001은 [파일 업로드 계약](../local-video-upload.md)을 따른다. `test_uploads.py`는 크기·해시·시간 제한과 원본 미공개를, `test_local_upload.py`는 실제 DB·브라우저·워커에서 바이트 제한·중복·소유권·원본 검증·추출·전사 재사용·새로고침 무재전송을 검사한다.
 
 AUTH-DATA-001은 [인증·자료 관리 계약](../user-auth-data.md)을 따른다. `test_auth_data.py`가 실제 PostgreSQL에서 A/B 사용자 경계·로그인 승인·콜백 재사용·CSRF·로그아웃·만료·삭제·탈퇴·Range 다운로드와 실제 브라우저를 검사한다. `test_google_login.py`는 공식 검증 함수의 오류 전파·nonce·최근 재인증을, `test_auth_safety.py`는 관리 루트 밖 삭제 거부와 토큰 해시 경계를 확인한다. 실제 Google 로그인은 일반 CI와 분리한다.
