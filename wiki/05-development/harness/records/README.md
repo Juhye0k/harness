@@ -48,7 +48,7 @@
 | DOCS-READ-001 | [위키 가독성과 읽는 순서 개선](2026-11-18-wiki-readability.md) | 핵심 요약·과정·현재/과거 분리, 로컬 검사 통과 | 게시됨 |
 | RELEASE-001 | [기능 통합 PR과 main CI 확인](2026-11-18-release-integration.md) | PR #8 병합·main의 기본 375개/통합 107개 통과 | 게시됨 |
 | RUNTIME-001 | [독립 개발 환경 반영](2026-11-18-runtime-release.md) | 새 DB·API·워커 점검 완료, 기존 자료 보존 | 게시됨 |
-| REAL-FLOW-001 | [실제 영상의 업로드·추천·편집 검증](2026-11-18-real-video-flow.md) | 실제 입력·보존 결과·편집·출력 차단 확인, 사용자 원음 검토 중 | 게시됨 |
+| REAL-FLOW-001 | [실제 영상의 업로드·추천·편집 검증](2026-11-18-real-video-flow.md) | 두 패널 초안 23개·출력 전 재점검 완료, 원음 확인·최종 출력 대기 | 기존 기록 게시·후속 반영 대상 |
 | INTEGRATE-001 | [미반영 작업의 main 통합](2026-11-17-main-integration.md) | PR #8 main 병합·CI 확인 | 게시됨 |
 | FAIL-E2E-001 | [실패 경로 E2E 구현](2026-11-17-failure-path-plan.md) | receipt·실패 E2E·격리 종료 3개 검증 완료 | 게시됨 |
 | 2026-11-17-local-video-upload | [로컬 영상 입력과 비동기 검증](2026-11-17-local-video-upload.md) | 로컬 구현·합성 입력 검증 완료 | 게시됨 |
