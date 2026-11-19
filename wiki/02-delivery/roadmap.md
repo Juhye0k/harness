@@ -18,7 +18,7 @@
 | 5 | 발견한 실패를 하네스에 반영 | 같은 문제가 다음 변경에서 재발하지 않도록 | 재현 검사·제품 수정·재검사 |
 | 6 | 실제 게시와 운영 준비 | 계정·파일·공개 범위와 비용을 확인하기 위해 | 승인한 영상의 게시 결과·운영 점검 |
 
-1번 제품 통합은 [PR #8](https://github.com/Juhye0k/short-form/pull/8)로 반영됐다. 2~3번은 실행 환경·실제 영상의 검증 기록으로 확인한다. 단계별 최신 결과는 [현재 현황](../07-governance/status.md)에 모은다.
+초기 제품 통합은 [PR #8](https://github.com/Juhye0k/short-form/pull/8), 자막 편집·출력 개선은 [PR #15](https://github.com/Juhye0k/short-form/pull/15)로 반영됐다. 11월 19일에는 main과 DB 구조를 맞춘 개발 서비스, 기존 자료 보존을 확인했다. 다음은 같은 영상의 미검수 초안 저장과 사람의 원음 확인, 최종 파일 검사다. [재개 기록](../05-development/harness/records/2026-11-19-flow-resume.md)에서 완료와 대기를 구분하고, 단계별 최신 결과는 [현재 현황](../07-governance/status.md)에 모은다.
 
 ## 처음부터 따라 배우는 경우
 
