@@ -1,6 +1,7 @@
 """Real portrait rendering, caption appearance, trim position, and audio-track checks."""
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -9,10 +10,13 @@ import pytest
 from app.adapters.media import probe
 from app.adapters.portrait import korean_font, render_portrait
 from app.adapters.process import executable, run
-from app.domain.portrait import EDITED_PROFILE
+from app.domain.portrait import EDITED_PROFILE, ass_document
 from app.domain.video import VideoError
 from app.services.portrait_sample import execute
 from app.services.video import checksum
+
+EDITED_LINES = ["가나다라마바사아자차카타파하", "하파타카차자아사바마라다나가"]
+EDITED_CAPTION_CROP = "crop=720:192:0:746"
 
 
 def pixels(path, second, crop):
@@ -200,7 +204,7 @@ def edited_layout(tmp_path_factory):
         {
             "start_ms": 1300,
             "end_ms": 2800,
-            "lines": ["가나다라마바사아자차카타파하", "하파타카차자아사바마라다나가"],
+            "lines": EDITED_LINES,
         }
     ]
     observed, unknown = directory / "observed.mp4", directory / "unknown.mp4"
@@ -250,19 +254,72 @@ def test_edited_layout_keeps_visible_source_and_fills_black_padding(edited_layou
 def test_edited_layout_uses_original_caption_then_replaces_it_in_its_absence(edited_layout):
     _, observed, unknown, _, _ = edited_layout
     original_crop = "crop=320:68:200:674"
-    caption_crop = "crop=720:192:0:746"
     before_gap, inside_gap, after_cue = 0.8, 1.5, 2.2
     assert len(bright_points(pixels(observed, before_gap, original_crop), 320)) > 100
     assert not bright_points(pixels(observed, inside_gap, original_crop), 320)
-    assert not bright_points(pixels(observed, before_gap, caption_crop), 720)
-    assert not bright_points(pixels(observed, after_cue, caption_crop), 720)
+    assert not bright_points(pixels(observed, before_gap, EDITED_CAPTION_CROP), 720)
+    assert not bright_points(pixels(observed, after_cue, EDITED_CAPTION_CROP), 720)
+    assert len(bright_points(pixels(observed, inside_gap, EDITED_CAPTION_CROP), 720)) > 500
     # Unobserved intervals retain the edited caption even if an original happens to exist.
-    assert len(bright_points(pixels(unknown, before_gap, caption_crop), 720)) > 500
+    assert len(bright_points(pixels(unknown, before_gap, EDITED_CAPTION_CROP), 720)) > 500
 
-    points = bright_points(pixels(observed, inside_gap, caption_crop), 720)
-    xs, ys = zip(*points, strict=True)
-    assert len(points) > 500
-    assert 48 < min(xs) < 160 and 560 < max(xs) < 672
-    assert 15 < min(ys) < 55 and 75 < max(ys) < 135
-    rows = sorted(set(ys))
-    assert any(b - a > 2 for a, b in zip(rows, rows[1:], strict=False))
+
+def unclipped_caption_points(directory):
+    font_path, family = korean_font()
+    fonts = directory / "fonts"
+    fonts.mkdir()
+    shutil.copyfile(font_path, fonts / f"caption{font_path.suffix}")
+    document = ass_document(
+        [{"start_ms": 0, "end_ms": 1000, "lines": EDITED_LINES}], family, caption_band=True
+    )
+    # Expand both script and frame at 1:1 scale. The top-center anchor moves 360 px
+    # right and stays at the same height. No portrait filter can crop the reference.
+    (directory / "reference.ass").write_text(
+        document.replace("PlayResX: 720\nPlayResY: 192\n", "PlayResX: 1440\nPlayResY: 384\n"),
+        encoding="utf-8",
+    )
+    frame = subprocess.check_output(
+        [
+            executable("ffmpeg"),
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=0x24333b:s=1440x384",
+            "-vf",
+            "ass=reference.ass:fontsdir=fonts",
+            "-frames:v",
+            "1",
+            "-pix_fmt",
+            "rgb24",
+            "-f",
+            "rawvideo",
+            "-",
+        ],
+        cwd=directory,
+        timeout=15,
+    )
+    return {(x - 360, y) for x, y in bright_points(frame, 1440)}
+
+
+def test_edited_layout_centers_two_readable_lines_without_clipping(edited_layout, tmp_path):
+    _, observed, _, _, _ = edited_layout
+    points = set(bright_points(pixels(observed, 1.5, EDITED_CAPTION_CROP), 720))
+    reference = unclipped_caption_points(tmp_path)
+    rows = sorted({y for _, y in points})
+    line_breaks = [b for a, b in zip(rows, rows[1:], strict=False) if b - a > 2]
+    assert len(line_breaks) == 1, "expected two visible lines with a gap"
+    second_line = line_breaks[0]
+    for first in (True, False):
+        actual_line = {(x, y) for x, y in points if (y < second_line) == first}
+        reference_line = {(x, y) for x, y in reference if (y < second_line) == first}
+        xs, ys = zip(*actual_line, strict=True)
+        assert min(xs) >= 48 and max(xs) < 720 - 48
+        # The ink may have asymmetric side bearings even with a centered text advance.
+        assert (min(xs) + max(xs)) / 2 == pytest.approx(359.5, abs=5)
+        assert min(ys) >= 15 and max(ys) < 135
+        assert max(ys) - min(ys) + 1 >= 21  # At least half the 42-unit ASS size is visible.
+        # Thresholded edge pixels can change after H.264 encoding. Compare the whole
+        # line so a lost glyph or stroke cannot pass on bounding rectangle alone.
+        assert len(actual_line & reference_line) / len(actual_line | reference_line) >= 0.97
