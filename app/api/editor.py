@@ -9,15 +9,15 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, Strict
 from sqlalchemy.orm import Session
 
 from app.adapters.analysis_repository import AnalysisRepository
-from app.adapters.caption_repository import CaptionRepository, candidate_context
+from app.adapters.caption_repository import ANY_REVISION, CaptionRepository, candidate_context
 from app.adapters.job_publisher import publish_video_job
 from app.adapters.job_repository import JobRepository
 from app.config import get_settings
 from app.domain.jobs import JobError, output_file
-from app.domain.portrait import clip_captions
-from app.domain.shorts_subtitles import build_shorts
+from app.domain.portrait import EDITED_PROFILE, MAX_VISIBLE_SPANS, clip_captions
 from app.domain.subtitles import srt
 from app.models import AnalysisJob
+from app.services.caption_alignment import editor_suggestion
 
 router = APIRouter(tags=["caption editor"])
 PREFIX = "/analyses/{analysis_id}/candidates/{candidate_id}"
@@ -38,6 +38,24 @@ class RevisionRequest(BaseModel):
     source_version: StrictStr = Field(max_length=80)
     cues: list[CaptionCue] = Field(min_length=1, max_length=200)
     reviewed: StrictBool = False
+    expected_latest_revision_id: UUID | None = None
+
+
+class SourceCaptionSpan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    start_ms: StrictInt = Field(ge=0)
+    end_ms: StrictInt = Field(gt=0)
+
+
+class SourceCaptionObservations(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    source_sha256: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
+    visible_spans: list[SourceCaptionSpan] = Field(max_length=MAX_VISIBLE_SPANS)
+
+
+class ExportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    source_captions: SourceCaptionObservations | None = None
 
 
 @router.get(PREFIX + "/editor")
@@ -58,7 +76,8 @@ def editor_data(analysis_id: UUID, candidate_id: UUID):
         ]
         if {s["id"] for s in segments} != selected_ids:
             raise JobError("TRANSCRIPT_UNAVAILABLE", "후보와 저장 전사의 원 구간이 다릅니다.", 409)
-        display = build_shorts(segments, data["start_ms"], data["end_ms"])
+        display, alignment = editor_suggestion(data, segments)
+        latest, previous_id = repo.recent(session, candidate_id)
         return {
             "analysis_id": str(analysis_id),
             "candidate_id": str(candidate_id),
@@ -66,9 +85,12 @@ def editor_data(analysis_id: UUID, candidate_id: UUID):
             "start_ms": data["start_ms"],
             "end_ms": data["end_ms"],
             "source_version": analysis.config["asr_version"],
+            "export_profile": EDITED_PROFILE,
             "segments": segments,
             "suggested": display,
-            "latest_revision": repo.read(analysis_id, candidate_id),
+            "alignment": alignment,
+            "latest_revision": latest,
+            "previous_revision_id": previous_id,
         }
 
 
@@ -95,7 +117,18 @@ def save_revision(analysis_id: UUID, candidate_id: UUID, body: RevisionRequest):
             raise JobError("ANALYSIS_NOT_FOUND", "분석을 찾을 수 없습니다.", 404)
         if body.source_version != analysis.config["asr_version"]:
             raise JobError("SOURCE_CHANGED", "원본 전사 버전이 다릅니다. 새로 조회하세요.", 409)
-    return repo.save(analysis_id, candidate_id, [c.model_dump() for c in body.cues], body.reviewed)
+    expected_latest = (
+        body.expected_latest_revision_id
+        if "expected_latest_revision_id" in body.model_fields_set
+        else ANY_REVISION
+    )
+    return repo.save(
+        analysis_id,
+        candidate_id,
+        [c.model_dump() for c in body.cues],
+        body.reviewed,
+        expected_latest=expected_latest,
+    )
 
 
 @router.get(PREFIX + "/caption-revisions/{revision_id}")
@@ -104,14 +137,18 @@ def get_revision(analysis_id: UUID, candidate_id: UUID, revision_id: UUID):
 
 
 @router.post(PREFIX + "/caption-revisions/{revision_id}/exports", status_code=202)
-def render_revision(analysis_id: UUID, candidate_id: UUID, revision_id: UUID):
+def render_revision(
+    analysis_id: UUID, candidate_id: UUID, revision_id: UUID, body: ExportRequest | None = None
+):
     repo = CaptionRepository()
-    job, created = repo.export(analysis_id, candidate_id, revision_id)
+    source_captions = body.source_captions.model_dump() if body and body.source_captions else None
+    job, created = repo.export(analysis_id, candidate_id, revision_id, source_captions)
     if created:
         job = JobRepository(repo.engine).dispatch(job.id, publish_video_job)
     return {
         "job_id": str(job.id),
         "revision_id": str(revision_id),
+        "render_profile": EDITED_PROFILE,
         "status": job.status,
         "status_url": f"/jobs/{job.id}",
     }

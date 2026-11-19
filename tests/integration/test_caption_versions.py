@@ -40,7 +40,10 @@ def test_immutable_versions_confirmation_and_concurrent_render_reuse():
         saved = client.post(base + "/caption-revisions", json=body)
         assert saved.status_code == 201, saved.text
         rid = saved.json()["revision_id"]
-        assert client.post(base + f"/caption-revisions/{rid}/exports", json={}).status_code == 409
+        blocked = client.post(base + f"/caption-revisions/{rid}/exports", json={})
+        assert blocked.status_code == 409
+        assert blocked.json()["error"]["code"] == "SUBTITLE_REVIEW_REQUIRED"
+        assert client.get(base + f"/caption-revisions/{rid}").json()["render_job_id"] is None
         assert (
             client.post(
                 base + "/caption-revisions", json={**body, "source_version": "wrong"}
@@ -59,12 +62,9 @@ def test_immutable_versions_confirmation_and_concurrent_render_reuse():
         new_id = confirmed["revision_id"]
         assert new_id != rid
         assert client.get(base + f"/caption-revisions/{rid}").json()["reviewed"] is False
-        assert (
-            client.get(
-                f"/analyses/{aid}/candidates/{other_cid}/caption-revisions/{new_id}"
-            ).status_code
-            == 404
-        )
+        foreign_revision = f"/analyses/{aid}/candidates/{other_cid}/caption-revisions/{new_id}"
+        assert client.get(foreign_revision).status_code == 404
+        assert client.post(foreign_revision + "/exports", json={}).status_code == 404
         repo = CaptionRepository()
         # Only one DB transaction may create the version-specific job. No messages are issued here.
         with ThreadPoolExecutor(max_workers=4) as executor:

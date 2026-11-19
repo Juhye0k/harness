@@ -78,6 +78,18 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 
 `GET /analyses/{id}/subtitles`는 원본 전사와 별개인 표시 cues·정책 버전·검토 사유를, `GET /analyses/{id}/subtitles.srt`는 같은 cues의 UTF-8 SRT를 반환한다. 완료 전 409, 원본 시간 기준이며 후보 MP4 시각으로 이동하지 않는다. 전사·작업 생성·외부 호출을 하지 않는다. [상세 계약](../05-development/subtitle-segmentation.md).
 
+### 후보 편집과 출력
+
+| 요청 | 계약 |
+|---|---|
+| GET /analyses/{a}/candidates/{c}/editor | 저장 전사·초안·`alignment`·최근 두 버전 중 최신 본문과 직전 ID·현재 `export_profile`. 새 작업 생성 없음 |
+| POST /analyses/{a}/candidates/{c}/caption-revisions | 표시 규칙·전사 버전 검사 후 불변 버전 반환. `expected_latest_revision_id`는 조회한 버전 UUID이며, 명시적 null은 아직 저장본이 없어야 한다는 뜻. 최신 버전 충돌은 409 `REVISION_CONFLICT` |
+| GET /analyses/{a}/candidates/{c}/caption-revisions/{r} | 확정 여부와 연결 출력의 ID·`render_profile`을 포함한 해당 버전 조회 |
+| POST /analyses/{a}/candidates/{c}/caption-revisions/{r}/exports | 미확정이면 409 `SUBTITLE_REVIEW_REQUIRED`. 빈 본문은 v2. `source_captions`로 원본 해시와 확인된 표시 구간을 제공할 수 있으며 같은 입력은 같은 작업 반환 |
+| GET /jobs/{j}/subtitles.srt | 성공한 편집 출력과 동일한 자막 버전 전체를 클립 시간 기준 UTF-8 SRT로 반환 |
+
+[편집·출력 상세](../05-development/complete-flow.md) · [화면 관측과 정렬 조건](../05-development/source-caption-evaluation.md).
+
 ## SNS-006 YouTube 업로드 API
 
 상세 입력·설정·제한은 [YouTube 계약](../05-development/youtube-upload.md)을 따른다. `/sns/session`의 HttpOnly 쿠키와 반환된 CSRF 토큰이 필요하다. 변경 요청은 `X-SNS-CSRF` 헤더를 보내며 설정한 로컬 Origin 외의 접근은 거부한다. SNS 계정·업로드만 브라우저 세션에 속하며, 기존 영상 소유권·일반 사용자 인증은 제공하지 않는다.

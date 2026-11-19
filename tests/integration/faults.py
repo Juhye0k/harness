@@ -136,19 +136,13 @@ def fixture_publish(job_id, task_id):
 
 
 def fixture_video_publish(job_id, task_id):
-    from sqlalchemy import select
-    from sqlalchemy.orm import Session
-
+    from app.adapters.caption_repository import CaptionRepository
     from app.adapters.job_publisher import publish_video_job
-    from app.db import get_engine
-    from app.models import CaptionRevision
 
     fault = Faults(job_id)
-    with Session(get_engine()) as session:
-        revision_id = session.scalar(
-            select(CaptionRevision.id).where(CaptionRevision.render_job_id == job_id)
-        )
-    if revision_id:
+    revision = CaptionRepository().for_job(job_id)
+    if revision:
+        revision_id = revision[0]["revision_id"]
         with fault.connection() as redis:
             config = redis.hgetall(f"failure-revision:{revision_id}")
             if config:

@@ -22,6 +22,11 @@ pytestmark = [
 ]
 
 
+def srt_time_ms(timestamp):
+    hours, minutes, seconds, milliseconds = map(int, re.split("[:,]", timestamp))
+    return ((hours * 60 + minutes) * 60 + seconds) * 1000 + milliseconds
+
+
 def test_input_to_edited_portrait_download_and_confirmed_upload():
     evidence = get_settings().video_data_dir.parent / "e2e" / "complete-flow" / uuid4().hex
     evidence.mkdir(parents=True, exist_ok=True)
@@ -45,24 +50,53 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             assert len([url for url in posts if url.endswith("/analyses")]) == 1
             aid = parse_qs(urlsplit(page.url).query)["analysis"][0]
             before = context.request.get(f"{BASE}/analyses/{aid}/transcript").json()
-            page.locator(".edit-candidate").first.click()
-            expect(page.locator("#caption-rows textarea").first).to_be_visible()
-            page.locator("#caption-rows textarea").first.fill("수정 자막")
-            page.get_by_label("선택 후보의 모든 원 구간을 검토했고", exact=False).check()
-            page.get_by_role("button", name="편집본 저장", exact=True).dblclick()
+            analysis = context.request.get(f"{BASE}/analyses/{aid}").json()
+            candidate = next(c for c in analysis["candidates"] if c["start_ms"] > 0)
+            cid = candidate["id"]
+            revisions = f"{BASE}/analyses/{aid}/candidates/{cid}/caption-revisions"
+            page.locator(f'.edit-candidate[href$="candidate={cid}"]').click()
+            first_cue = page.locator("#caption-rows textarea").first
+            reviewed = page.get_by_label("선택 후보의 모든 원 구간을 검토했고", exact=False)
+            render = page.get_by_role("button", name="확정한 자막으로 영상 만들기")
+            save = page.get_by_role("button", name="편집본 저장", exact=True)
+            expect(first_cue).to_be_visible()
+            first_cue.fill("수정\n자막")
+            save.dblclick()
             expect(page.locator("#editor-message")).to_have_text("편집본을 저장했습니다.")
             assert len([url for url in posts if url.endswith("/caption-revisions")]) == 1
-            rid = parse_qs(urlsplit(page.url).query)["revision"][0]
+            draft_id = parse_qs(urlsplit(page.url).query)["revision"][0]
+            expect(reviewed).not_to_be_checked()
+            expect(render).to_be_disabled()
             page.reload()
-            expect(page.locator("#caption-rows textarea").first).to_have_value("수정 자막")
+            expect(first_cue).to_have_value("수정\n자막")
+            expect(reviewed).not_to_be_checked()
+            expect(render).to_be_disabled()
+            expect(page.locator("#final-result")).to_be_hidden()
+            assert not any(url.endswith("/exports") for url in posts)
             assert len([url for url in posts if url.endswith("/caption-revisions")]) == 1
+
+            # In this synthetic test only, simulate review. Checking without saving stays blocked.
+            reviewed.check()
+            expect(render).to_be_disabled()
+            save.dblclick()
+            expect(page.locator("#editor-message")).to_have_text("편집본을 저장했습니다.")
+            rid = parse_qs(urlsplit(page.url).query)["revision"][0]
+            assert rid != draft_id
+            draft = context.request.get(f"{revisions}/{draft_id}").json()
+            saved = context.request.get(f"{revisions}/{rid}").json()
+            assert draft["reviewed"] is False and draft["render_job_id"] is None
+            assert saved["reviewed"] is True and saved["cues"] == draft["cues"]
+            page.reload()
+            expect(first_cue).to_have_value("수정\n자막")
+            expect(reviewed).to_be_checked()
+            assert len([url for url in posts if url.endswith("/caption-revisions")]) == 2
 
             # Both client guarding and server idempotency prevent duplicate rendering.
             pending = []
             page.route("**/caption-revisions/*/exports", lambda route: pending.append(route))
-            page.get_by_role("button", name="확정한 자막으로 영상 만들기").dblclick()
-            expect(page.locator("#caption-rows textarea").first).to_be_disabled()
-            expect(page.locator("#save-captions")).to_be_disabled()
+            render.dblclick()
+            expect(first_cue).to_be_disabled()
+            expect(save).to_be_disabled()
             assert len(pending) == 1
             pending[0].continue_()
             page.unroute("**/caption-revisions/*/exports")
@@ -74,14 +108,26 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             assert duplicate.status == 202 and duplicate.json()["job_id"] == job_id
             result = context.request.get(f"{BASE}/jobs/{job_id}").json()
             assert result["status"] == "succeeded" and all(result["result"]["checks"].values())
+            assert result["result"]["render"]["revision_id"] == rid
+            assert result["result"]["render"]["subtitle_time_origin"] == "clip"
             assert result["result"]["media"]["width"] == 720
             assert result["result"]["media"]["height"] == 1280
             assert result["result"]["media"]["has_audio"]
             assert abs(result["result"]["media"]["duration"] - result["duration_seconds"]) <= 0.1
             payload = context.request.get(f"{BASE}/jobs/{job_id}/download").body()
             assert payload[4:8] == b"ftyp"
-            subtitles = context.request.get(f"{BASE}/jobs/{job_id}/subtitles.srt").text()
-            assert "수정 자막" in subtitles and subtitles.startswith("1\n00:00:")
+            srt_response = context.request.get(f"{BASE}/jobs/{job_id}/subtitles.srt")
+            assert srt_response.ok
+            srt_bytes = srt_response.body()
+            entries = srt_bytes.decode("utf-8").strip().split("\n\n")
+            for index, (entry, cue) in enumerate(zip(entries, saved["cues"], strict=True), 1):
+                number, interval, *lines = entry.splitlines()
+                start, end = interval.split(" --> ")
+                assert number == str(index)
+                assert srt_time_ms(start) == cue["start_ms"] - candidate["start_ms"]
+                assert srt_time_ms(end) == cue["end_ms"] - candidate["start_ms"]
+                assert lines == cue["lines"]
+            assert saved["cues"][0]["lines"] == ["수정", "자막"]
             assert context.request.get(f"{BASE}/analyses/{aid}/transcript").json() == before
 
             with page.expect_download() as downloaded:
@@ -91,6 +137,10 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
                 hashlib.sha256((evidence / "edited-clip.mp4").read_bytes()).digest()
                 == hashlib.sha256(payload).digest()
             )
+            with page.expect_download() as downloaded:
+                page.get_by_role("link", name="클립 SRT 다운로드").click()
+            downloaded.value.save_as(evidence / "edited-clip.srt")
+            assert (evidence / "edited-clip.srt").read_bytes() == srt_bytes
             page.reload()
             expect(page.locator("#final-result")).to_be_visible()
             assert len([url for url in posts if url.endswith(f"/{rid}/exports")]) == 1
@@ -104,12 +154,12 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             expect(page.locator("#final-result")).to_be_visible()
 
             # A local edit invalidates final/SNS links but preserves the saved snapshot.
-            page.locator("#caption-rows textarea").first.fill("다른 자막")
+            first_cue.fill("다른 자막")
             expect(page.locator("#render-final")).to_be_disabled()
             expect(page.locator("#final-result")).to_be_hidden()
             page.reload()
             expect(page.locator("#final-result")).to_be_visible()
-            expect(page.locator("#caption-rows textarea").first).to_have_value("수정 자막")
+            expect(first_cue).to_have_value("수정\n자막")
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
             page.screenshot(path=str(evidence / "editor-mobile.png"))
@@ -161,6 +211,9 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
                         "real_infrastructure": True,
                         "revision_id": rid,
                         "job_id": job_id,
+                        "render_profile": result["result"]["render"]["profile"],
+                        "mp4_sha256": hashlib.sha256(payload).hexdigest(),
+                        "srt_sha256": hashlib.sha256(srt_bytes).hexdigest(),
                         "upload_id": upload_id,
                         "posts": posts,
                         "page_errors": errors,

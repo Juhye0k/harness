@@ -215,7 +215,7 @@ class AnalysisRepository:
             ).all()
             return [
                 {
-                    **c.data,
+                    **{key: value for key, value in c.data.items() if key != "caption_draft"},
                     "id": str(c.id),
                     "rank": c.rank,
                     "export_job_id": str(export_id) if export_id else None,

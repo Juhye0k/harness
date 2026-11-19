@@ -182,6 +182,21 @@ class CaptionRevision(Base):
     render_job_id: Mapped[UUID | None] = mapped_column(ForeignKey("video_jobs.id"), unique=True)
 
 
+class CaptionRenderJob(Base):
+    """Pins the render settings to one job without changing the revision or legacy job."""
+
+    __tablename__ = "caption_render_jobs"
+    __table_args__ = (UniqueConstraint("revision_id", "input_hash", name="caption_render_once"),)
+
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("video_jobs.id"), primary_key=True)
+    revision_id: Mapped[UUID] = mapped_column(
+        ForeignKey("caption_revisions.id", ondelete="CASCADE")
+    )
+    profile: Mapped[str] = mapped_column(String(64))
+    input_hash: Mapped[str] = mapped_column(String(64))
+    source_caption_spans: Mapped[list] = mapped_column(JSONB)
+
+
 class SnsOAuthState(Base):
     __tablename__ = "sns_oauth_states"
     state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
