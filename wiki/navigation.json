@@ -402,6 +402,14 @@
     {
       "path": "05-development/harness/records/2026-11-18-sns-final-output-validation.md",
       "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-18-flow-runtime.md",
+      "category": "실험·문제 해결·작업 기록"
+    },
+    {
+      "path": "05-development/harness/records/2026-11-19-flow-resume.md",
+      "category": "실험·문제 해결·작업 기록"
     }
   ]
 }
