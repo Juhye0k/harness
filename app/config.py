@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     enable_free_ai: bool = False
     groq_free_tier_confirmed: bool = False
     groq_api_key: SecretStr = SecretStr("")
+    record_groq_error_body: bool = False
+    groq_error_dir: Path = Path(".artifacts/private/provider-errors")
     transcription_provider: Literal["groq", "azure"] = "groq"
     recommendation_provider: Literal["none", "groq", "openai"] = "none"
     azure_speech_endpoint: str = ""

@@ -1,4 +1,6 @@
 import json
+import os
+import stat
 
 import httpx
 import pytest
@@ -370,7 +372,7 @@ def test_groq_job_without_pinned_transcript_version_is_not_reinterpreted():
         httpx.Response(403, json={"error": {"code": "private-secret"}}),
     ],
 )
-def test_failure_diagnostics_do_not_save_raw_secrets_or_retry(monkeypatch, response):
+def test_failure_diagnostics_do_not_save_raw_secrets_or_retry(monkeypatch, tmp_path, response):
     calls = []
 
     def handler(request):
@@ -379,10 +381,13 @@ def test_failure_diagnostics_do_not_save_raw_secrets_or_retry(monkeypatch, respo
 
     mock_http(monkeypatch, handler)
     with pytest.raises(VideoError) as failure:
-        groq.GroqProvider(settings()).request("/audio/transcriptions", timeout=1)
+        groq.GroqProvider(settings(groq_error_dir=tmp_path)).request(
+            "/audio/transcriptions", timeout=1
+        )
     details = failure.value.provider_diagnostics
     assert details["http_status"] == 403
     assert "private-secret" not in str(details)
+    assert "body_capture_id" not in details and not list(tmp_path.iterdir())
     assert len(calls) == 1
 
 
@@ -393,6 +398,41 @@ def test_403_invalid_key_is_distinct_from_generic_access_denial():
     error = groq.request_error(denied)
     assert error.code == "PROVIDER_ACCESS_DENIED"
     assert "private-secret" not in str(error)
+
+
+@pytest.mark.parametrize("path", ["/chat/completions", "/audio/transcriptions"])
+def test_opt_in_captures_groq_error_body_outside_public_diagnostics(monkeypatch, tmp_path, path):
+    body = b'{"error": {"message": "private fixture", "code": "unrecognized_code"}}\n'
+    response = httpx.Response(403, content=body, headers={"x-request-id": "req_123"})
+    mock_http(monkeypatch, lambda _: response)
+    directory = tmp_path / "private"
+    provider = groq.GroqProvider(settings(record_groq_error_body=True, groq_error_dir=directory))
+    with pytest.raises(VideoError) as raised:
+        provider.request(path, timeout=1, json={"model": ai.GROQ_MODEL, "messages": []})
+    details = raised.value.provider_diagnostics
+    assert raised.value.code == "PROVIDER_ACCESS_DENIED" and details["provider_code"] is None
+    assert details["body_capture"] == "saved" and details["request_id"] == "req_123"
+    trace = directory / details["body_capture_id"]
+    assert trace.read_bytes() == body
+    assert "private fixture" not in str(details) + str(raised.value)
+    if os.name == "posix":
+        assert stat.S_IMODE(directory.stat().st_mode) == 0o700
+        assert stat.S_IMODE(trace.stat().st_mode) == 0o600
+
+
+def test_failed_or_oversized_capture_keeps_original_error(tmp_path):
+    directory = tmp_path / "existing-file"
+    directory.touch()
+    response = httpx.Response(429, content=b"private", headers={"retry-after": "15"})
+    error = groq.request_error(response, directory)
+    assert error.code == "PROVIDER_RATE_LIMIT"
+    assert error.provider_diagnostics["body_capture"] == "write_failed"
+    assert error.provider_diagnostics["retry_after_seconds"] == 15
+    oversized = httpx.Response(403, content=b"x" * (groq.MAX_ERROR_BODY_BYTES + 1))
+    error = groq.request_error(oversized, tmp_path / "unused")
+    assert error.code == "PROVIDER_ACCESS_DENIED"
+    assert error.provider_diagnostics["body_capture"] == "size_limit"
+    assert not (tmp_path / "unused").exists()
 
 
 def test_recommendation_records_preserve_source_and_hide_subtitle_metadata():

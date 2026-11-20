@@ -68,10 +68,12 @@ services:
       AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      RECORD_GROQ_ERROR_BODY: ${RECORD_GROQ_ERROR_BODY:-false}
+      GROQ_ERROR_DIR: /private-provider-errors
     depends_on:
       migrate:
         condition: service_completed_successfully
-    volumes: ["video_data:/data", "upload_data:/uploads"]
+    volumes: ["video_data:/data", "upload_data:/uploads", "provider_error_data:/private-provider-errors"]
     command: ["/app/.venv/bin/celery", "-A", "app.worker:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "-Q", "analysis"]
     mem_limit: 1g
 
@@ -132,3 +134,4 @@ volumes:
   redis_data:
   video_data:
   upload_data:
+  provider_error_data:
