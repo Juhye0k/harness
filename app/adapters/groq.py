@@ -1,6 +1,10 @@
 """Groq REST adapter. Free account confirmation is not a billing API guarantee."""
 
 import math
+import re
+from contextlib import suppress
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import httpx
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
@@ -22,6 +26,7 @@ from app.domain.transcript_review import quality
 from app.domain.video import VideoError
 
 MAX_AUDIO_BYTES = 25_000_000
+MAX_ERROR_BODY_BYTES = 128 * 1024
 BASE_URL = "https://api.groq.com/openai/v1"
 
 
@@ -103,8 +108,33 @@ def parse_transcription(raw):
     }
 
 
-def request_error(response):
+def save_error_body(directory: Path, body: bytes) -> dict[str, str]:
+    if len(body) > MAX_ERROR_BODY_BYTES:
+        return {"body_capture": "size_limit"}
+    path = None
+    try:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with NamedTemporaryFile(dir=directory, suffix=".body", delete=False) as trace:
+            path = Path(trace.name)
+            trace.write(body)
+    except OSError:
+        if path is not None:
+            with suppress(OSError):
+                path.unlink()
+        return {"body_capture": "write_failed"}
+    return {"body_capture": "saved", "body_capture_id": path.name}
+
+
+def request_error(response, error_dir: Path | None = None):
     diagnostics = failure_diagnostics(response)
+    request_id = response.headers.get("x-request-id", "")
+    if re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", request_id):
+        diagnostics["request_id"] = request_id
+    retry_after = response.headers.get("retry-after", "")
+    if re.fullmatch(r"[0-9]{1,9}", retry_after):
+        diagnostics["retry_after_seconds"] = int(retry_after)
+    if error_dir is not None:
+        diagnostics.update(save_error_body(error_dir, response.content))
     # 403 alone is not evidence of an invalid credential.
     if response.status_code == 403 and diagnostics["provider_code"] != "invalid_api_key":
         error = VideoError(
@@ -146,6 +176,7 @@ class GroqProvider:
             raise VideoError("PROVIDER_CONFIG", "Groq 무료 모드와 API 키를 확인하세요.")
         self.key = settings.groq_api_key.get_secret_value()
         self.settings = settings
+        self.error_dir = settings.groq_error_dir if settings.record_groq_error_body else None
 
     def request(self, path, *, timeout, **kwargs):
         try:
@@ -171,13 +202,13 @@ class GroqProvider:
                     **kwargs,
                 )
             if not 200 <= response.status_code < 300:
-                raise request_error(response)
+                raise request_error(response, self.error_dir)
             raw = response.json()
             if not isinstance(raw, dict):
                 raise invalid()
             return raw, response.headers.get("x-request-id")
         except APIStatusError as exc:
-            raise request_error(exc.response) from None
+            raise request_error(exc.response, self.error_dir) from None
         except (httpx.TimeoutException, APITimeoutError) as exc:
             raise VideoError("PROVIDER_TIMEOUT", "Groq 요청 시간이 초과되었습니다.") from exc
         except (httpx.RequestError, APIConnectionError) as exc:

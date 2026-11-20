@@ -2,7 +2,7 @@
 
 import os
 from datetime import timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
@@ -121,7 +121,14 @@ def test_profile_and_confirmed_spans_pin_jobs_without_obsoleting_legacy_download
     latest = client.get(base).json()
     assert latest["render_job_id"] == explicit_id
     assert latest["render_profile"] == EDITED_PROFILE
+    assert latest["source_caption_spans"] == spans
     assert latest["cues"] == cues and latest["reviewed"] is True
+
+    default_result = client.get(base, params={"job": default_id}).json()
+    assert default_result["render_job_id"] == default_id
+    assert default_result["source_caption_spans"] == []
+    unrelated = client.get(base, params={"job": str(uuid4())}).json()
+    assert unrelated["render_job_id"] == explicit_id
 
     with Session(engine) as s, s.begin():
         assert s.get(CaptionRevision, UUID(latest["revision_id"])).render_job_id == old_id

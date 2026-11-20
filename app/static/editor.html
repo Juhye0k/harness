@@ -42,6 +42,12 @@
     <section id="final-panel" class="card" hidden>
       <h2>세로 영상 완성</h2><p id="revision-status"></p>
       <p class="verification-note">720×1280 · 원본 비율과 음성 유지 · 한글 자막을 영상 아래에 표시합니다.</p>
+      <fieldset id="source-caption-settings" disabled>
+        <legend>원본 영상에 이미 들어 있는 자막</legend>
+        <p class="verification-note">미리보기에서 원본 자막을 확인한 구간을 클립 기준 초로 입력하세요. 그 구간에는 새 자막을 표시하지 않으며, SRT에는 전체 검수 자막을 유지합니다.</p>
+        <div id="source-caption-spans"></div>
+        <button id="add-source-caption-span" class="secondary" type="button">원본 자막 구간 추가</button>
+      </fieldset>
       <button id="render-final" type="button" disabled>확정한 자막으로 영상 만들기</button>
       <p id="render-state" role="status"></p>
       <button id="retry-render" type="button" class="secondary" hidden>출력 상태 다시 조회</button>

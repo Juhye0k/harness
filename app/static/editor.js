@@ -24,6 +24,7 @@ function invalidate() {
   if(busy)return;
   dirty=true; epoch++; clearTimeout(timer); currentJob=null;
   $('caption-reviewed').checked=false;
+  $('source-caption-settings').disabled=true;
   $('render-final').disabled=true; $('final-result').hidden=true; $('retry-render').hidden=true;
   $('final-preview').pause(); $('render-state').textContent='변경한 편집본을 저장한 뒤 출력하세요.';
   $('draft-status').textContent='저장하지 않은 변경이 있습니다.';
@@ -55,6 +56,49 @@ function cues() {
     return {source_segment_id:row.querySelector('.cue-segment').value,start_ms:time('start_ms'),end_ms:time('end_ms'),lines:row.querySelector('.cue-text').value.split('\n')};
   });
 }
+function addSourceCaptionSpan(span={}) {
+  const row=make('div','');row.className='source-caption-row';
+  for(const [key,label] of [['start_ms','원본 자막 시작 (초)'],['end_ms','원본 자막 종료 (초)']]) {
+    const wrapper=make('label',label);
+    const input=document.createElement('input');input.type='number';input.step='0.001';input.min='0';
+    input.max=String((data.end_ms-data.start_ms)/1000);
+    input.value=span[key]===undefined?'':String((span[key]-data.start_ms)/1000);
+    wrapper.append(input);row.append(wrapper);
+  }
+  const remove=make('button','원본 자막 구간 삭제');remove.type='button';remove.className='secondary';
+  remove.onclick=()=>{row.remove();sourceCaptionsChanged();};row.append(remove);
+  row.addEventListener('input',sourceCaptionsChanged);
+  $('source-caption-spans').append(row);
+}
+function sourceCaptionSpans() {
+  const spans=[...$('source-caption-spans').children].map(row=>{
+    const [start,end]=row.querySelectorAll('input');
+    if(!start.value || !end.value || !start.validity.valid || !end.validity.valid){
+      throw new Error('원본 자막의 시작·종료를 선택 구간 안의 초 단위로 입력하세요.');
+    }
+    return {start_ms:data.start_ms+Math.round(start.valueAsNumber*1000),end_ms:data.start_ms+Math.round(end.valueAsNumber*1000)};
+  }).sort((a,b)=>a.start_ms-b.start_ms);
+  if(spans.some((span,index)=>span.start_ms>=span.end_ms || (index>0 && spans[index-1].end_ms>span.start_ms))){
+    throw new Error('원본 자막 구간은 종료가 시작보다 늦고 서로 겹치지 않아야 합니다.');
+  }
+  return spans;
+}
+function refreshCaptionPreview() {
+  const time=$('source-preview').currentTime*1000;
+  let covered=false;
+  try{covered=sourceCaptionSpans().some(span=>span.start_ms<=time&&span.end_ms>time);}catch{}
+  try{
+    const cue=covered?null:cues().find(c=>c.start_ms<=time&&c.end_ms>time);
+    $('caption-preview').textContent=cue?cue.lines.join('\n'):'';
+  }catch{$('caption-preview').textContent='';}
+}
+function sourceCaptionsChanged() {
+  epoch++;clearTimeout(timer);currentJob=null;currentJobProfile=null;query('job',null);
+  $('final-result').hidden=true;$('retry-render').hidden=true;$('final-preview').pause();
+  $('render-final').disabled=!revision?.reviewed || dirty;
+  $('render-state').textContent='원본 자막 구간을 확인한 뒤 영상을 다시 만드세요.';
+  refreshCaptionPreview();
+}
 function showComparison(revisionId) {
   const compare=$('compare-revision');
   const viewingLatest=data.latest_revision?.revision_id===revisionId;
@@ -70,6 +114,10 @@ function showRevision(saved) {
   revision=saved;dirty=false;
   $('caption-rows').replaceChildren();for(const cue of saved.cues)addRow(cue);
   $('caption-reviewed').checked=saved.reviewed;
+  $('source-caption-spans').replaceChildren();
+  for(const span of saved.source_caption_spans || [])addSourceCaptionSpan(span);
+  $('source-caption-settings').disabled=!saved.reviewed;
+  refreshCaptionPreview();
   $('final-panel').hidden=false;$('render-final').disabled=!saved.reviewed;
   $('draft-status').textContent='저장한 편집본입니다. 원본 전사는 변경하지 않았습니다.';
   $('revision-status').textContent=`편집 버전: ${saved.revision_id} · ${saved.reviewed?'원음 확인 완료':'원음 확인 전'}`;
@@ -139,11 +187,13 @@ async function start(){
     video.onloadedmetadata=()=>{video.currentTime=data.start_ms/1000;};
     video.ontimeupdate=()=>{
       if(video.currentTime>=data.end_ms/1000)video.pause();
-      try{const cue=cues().find(c=>c.start_ms<=video.currentTime*1000&&c.end_ms>video.currentTime*1000);$('caption-preview').textContent=cue?cue.lines.join('\n'):'';}catch{$('caption-preview').textContent='';}
+      refreshCaptionPreview();
     };
     video.onerror=()=>{$('editor-message').textContent='원본 영상 재생을 확인하지 못했습니다. 저장 상태와는 별개입니다.';};
     $('editor-transcript').replaceChildren(...data.segments.map(s=>make('p',`${s.id} · ${s.text}`)));
-    const requested=new URL(location.href).searchParams.get('revision');
+    const editorParams=new URL(location.href).searchParams;
+    const requested=editorParams.get('revision');
+    const requestedJob=editorParams.get('job');
     if(requested && !uuid.test(requested))throw new Error('편집 버전 번호를 확인하세요.');
     const pending=pendingCaption();
     const canonical=items=>JSON.stringify(items.map(c=>[c.source_segment_id,c.start_ms,c.end_ms,c.lines]));
@@ -153,6 +203,7 @@ async function start(){
       if(matches(data.latest_revision)){saved=data.latest_revision;sessionStorage.removeItem(pendingCaptionKey);}
       else{
         revision=null;dirty=true;$('render-final').disabled=true;$('final-result').hidden=true;
+        $('source-caption-settings').disabled=true;
         $('caption-rows').replaceChildren();for(const cue of pending.cues)addRow(cue);
         $('caption-reviewed').checked=pending.reviewed;
         showComparison(null);
@@ -160,7 +211,10 @@ async function start(){
         $('editor-message').textContent='저장 결과 미확정: 원본과 내용을 확인한 뒤 같은 편집본을 저장하세요.';
         return;
       }
-    }else saved=requested?await api(base+'/caption-revisions/'+requested):data.latest_revision;
+    }else{
+      const exportQuery=uuid.test(requestedJob||'')?'?job='+requestedJob:'';
+      saved=requested?await api(base+'/caption-revisions/'+requested+exportQuery):data.latest_revision;
+    }
     if(saved){
       showRevision(saved);
       // Persisted version owns its output; never accept an arbitrary job from the URL.
@@ -177,7 +231,8 @@ async function start(){
 }
 $('play-clip').onclick=()=>{const video=$('source-preview');video.currentTime=data.start_ms/1000;video.play().catch(()=>{$('editor-message').textContent='원본 영상을 재생하지 못했습니다.';});};
 $('add-cue').onclick=()=>{if(!busy){addRow({});invalidate();}};
-$('caption-reviewed').onchange=()=>{dirty=true;epoch++;clearTimeout(timer);currentJob=null;$('render-final').disabled=true;$('final-result').hidden=true;$('retry-render').hidden=true;$('final-preview').pause();query('job',null);$('draft-status').textContent='확인 상태를 저장해 주세요.';$('render-state').textContent='변경한 확인 상태를 저장한 뒤 출력하세요.';};
+$('caption-reviewed').onchange=()=>{dirty=true;epoch++;clearTimeout(timer);currentJob=null;$('render-final').disabled=true;$('source-caption-settings').disabled=true;$('final-result').hidden=true;$('retry-render').hidden=true;$('final-preview').pause();query('job',null);$('draft-status').textContent='확인 상태를 저장해 주세요.';$('render-state').textContent='변경한 확인 상태를 저장한 뒤 출력하세요.';};
+$('add-source-caption-span').onclick=()=>{addSourceCaptionSpan();sourceCaptionsChanged();};
 $('save-captions').onclick=async()=>{
   if(busy)return;lock(true);$('editor-message').textContent='';
   try{
@@ -203,14 +258,19 @@ $('save-captions').onclick=async()=>{
   finally{lock(false);}
 };
 $('render-final').onclick=async()=>{
-  if(busy || dirty || !revision?.reviewed)return;lock(true);$('render-final').disabled=true;
+  if(busy || dirty || !revision?.reviewed)return;
+  let spans;
+  try{spans=sourceCaptionSpans();}catch(error){$('render-state').textContent=error.message;return;}
+  lock(true);$('render-final').disabled=true;
+  $('source-caption-settings').disabled=true;
   epoch++;clearTimeout(timer);
   try{
-    const job=await api(`${base}/caption-revisions/${revision.revision_id}/exports`,{});
+    const options=spans.length?{source_captions:{source_sha256:data.source_sha256,visible_spans:spans}}:{};
+    const job=await api(`${base}/caption-revisions/${revision.revision_id}/exports`,options);
     $('final-result').hidden=true;$('final-preview').pause();
     await openJob(job.job_id,job.render_profile);
   }catch(error){$('render-state').textContent=`접수 결과를 확인하지 못했습니다. ${error.message} 같은 편집본으로 다시 조회하세요.`;$('render-final').disabled=false;}
-  finally{lock(false);}
+  finally{lock(false);$('source-caption-settings').disabled=false;}
 };
 $('retry-editor').onclick=start;$('retry-render').onclick=()=>currentJob&&pollJob(currentJob);
 start();

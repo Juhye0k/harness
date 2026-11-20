@@ -29,3 +29,6 @@
   .editor-page .caption-row > label:first-child, .editor-page .caption-row .cue-text-label { grid-column: 1 / -1; }
   .editor-page .caption-row button { grid-column: 1 / -1; }
 }
+.source-caption-row{display:flex;align-items:end;flex-wrap:wrap;gap:.75rem;margin-block:.75rem}
+.source-caption-row label{display:grid;gap:.25rem}
+.source-caption-row input{max-width:10rem}

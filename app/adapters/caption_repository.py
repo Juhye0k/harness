@@ -57,6 +57,7 @@ def revision_data(row, render=None):
         "created_at": row.created_at,
         "render_job_id": str(job_id) if job_id else None,
         "render_profile": (render.profile if render else LEGACY_EDITED_PROFILE) if job_id else None,
+        "source_caption_spans": render.source_caption_spans if render else [],
     }
 
 
@@ -109,7 +110,7 @@ class CaptionRepository:
             s.flush()
             return revision_data(row)
 
-    def read(self, analysis_id, candidate_id, revision_id=None):
+    def read(self, analysis_id, candidate_id, revision_id=None, render_job_id=None):
         with Session(self.engine) as s:
             # Scope every revision by the analysis and candidate in the URL.
             candidate_context(s, analysis_id, candidate_id)
@@ -119,7 +120,15 @@ class CaptionRepository:
             row = s.scalar(query.limit(1))
             if revision_id and row is None:
                 raise JobError("REVISION_NOT_FOUND", "편집 버전을 찾을 수 없습니다.", 404)
-            return revision_data(row, latest_render(s, row)) if row else None
+            if row is None:
+                return None
+            if render_job_id:
+                selected = s.get(CaptionRenderJob, render_job_id)
+                if selected and selected.revision_id == row.id:
+                    return revision_data(row, selected)
+                if render_job_id == row.render_job_id:
+                    return revision_data(row)
+            return revision_data(row, latest_render(s, row))
 
     def recent(self, session, candidate_id):
         rows = session.scalars(candidate_revisions(candidate_id).limit(2)).all()
@@ -210,6 +219,5 @@ class CaptionRepository:
             candidate = s.get(HighlightCandidate, row.candidate_id)
             analysis = s.get(AnalysisJob, candidate.analysis_id)
             saved = revision_data(row, render)
-            saved["source_caption_spans"] = render.source_caption_spans if render else []
             saved["render_input_hash"] = render.input_hash if render else None
             return saved, candidate.data, analysis.asset_id

@@ -65,6 +65,12 @@ API는 `POST /analyses`에 `mode: "transcription"`을 명시한다. 웹 기본�
 
 401과 명시적인 잘못된 키 응답은 `PROVIDER_AUTH`, 나머지 403은 `PROVIDER_ACCESS_DENIED`다. 403만으로 키가 잘못됐다고 단정하지 않는다. 429는 `PROVIDER_RATE_LIMIT`, 시간 초과는 `PROVIDER_TIMEOUT`, 잘못된 JSON·시간 정보는 `MODEL_RESPONSE_INVALID`다. 비용은 미측정 `null`, 사용량은 제공된 값만 기록한다.
 
+## 실패 응답 추적
+
+기본값에서는 응답 본문을 보관하지 않는다. 로컬 원인 조사가 필요할 때 `RECORD_GROQ_ERROR_BODY=true`로 분석 워커를 실행하면 Groq HTTP 실패 응답 본문을 워커 전용 `provider_error_data` 볼륨에 저장한다. 성공 응답, 요청 본문, 인증 헤더는 수집 대상에서 제외한다. 본문은 128KiB 이하일 때 원래 바이트로 보관하며, 저장할 수 없거나 크기를 초과한 경우에도 원래 작업 오류를 유지한다.
+
+`provider_calls.metadata_json.provider_diagnostics`의 `body_capture_id`로 워커의 `/private-provider-errors`에서 파일을 찾는다. 요청 ID와 숫자형 `Retry-After`는 제공된 경우 진단에 남는다. 본문 원문은 API와 일반 로그에 포함하지 않는다. 조사 후 환경 변수를 끄면 새 파일 기록이 정지되며 기존 파일은 볼륨에 남는다. 원문에 입력 내용이 포함될 수 있으므로 비공개 위치에서 필요한 항목만 확인한다.
+
 ## 검증과 남은 제한
 
 일반 CI는 실제 API에 접속하지 않는다. 계정 가용성·한국어 인식률·추천 유용성·실제 지연은 승인된 영상으로 평가해야 한다. 테스트 통과를 품질 평가 완료로 해석하지 않는다. 사용자별 할당량 없는 로컬 개발용이며 공개 운영용 무료 비용 차단 시스템은 아니다.
