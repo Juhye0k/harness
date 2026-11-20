@@ -24,11 +24,20 @@ def slug(path):
 def compile_wiki(output):
     navigation = json.loads((WIKI / "navigation.json").read_text(encoding="utf-8"))
     paths = [WIKI / item["path"] for item in navigation["pages"]]
+    archived = [WIKI / name for name in navigation["repository_only"]]
+    classified = paths + archived
     actual = set(WIKI.rglob("*.md"))
-    assert len(paths) == len(set(paths)) and set(paths) == actual, "Navigation coverage differs"
+    assert len(classified) == len(set(classified)) and set(classified) == actual, (
+        "Each Wiki source must be public or repository-only exactly once"
+    )
+    public = set(paths)
     assert len({slug(path) for path in paths}) == len(paths), "Duplicate Wiki URL"
     assert all(item["category"] in navigation["categories"] for item in navigation["pages"])
     output.mkdir(parents=True, exist_ok=True)
+    expected = {slug(path) + ".md" for path in paths} | {"_Sidebar.md"}
+    stale = {path.name for path in output.glob("*.md")} - expected
+    if stale:
+        raise ValueError(f"Use a fresh preview directory. Obsolete pages present: {sorted(stale)}")
     sidebar = ["# Shortform", "", f"[처음 읽기]({BASE}/wiki)", ""]
     links = 0
     for category in navigation["categories"]:
@@ -42,11 +51,6 @@ def compile_wiki(output):
             sidebar.append(f"- [{title}]({BASE}/wiki/{slug(path)})")
         sidebar += ["", "</details>", ""]
     (output / "_Sidebar.md").write_text("\n".join(sidebar), encoding="utf-8")
-    (output / "_Footer.md").write_text(
-        f"[위키 홈]({BASE}/wiki) · [현재 현황]({BASE}/wiki/07-governance-status) · "
-        f"[문서 작성 규칙]({BASE}/wiki/07-governance-document-guide)\n",
-        encoding="utf-8",
-    )
     for path in paths:
         source = path.read_text(encoding="utf-8")
         assert source.splitlines()[2].startswith("> "), f"Missing opening summary: {path}"
@@ -61,11 +65,13 @@ def compile_wiki(output):
             assert resolved.is_relative_to(ROOT), f"Escaped repository: {target}"
             assert resolved.exists(), f"Missing link: {source_path}: {target}"
             links += 1
-            if resolved.is_relative_to(WIKI) and resolved.suffix == ".md":
+            if resolved in public:
                 url = BASE + "/wiki/" + slug(resolved)
             elif match[1].startswith("!"):
                 url = BASE.replace("github.com", "raw.githubusercontent.com") + "/main/"
                 url += resolved.relative_to(ROOT).as_posix()
+            elif resolved.is_dir():
+                url = BASE + "/tree/main/" + resolved.relative_to(ROOT).as_posix()
             else:
                 url = BASE + "/blob/main/" + resolved.relative_to(ROOT).as_posix()
             if separator:
