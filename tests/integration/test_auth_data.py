@@ -105,6 +105,41 @@ def test_cross_user_side_effects_denied(setup):
     assert client.post("/sns/uploads", json={"job_id": str(ids["job"])}).status_code == 404
 
 
+def test_project_list_only_returns_owned_live_analyses(setup):
+    client, engine, owner, _, private_ids, _ = setup
+    with Session(engine) as session, session.begin():
+        states = [
+            (owner, utcnow() + timedelta(days=1), None),
+            (owner, utcnow() - timedelta(days=1), None),
+            (owner, utcnow() + timedelta(days=1), utcnow()),
+            (None, None, None),
+        ]
+        results = []
+        for user_id, expiry, deletion in states:
+            asset = Asset(
+                source_url="https://example.com/private.mp4",
+                user_id=user_id,
+                legacy=user_id is None,
+                expires_at=expiry,
+                deleted_at=deletion,
+            )
+            session.add(asset)
+            session.flush()
+            analysis = AnalysisJob(
+                asset_id=asset.id, genre="unknown", purpose="balanced", config={}
+            )
+            session.add(analysis)
+            session.flush()
+            results.append(str(analysis.id))
+
+    response = client.get("/analyses?limit=1")
+    assert response.status_code == 200
+    assert response.json()["has_more"] is False
+    assert [project["analysis_id"] for project in response.json()["items"]] == results[:1]
+    assert str(private_ids["analysis"]) not in response.text
+    assert "https://example.com" not in response.text
+
+
 def test_sessions_csrf_and_logout(setup):
     client, _, _, _, _, _ = setup
     assert client.get("/auth/me").status_code == 200

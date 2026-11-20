@@ -40,7 +40,7 @@ API는 `POST /analyses`에 `mode: "transcription"`을 명시한다. 웹 기본�
 {"url":"https://example.com/authorized-sample.mp4","mode":"transcription"}
 ```
 
-완료 후 `GET /analyses/{id}/transcript`에서 `id/start_ms/end_ms/text` 구간 목록을 읽는다. 전사만 성공하면 `TRANSCRIBED`, 무음은 `NO_SPEECH`다. 진행 중·실패 작업은 409이며 GET은 작업·전사 선점을 생성하지 않는다. 인증을 끈 개발 모드는 외부 공개하지 않는다. 계정별 접근 설정은 [인증 안내](user-auth-data.md)를 따른다.
+완료 후 `GET /analyses/{id}/transcript`에서 `id/start_ms/end_ms/text` 구간 목록을 읽는다. 전사만 성공하면 `TRANSCRIBED`, 무음은 `NO_SPEECH`다. 후보 제안이나 채점에서 중단돼도 전사가 성공했다면 같은 프로젝트에서 전사와 표시 자막을 읽을 수 있다. GET은 작업·전사 선점을 생성하지 않는다. 인증을 끈 개발 모드는 외부 공개하지 않는다. 계정별 접근 설정은 [인증 안내](user-auth-data.md)를 따른다.
 
 추천 실험 시 `RECOMMENDATION_PROVIDER=groq`로 변경하고 API·분석 워커를 재생성한다. 준비된 `asset_id`와 `mode: "recommendation"`을 제출하면 동일 전사 버전을 재사용한다. 새 URL 접수는 별도 자산이므로 재사용을 보장하지 않는다. 실제 품질 기록은 [평가 기준선](recommendation-quality-baseline.md)을 따른다.
 

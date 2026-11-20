@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 STATIC = Path(__file__).resolve().parents[1] / "static"
@@ -10,7 +10,14 @@ router = APIRouter()
 
 
 @router.get("/", include_in_schema=False)
-def index():
+def index(request: Request):
+    if "job" not in request.query_params and "upload" not in request.query_params:
+        return recommendations()
+    return extraction()
+
+
+@router.get("/extract", include_in_schema=False)
+def extraction():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
 
 

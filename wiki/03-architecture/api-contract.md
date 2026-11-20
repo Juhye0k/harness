@@ -70,7 +70,7 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 
 `POST /analyses`의 `mode`는 `transcription` 또는 `recommendation`이며 API 생략 기본값은 기존 호환을 위해 recommendation이다. 웹은 transcription을 기본 선택한다. 전사 전용은 LLM을 호출하지 않고 `TRANSCRIBED` 또는 `NO_SPEECH`로 완료한다. 추천 제공자 none일 때 recommendation 요청은 DB 작업 생성 전 `503 RECOMMENDATION_DISABLED`로 거절한다.
 
-`GET /analyses/{id}/transcript`는 성공한 작업의 `analysis_id`, `asset_id`, `version`, `segments`를 반환한다. 각 구간은 `id/start_ms/end_ms/text`다. 존재하지 않는 분석은 404, 미완료·실패 분석은 409, 전사 결과 누락은 404다. 조회는 전사 선점이나 외부 호출을 만들지 않는다. 기존 자산의 동일 전사 버전을 추천 모드에서 재사용할 수 있다. [전사 설정과 실행](../05-development/groq-free-ai.md).
+`GET /analyses/{id}/transcript`는 `analysis_id`, `asset_id`, `version`, `segments`를 반환한다. 각 구간은 `id/start_ms/end_ms/text`다. 분석 성공 시와 후보 제안·채점에서 실패했더라도 성공한 전사가 저장된 경우에 읽을 수 있다. 전사에 도달하지 못했거나 전사에서 실패한 분석은 409, 분석 또는 저장 전사가 없으면 404다. 표시 자막과 SRT 조회에도 같은 기준을 적용한다. 조회는 전사 선점이나 외부 호출을 만들지 않는다. [전사 설정과 실행](../05-development/groq-free-ai.md).
 
 추천 접수 발행 실패도 추적 가능한 202 리소스를 반환하며 조회 상태는 failed/DISPATCH_FAILED다. 같은 URL의 별도 분석 접수는 별도 자산을 만들며, 기존 파일 재사용은 asset_id를 명시한다. 인증·사용자별 소유권 검사는 아직 없으므로 로컬에서만 사용한다.
 

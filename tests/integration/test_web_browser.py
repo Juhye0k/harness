@@ -48,7 +48,7 @@ def test_real_browser_extract_reload_preview_download(page, tmp_path):
     page.on(
         "request", lambda request: posts.append(request.url) if request.method == "POST" else None
     )
-    page.goto(BASE)
+    page.goto(BASE + "/extract")
     page.get_by_label("영상 링크", exact=True).fill("https://fixture.example/sample.mp4")
     page.get_by_label("시작 시간", exact=False).fill("5")
     page.get_by_role("button", name="10초 영상 만들기").click()
@@ -111,7 +111,7 @@ def test_query_failure_is_not_processing_failure_and_can_retry(page):
 def test_submit_guard_and_validation_error(page):
     pending = []
     page.route("**/jobs/video-extractions", lambda route: pending.append(route))
-    page.goto(BASE)
+    page.goto(BASE + "/extract")
     page.get_by_label("영상 링크", exact=True).fill("https://fixture.example/sample.mp4")
     page.get_by_role("button", name="10초 영상 만들기").click()
     expect(page.get_by_role("button", name="작업 접수 중")).to_be_disabled()
@@ -130,7 +130,7 @@ def test_unknown_submission_not_retried(page):
         route.abort()
 
     page.route("**/jobs/video-extractions", fail)
-    page.goto(BASE)
+    page.goto(BASE + "/extract")
     page.get_by_label("영상 링크", exact=True).fill("https://fixture.example/sample.mp4")
     page.get_by_role("button", name="10초 영상 만들기").click()
     expect(page.get_by_text("작업이 등록됐을 수도", exact=False)).to_be_visible()
@@ -147,10 +147,10 @@ def test_dispatch_error_with_id_opens_existing_job(page):
         ),
     )
     page.route(f"**/jobs/{job_id}", lambda route: route.fulfill(json=state(job_id, "failed")))
-    page.goto(BASE)
+    page.goto(BASE + "/extract")
     page.get_by_label("영상 링크", exact=True).fill("https://fixture.example/sample.mp4")
     page.get_by_role("button", name="10초 영상 만들기").click()
-    expect(page).to_have_url(f"{BASE}/?job={job_id}")
+    expect(page).to_have_url(f"{BASE}/extract?job={job_id}")
     expect(page.get_by_role("heading", name="영상 추출에 실패했어요")).to_be_visible()
 
 

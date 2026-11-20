@@ -36,7 +36,9 @@ curl.exe http://localhost:8000/health/ready
 
 API 문서: http://localhost:8000/docs
 
-웹 화면: http://localhost:8000/ — 링크와 시작 시간을 입력하고 처리 상태·미리보기·다운로드를 확인합니다. [웹 사용·브라우저 검증 안내](wiki/05-development/web-video-extraction.md).
+쇼츠 제작실: http://localhost:8000/ — 링크 또는 파일로 시작하고, 내 프로젝트에서 작업을 다시 열어 후보 미리보기·자막 편집·다운로드·YouTube 게시까지 진행합니다. [전체 사용 흐름](wiki/05-development/complete-flow.md).
+
+10초 추출: http://localhost:8000/extract — 링크와 시작 시간을 입력하고 처리 상태·미리보기·다운로드를 확인합니다. [추출 화면 안내](wiki/05-development/web-video-extraction.md).
 
 표시 자막과 SRT: 완료된 전사·추천 화면에서 확인·다운로드합니다. 원본 전사는 별도로 보존하며 [분할 규칙과 제한](wiki/05-development/subtitle-segmentation.md)을 확인하세요.
 

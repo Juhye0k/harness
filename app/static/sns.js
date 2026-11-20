@@ -3,6 +3,56 @@ const $ = id => document.getElementById(id);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const privacyNames = {private: "비공개", unlisted: "일부 공개", public: "공개"};
 let csrf = "", current = null, busy = false, timer;
+let flow = null, outputReady = false;
+const flowKey = "shortform.sns-flow";
+function readFlow(params) {
+  const result = Object.fromEntries(["job","analysis","candidate","revision"].map(key => [key, params.get(key) || ""]));
+  return uuid.test(result.job) && [result.analysis,result.candidate,result.revision].every(id => uuid.test(id)) ? result : null;
+}
+function restoreFlow(params) {
+  const selected = readFlow(params);
+  if (selected) return selected;
+  if (!params.has("oauth")) return null;
+  try { return readFlow(new URLSearchParams(JSON.parse(sessionStorage.getItem(flowKey) || "{}"))); }
+  catch { return null; }
+}
+function snsUrl(upload) {
+  const query = new URLSearchParams(flow || {});
+  if (upload) query.set("upload", upload);
+  return query.size ? "/sns?" + query : "/sns";
+}
+async function showSelectedOutput() {
+  outputReady = false;
+  $("sns-back").href = "/editor?" + new URLSearchParams({
+    analysis:flow.analysis, candidate:flow.candidate, revision:flow.revision
+  });
+  $("sns-back").textContent = "편집본으로 돌아가기";
+  $("chosen-output").hidden = false;
+  $("chosen-output-title").textContent = "확정된 편집본";
+  $("job-field").hidden = true;
+  $("job").readOnly = true;
+  $("prepare").disabled = true;
+  try {
+    const analysisPath = "/analyses/" + flow.analysis;
+    const [job, analysis, saved] = await Promise.all([
+      api("/jobs/" + flow.job),
+      api(analysisPath),
+      api(analysisPath + "/candidates/" + flow.candidate + "/caption-revisions/" + flow.revision),
+    ]);
+    const candidate = analysis.candidates.find(item => item.id === flow.candidate);
+    if (!candidate || !saved.reviewed || job.status !== "succeeded" || job.result?.render?.revision_id !== flow.revision) {
+      throw new Error("Output unavailable");
+    }
+    $("chosen-output-title").textContent = candidate.title;
+    if (!$("title").value) $("title").value = candidate.title.slice(0, 100);
+    $("chosen-output-preview").src = "/jobs/" + flow.job + "/download";
+    $("chosen-output-state").textContent = "이 출력 파일로 게시 설정을 준비합니다.";
+    outputReady = true;
+    $("prepare").disabled = false;
+  } catch {
+    $("chosen-output-state").textContent = "선택한 출력 파일을 확인하지 못했습니다. 편집본에서 완료된 영상을 다시 선택하세요.";
+  }
+}
 function newRequestId() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 15) | 64;
@@ -25,6 +75,7 @@ async function api(path, method = "GET", body) {
 function render(data) {
   current = data;
   $("review-panel").hidden = false;
+  $("chosen-output").hidden = true;
   $("upload-form").hidden = true;
   $("review-channel").textContent = `${data.account.title} (${data.account.channel_id})`;
   $("review-title").textContent = data.approval.title;
@@ -57,7 +108,11 @@ async function loadUpload() {
   clearTimeout(timer);
   const id = new URL(location.href).searchParams.get("upload");
   if (!uuid.test(id || "")) return;
-  try { render(await api(`/sns/uploads/${id}`)); notice(""); }
+  try {
+    const data = await api(`/sns/uploads/${id}`);
+    if (flow && data.approval.job_id !== flow.job) throw new Error("Upload does not match selected output");
+    render(data); notice("");
+  }
   catch { notice("상태를 조회하지 못했어요. 업로드 실패를 의미하지 않습니다. 다시 조회해 주세요.", true); }
 }
 async function loadAccounts() {
@@ -79,8 +134,14 @@ async function start() {
     if (!session.enabled) { notice("SNS 업로드가 비활성화돼 있습니다. 개발 설정 안내를 확인하세요."); return; }
     $("account-panel").hidden = false;
     const params = new URL(location.href).searchParams;
-    if (params.get("job")) sessionStorage.setItem("sns.job", params.get("job"));
-    $("job").value = sessionStorage.getItem("sns.job") || "";
+    flow = restoreFlow(params);
+    const job = params.get("job");
+    if (uuid.test(job || "")) sessionStorage.setItem("sns.job", job);
+    $("job").value = flow?.job || (uuid.test(job || "") ? job : params.has("oauth") ? sessionStorage.getItem("sns.job") || "" : "");
+    if (flow) {
+      history.replaceState(null, "", snsUrl(params.get("upload")));
+      await showSelectedOutput();
+    }
     notice("");
     const accounts = await loadAccounts();
     if (params.get("oauth") === "error") {
@@ -96,6 +157,10 @@ async function start() {
 $("connect").onclick = async () => {
   if (busy) return; busy = true; $("connect").disabled = true;
   try {
+    if (flow) sessionStorage.setItem(flowKey, JSON.stringify(flow));
+    else sessionStorage.removeItem(flowKey);
+    if (uuid.test($("job").value)) sessionStorage.setItem("sns.job", $("job").value);
+    else sessionStorage.removeItem("sns.job");
     const data = await api("/sns/youtube/connect", "POST");
     const url = new URL(data.authorization_url);
     if (url.origin !== "https://accounts.google.com") throw new Error("계정 연결 주소를 확인하지 못했어요.");
@@ -110,7 +175,7 @@ $("disconnect").onclick = async () => {
 };
 $("upload-form").onsubmit = async event => {
   event.preventDefault();
-  if (busy || !uuid.test($("job").value)) return;
+  if (busy || !uuid.test($("job").value) || (flow && (!outputReady || $("job").value !== flow.job))) return;
   busy = true; $("prepare").disabled = true;
   try {
     const fields = {account_id: $("account").value, job_id: $("job").value, title: $("title").value,
@@ -120,7 +185,7 @@ $("upload-form").onsubmit = async event => {
     const requestId = pending?.fields === JSON.stringify(fields) && uuid.test(pending.id) ? pending.id : newRequestId();
     sessionStorage.setItem("sns.pending", JSON.stringify({id: requestId, fields: JSON.stringify(fields)}));
     const data = await api("/sns/uploads", "POST", {request_id: requestId, ...fields});
-    history.replaceState(null, "", `/sns?upload=${data.upload_id}`);
+    history.replaceState(null, "", snsUrl(data.upload_id));
     render(data); notice("");
   } catch (error) { notice(`미리보기를 확인하지 못했어요. ${error.message}`); }
   finally { busy = false; $("prepare").disabled = false; }
@@ -131,7 +196,7 @@ $("confirm").onclick = async () => {
   busy = true; $("confirm").disabled = true;
   try {
     const data = await api(`/sns/uploads/${current.upload_id}/confirm`, "POST", {confirmed: true, approval: current.approval});
-    history.replaceState(null, "", `/sns?upload=${data.upload_id}`); render(data); notice("");
+    history.replaceState(null, "", snsUrl(data.upload_id)); render(data); notice("");
   } catch { notice("접수 결과를 확인하지 못했어요. 등록됐을 수 있으니 상태를 다시 조회하세요.", true); }
   finally { busy = false; }
 };
@@ -145,7 +210,8 @@ $("edit").onclick = () => {
   $("privacy").value = current.approval.privacy;
   $("kids").value = String(current.approval.made_for_kids);
   current = null; $("review-panel").hidden = true; $("upload-form").hidden = false;
-  history.replaceState(null, "", "/sns");
+  if (flow) $("chosen-output").hidden = false;
+  history.replaceState(null, "", snsUrl());
 };
 $("probe").onclick = async () => {
   if (busy || !current) return; busy = true; $("probe").disabled = true;
