@@ -24,7 +24,7 @@ function snsUrl(upload) {
 async function showSelectedOutput() {
   outputReady = false;
   $("sns-back").href = "/editor?" + new URLSearchParams({
-    analysis:flow.analysis, candidate:flow.candidate, revision:flow.revision
+    analysis:flow.analysis, candidate:flow.candidate, revision:flow.revision, job:flow.job
   });
   $("sns-back").textContent = "편집본으로 돌아가기";
   $("chosen-output").hidden = false;

@@ -62,7 +62,7 @@ class ExportRequest(BaseModel):
 def editor_data(analysis_id: UUID, candidate_id: UUID):
     repo = CaptionRepository()
     with Session(repo.engine) as session:
-        candidate, analysis, _ = candidate_context(session, analysis_id, candidate_id)
+        candidate, analysis, asset = candidate_context(session, analysis_id, candidate_id)
         data = candidate.data
         # Recommendation payloads deliberately omit alignment internals. Reuse saved
         # source words rather than treating that minimal payload as an ASR transcript.
@@ -85,6 +85,7 @@ def editor_data(analysis_id: UUID, candidate_id: UUID):
             "start_ms": data["start_ms"],
             "end_ms": data["end_ms"],
             "source_version": analysis.config["asr_version"],
+            "source_sha256": asset.sha256,
             "export_profile": EDITED_PROFILE,
             "segments": segments,
             "suggested": display,
@@ -132,8 +133,8 @@ def save_revision(analysis_id: UUID, candidate_id: UUID, body: RevisionRequest):
 
 
 @router.get(PREFIX + "/caption-revisions/{revision_id}")
-def get_revision(analysis_id: UUID, candidate_id: UUID, revision_id: UUID):
-    return CaptionRepository().read(analysis_id, candidate_id, revision_id)
+def get_revision(analysis_id: UUID, candidate_id: UUID, revision_id: UUID, job: UUID | None = None):
+    return CaptionRepository().read(analysis_id, candidate_id, revision_id, render_job_id=job)
 
 
 @router.post(PREFIX + "/caption-revisions/{revision_id}/exports", status_code=202)

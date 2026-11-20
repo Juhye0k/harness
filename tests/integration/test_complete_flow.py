@@ -111,6 +111,14 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             expect(reviewed).to_be_checked()
             assert len([url for url in posts if url.endswith("/caption-revisions")]) == 2
 
+            # Mark the first cue as already present in the source picture.
+            span = {key: saved["cues"][0][key] for key in ("start_ms", "end_ms")}
+            page.get_by_role("button", name="원본 자막 구간 추가").click()
+            for key, label in (("start_ms", "시작"), ("end_ms", "종료")):
+                page.get_by_label(f"원본 자막 {label} (초)").fill(
+                    str((span[key] - candidate["start_ms"]) / 1000)
+                )
+
             # Both client guarding and server idempotency prevent duplicate rendering.
             pending = []
             page.route("**/caption-revisions/*/exports", lambda route: pending.append(route))
@@ -118,13 +126,15 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             expect(first_cue).to_be_disabled()
             expect(save).to_be_disabled()
             assert len(pending) == 1
+            export_body = pending[0].request.post_data_json
+            assert export_body["source_captions"]["visible_spans"] == [span]
             pending[0].continue_()
             page.unroute("**/caption-revisions/*/exports")
             expect(page.locator("#final-result")).to_be_visible(timeout=90000)
             job_id = parse_qs(urlsplit(page.url).query)["job"][0]
             export_url = next(url for url in posts if url.endswith(f"/{rid}/exports"))
             assert len([url for url in posts if url.endswith(f"/{rid}/exports")]) == 1
-            duplicate = context.request.post(export_url, data={})
+            duplicate = context.request.post(export_url, data=export_body)
             assert duplicate.status == 202 and duplicate.json()["job_id"] == job_id
             result = context.request.get(f"{BASE}/jobs/{job_id}").json()
             assert result["status"] == "succeeded" and all(result["result"]["checks"].values())
@@ -163,6 +173,9 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             assert (evidence / "edited-clip.srt").read_bytes() == srt_bytes
             page.reload()
             expect(page.locator("#final-result")).to_be_visible()
+            expect(page.get_by_label("원본 자막 시작 (초)")).to_have_value(
+                str((span["start_ms"] - candidate["start_ms"]) / 1000).removesuffix(".0")
+            )
             assert len([url for url in posts if url.endswith(f"/{rid}/exports")]) == 1
 
             page.route(f"**/jobs/{job_id}", lambda route: route.abort())
@@ -208,7 +221,7 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             expect(page.locator("#job")).to_have_value(job_id)
             expect(page.get_by_label("YouTube 제목", exact=True)).to_have_value(candidate["title"])
             expect(page.locator("#sns-back")).to_have_attribute(
-                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}"
+                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}&job={job_id}"
             )
             page.get_by_label("YouTube 제목", exact=True).fill("편집한 자막 E2E")
             page.get_by_label("아동용 콘텐츠인가요?").select_option("false")
@@ -226,7 +239,7 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             page.reload()
             expect(page.locator("#confirm")).to_be_disabled()
             expect(page.locator("#sns-back")).to_have_attribute(
-                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}"
+                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}&job={job_id}"
             )
             page.get_by_role("checkbox").check()
             page.get_by_role("button", name="확인한 내용으로 YouTube에 업로드").dblclick()
