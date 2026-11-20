@@ -1,6 +1,10 @@
 # Shortform Harness
 
-FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 후보별 자막 편집·버전 저장·세로 MP4 출력·다운로드·YouTube 연결은 [FLOW-001](wiki/05-development/complete-flow.md)로 로컬 구현했습니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 편집본 한 건의 비공개 Shorts 업로드와 Studio 분류를 확인했습니다. 같은 원본의 재추천에서는 후보가 1개 나왔으며, 게시 제목은 사전 승인안과 달랐습니다. [실제 검증과 남은 과제](wiki/07-governance/status.md).
+긴 영상에서 짧게 공유할 장면을 골라 세로 영상으로 만드는 서비스입니다. **자를 위치를 알면 시작 시각을 지정해 10초를 추출합니다.** 장면을 찾아야 할 때는 한국어 음성을 글로 옮긴 전사를 바탕으로 후보를 추천받습니다. 제작실에서 후보의 원음을 듣고 자막을 고친 뒤, 확인한 편집 버전을 MP4와 자막 파일(SRT)로 내려받을 수 있습니다. [제작실 사용 흐름](wiki/05-development/complete-flow.md)
+
+백엔드를 처음 본다면 아래 CLI로 영상의 5초 지점부터 10초를 잘라 보세요. 같은 추출을 웹에서 요청하면 FastAPI는 작업 번호를 돌려주고, Celery 워커가 인코딩을 맡습니다. Redis는 작업 번호를 전달하고 PostgreSQL은 브라우저가 다시 조회할 처리 상태를 보관합니다. [요청 한 건으로 읽는 시스템 구조](wiki/03-architecture/system-overview.md)
+
+**현재 검증 범위**는 로컬 제작실과 실제 편집본 한 건의 비공개 YouTube Shorts 게시까지입니다. Studio 분류를 확인했지만 게시 제목은 사전 승인안과 달랐습니다. 같은 원본을 다시 분석했을 때 최종 후보도 한 개였습니다. 다음 과제는 어느 단계에서 후보가 줄었는지 기록하고 게시 직전 제목을 대조하는 것입니다. 추천 AI와 업로드는 기본 비활성화이며 운영 배포는 후속 단계입니다. [실제 검증과 남은 과제](wiki/07-governance/status.md)
 
 **[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
@@ -60,7 +64,7 @@ YouTube 업로드: http://localhost:8000/sns — [OAuth 설정·확인·중복 �
 
 입력부터 끝까지: [자막 편집·비동기 출력·YouTube 흐름과 엔드투엔드 검사](wiki/05-development/complete-flow.md). 원본 전사와 편집본을 분리하고, 확인한 버전으로만 최종 영상을 만듭니다. 일반 CI의 모델·YouTube는 대역이며 실제 품질·계정 게시를 보장하지 않습니다.
 
-자막 포함 세로 출력의 첫 기술 확인: `uv run python -m app.cli.render_sample`로 외부 호출 없이 합성 영상의 한국어 자막·720×1280 MP4·클립 기준 SRT를 만듭니다. [실행 안내와 검증 범위](wiki/05-development/portrait-subtitle-sample.md). 편집 UI·비동기 최종 출력은 후속입니다.
+세로 출력만 확인하려면 `uv run python -m app.cli.render_sample`을 실행하세요. 외부 호출 없이 합성 영상으로 한국어 자막이 들어간 720×1280 MP4와 클립 기준 SRT를 만듭니다. 편집 화면에서 저장한 버전의 비동기 출력은 위 제작실에서 실행할 수 있습니다. [샘플 실행 안내와 검증 범위](wiki/05-development/portrait-subtitle-sample.md)
 
 Google 로그인·내 자료·7일 만료는 선택 활성화 기능입니다. 기존 로컬 자료는 보존하며 로그인 계정에 자동 연결하지 않습니다. [설정·테스트 계정 승인·삭제 절차](wiki/05-development/user-auth-data.md)를 따르세요. 별도 로컬 환경에서 실제 테스트 계정의 Google 로그인·승인·로그아웃을 확인했습니다. 기존 개발 서비스의 인증 전환과 운영 배포는 별도입니다.
 
@@ -84,7 +88,7 @@ Google 로그인·내 자료·7일 만료는 선택 활성화 기능입니다. �
 
 ```text
 app/          # API·DB·Celery 설정, 영상 CLI·규칙·서비스·외부 도구
-migrations/   # Alembic 환경과 video_jobs 테이블
+migrations/   # Alembic 환경과 작업·자산·편집 버전 등 DB 스키마 변경 이력
 tests/        # unit·process·media·integration 검사와 실행 안내
 scripts/      # 검사 진입점·다이어그램 생성
 wiki/         # 카테고리별 프로젝트 문서
