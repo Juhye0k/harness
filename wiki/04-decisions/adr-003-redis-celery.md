@@ -2,8 +2,6 @@
 
 > 작업 실행기를 직접 만드는 대신 Celery와 Redis로 영상 처리를 전달합니다. Redis Streams와의 차이, PostgreSQL에서 실행을 선점하는 이유, 자동 복구를 제공하지 않는 현재 한계를 설명합니다.
 
-[위키 홈](../README.md) · [카테고리 목차](README.md)
-
 
 ## 결정과 판단 기준
 

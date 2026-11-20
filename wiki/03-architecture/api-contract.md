@@ -13,9 +13,7 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 `GET /analyses/{id}/transcript-review`, `PUT /analyses/{id}/transcript-review/{segment_id}`, `GET /analyses/{id}/review-audio`를 추가했다. 조회·재생은 읽기 전용이며 판정은 전사·정책 버전과 revision으로 저장한다. 완료 전/버전·동시 저장 충돌은 409, 없는 분석·구간·음성은 404다. [입력·정책·경계](../05-development/transcript-review.md)를 따른다.
 
 
-[위키 홈](../README.md) · [카테고리 목차](README.md)
-
-인증 없는 localhost 개발 API다. `/docs`, `app/api/jobs.py`, `app/main.py`를 기준으로 한다.
+localhost 개발 API이며 Google 로그인을 켜면 세션과 자료 소유권을 검사한다. `/docs`, `app/api/jobs.py`, `app/main.py`를 기준으로 한다.
 
 | 메서드·경로 | 응답 | 의미 |
 |---|---|---|
@@ -38,6 +36,12 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 ```
 
 202는 완료가 아니다. 같은 요청을 다시 보내면 새 ID가 생긴다. 요청 중복 키는 아직 지원하지 않는다.
+
+아직 처리 중인 작업에서 `GET /jobs/{job_id}/download`를 호출하면 HTTP 409와 다음 본문이 돌아옵니다. 상태 URL을 다시 조회해 성공을 확인한 뒤 다운로드합니다.
+
+```json
+{"error":{"code":"RESULT_NOT_READY","message":"검증된 결과가 아직 없습니다."},"job_id":null}
+```
 
 ## 조회와 오류
 
@@ -68,11 +72,11 @@ UPLOAD-001은 `POST /assets/uploads`, raw 바이트 `PUT /assets/{id}/content`, 
 
 `POST /analyses`는 선택 UUID `request_id`를 지원한다. 같은 사용자·같은 입력은 기존 분석을 반환하고 다른 입력이면 409다. 웹은 전송 전에 번호를 저장하고 응답 유실·새로고침 시 조회로 복원한다. receipt는 7일이며 만료 후 재접수하지 않는다. 설정 검증과 신규 분석/receipt 저장은 하나의 DB 트랜잭션이며 외부 호출은 없다. 발행 이후 강제 종료는 자동 재발행하지 않고 관리자 절차를 따른다.
 
-`POST /analyses`의 `mode`는 `transcription` 또는 `recommendation`이며 API 생략 기본값은 기존 호환을 위해 recommendation이다. 웹은 transcription을 기본 선택한다. 전사 전용은 LLM을 호출하지 않고 `TRANSCRIBED` 또는 `NO_SPEECH`로 완료한다. 추천 제공자 none일 때 recommendation 요청은 DB 작업 생성 전 `503 RECOMMENDATION_DISABLED`로 거절한다.
+`POST /analyses`의 `mode`는 `transcription` 또는 `recommendation`이며 API 생략 기본값은 기존 호환을 위해 recommendation이다. 화면에서 전사만 요청하려면 transcription을 선택한다. 전사 전용은 LLM을 호출하지 않고 `TRANSCRIBED` 또는 `NO_SPEECH`로 완료한다. 추천 제공자 none일 때 recommendation 요청은 DB 작업 생성 전 `503 RECOMMENDATION_DISABLED`로 거절한다.
 
 `GET /analyses/{id}/transcript`는 `analysis_id`, `asset_id`, `version`, `segments`를 반환한다. 각 구간은 `id/start_ms/end_ms/text`다. 분석 성공 시와 후보 제안·채점에서 실패했더라도 성공한 전사가 저장된 경우에 읽을 수 있다. 전사에 도달하지 못했거나 전사에서 실패한 분석은 409, 분석 또는 저장 전사가 없으면 404다. 표시 자막과 SRT 조회에도 같은 기준을 적용한다. 조회는 전사 선점이나 외부 호출을 만들지 않는다. [전사 설정과 실행](../05-development/groq-free-ai.md).
 
-추천 접수 발행 실패도 추적 가능한 202 리소스를 반환하며 조회 상태는 failed/DISPATCH_FAILED다. 같은 URL의 별도 분석 접수는 별도 자산을 만들며, 기존 파일 재사용은 asset_id를 명시한다. 인증·사용자별 소유권 검사는 아직 없으므로 로컬에서만 사용한다.
+추천 접수 발행 실패도 추적 가능한 202 리소스를 반환하며 조회 상태는 failed/DISPATCH_FAILED다. 같은 URL의 별도 분석 접수는 별도 자산을 만들며, 기존 파일 재사용은 asset_id를 명시한다. 인증 활성 환경에서는 계정 소유권을 검사한다.
 
 ## 표시 자막 API
 
