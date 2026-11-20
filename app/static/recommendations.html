@@ -1,36 +1,110 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<script src="/static/auth.js"></script>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Shortform — 하이라이트 추천</title>
+  <title>쇼츠 제작실 · Shortform</title>
   <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/studio.css">
+  <script src="/static/auth.js"></script>
   <script src="/static/transcript-review.js" defer></script>
   <script src="/static/recommendations.js" defer></script>
+  <script src="/static/projects.js" defer></script>
   <script src="/static/local-upload.js" defer></script>
 </head>
-<body>
-  <header><a class="brand" href="/">Shortform<span>STUDIO</span></a><span class="badge">하이라이트 추천</span><a href="/verification">검증 결과</a></header>
-  <main>
-    <div class="intro"><p class="eyebrow">긴 이야기에서 발견하는 순간</p><h1>추천받고,<br>마음에 드는 구간만.</h1><p>한국어 음성 전사를 바탕으로 30~60초 구간을 최대 5개 추천합니다.<br>점수는 편집 적합도이며 조회수나 바이럴 확률이 아닙니다.</p></div>
-    <section class="card"><h2>영상 분석</h2>
-      <form id="analysis-form">
-        <label for="mode">작업 선택</label><select id="mode"><option value="transcription">음성 전사만 확인</option><option value="recommendation">하이라이트 추천</option></select>
-        <label for="url">영상 링크</label><input id="url" type="url" required maxlength="4096" placeholder="https://…">
-        <p class="hint">공개 YouTube 단일 영상 / MP4 · 최대 20분, 500MiB</p>
-        <label for="genre">장르</label><select id="genre"><option value="unknown">기타 / 미지정</option><option value="conversation">대화 / 인터뷰</option><option value="drama_movie">드라마 / 영화</option><option value="game">게임</option><option value="entertainment">예능</option><option value="sports">스포츠</option></select>
-        <label for="purpose">추천 목적</label><select id="purpose"><option value="balanced">균형</option><option value="information">정보</option><option value="humor">유머</option><option value="emotion">감동</option><option value="suspense">긴장감</option></select>
-        <p class="hint">전사만 실행하면 추천 AI를 호출하지 않습니다. 영상의 음성을 설정된 전사 서비스에 전송합니다. 영상 장면·표정은 분석하지 않습니다.</p>
-        <button id="analyze" type="submit">음성 전사 시작</button>
-      </form>
-      <p id="message" role="alert"></p>
-      <button id="recover-analysis" type="button" class="secondary" hidden>이전 접수 상태 조회</button>
-      <button id="resubmit-analysis" type="button" class="secondary" hidden>같은 요청 번호로 다시 접수</button>
+<body class="studio">
+  <header class="studio-header">
+    <a class="brand" href="/" aria-label="Shortform 홈"><b aria-hidden="true">▶</b> Shortform</a>
+    <nav aria-label="제작 메뉴">
+      <a href="/#new-project">새 쇼츠</a><a href="/#projects">내 프로젝트</a>
+      <a class="studio-nav-secondary" href="/extract">10초 추출</a>
+    </nav>
+  </header>
+  <main class="studio-main">
+    <section id="new-project" class="studio-create">
+      <div class="studio-intro">
+        <h1>긴 영상에서<br>쇼츠를 만드세요</h1>
+        <p>영상을 넣으면 한국어 대화를 분석해 30~60초 하이라이트를 최대 5개 추천합니다.</p>
+      </div>
+      <div class="studio-input">
+        <form id="analysis-form">
+          <label for="url">영상 링크</label>
+          <input id="url" type="url" required maxlength="4096" placeholder="YouTube 링크 또는 MP4 주소">
+          <details id="local-upload-options"><summary>내 컴퓨터에서 영상 선택</summary></details>
+          <div class="studio-options">
+            <div><label for="mode">작업 선택</label><select id="mode"><option value="recommendation">하이라이트 추천</option><option value="transcription">음성 전사만 확인</option></select></div>
+            <div><label for="genre">장르</label><select id="genre"><option value="unknown">기타 / 미지정</option><option value="conversation">대화 / 인터뷰</option><option value="drama_movie">드라마 / 영화</option><option value="game">게임</option><option value="entertainment">예능</option><option value="sports">스포츠</option></select></div>
+            <div><label for="purpose">추천 목적</label><select id="purpose"><option value="balanced">균형</option><option value="information">정보</option><option value="humor">유머</option><option value="emotion">감동</option><option value="suspense">긴장감</option></select></div>
+          </div>
+          <p class="hint">최대 20분 · 500MiB. 분석을 시작하면 음성이 설정된 전사 서비스로 전송됩니다.</p>
+          <button id="analyze" type="submit">하이라이트 추천받기 <span aria-hidden="true">→</span></button>
+        </form>
+        <p id="message" role="alert"></p>
+        <button id="recover-analysis" type="button" class="secondary" hidden>이전 접수 상태 조회</button>
+        <button id="resubmit-analysis" type="button" class="secondary" hidden>같은 요청 번호로 다시 접수</button>
+      </div>
     </section>
-    <section class="card" id="analysis-panel" hidden><h2>분석 결과</h2><p id="analysis-state" role="status" aria-live="polite"></p><button id="refresh" class="secondary" type="button" hidden>상태 다시 조회</button><div id="transcript" hidden><h3>표시 자막</h3><p class="hint">원본 영상 기준 시간입니다. 2줄·줄당 20자·최대 6초는 제품 초안이며 검토 필요 항목은 확인 후 사용하세요.</p><p id="subtitle-state" role="status"></p><a id="subtitle-download" hidden>SRT 다운로드</a><div id="subtitle-cues"></div><details><summary>원본 전사 보기</summary><div id="segments"></div></details></div><div id="candidates"></div></section>
-    <aside><p>추천 후보를 선택해 자막을 편집하고, 세로 영상 출력·다운로드·YouTube 업로드로 이어갈 수 있습니다.</p><a href="/">시작 시간을 직접 지정해 10초 추출 →</a></aside>
+    <section id="analysis-panel" class="studio-section" aria-labelledby="analysis-title" hidden>
+      <div class="studio-section-heading">
+        <div><h1 id="analysis-title" tabindex="-1">쇼츠 프로젝트</h1><p id="analysis-state" role="status"></p></div>
+        <a href="/#projects">프로젝트 목록</a>
+      </div>
+      <button id="refresh" class="secondary studio-fit" type="button" hidden>상태 다시 조회</button>
+      <section id="analysis-waiting" class="studio-panel analysis-waiting" aria-labelledby="waiting-title" hidden>
+        <div class="analysis-progress-heading">
+          <div><h2 id="waiting-title">영상을 분석하고 있어요</h2><p>단계 기준 진행률</p></div>
+          <span id="analysis-percent" aria-hidden="true"></span>
+        </div>
+        <progress id="analysis-progress" max="100" aria-label="단계 기준 분석 진행률" aria-describedby="analysis-state"></progress>
+        <p class="hint">단계마다 걸리는 시간이 다릅니다. 프로젝트 목록에서 이 작업을 다시 열 수 있어요.</p>
+      </section>
+      <div id="download-recovery" class="studio-actions" hidden>
+        <a href="/#local-upload-options">영상 파일로 다시 시작</a>
+      </div>
+      <div id="candidate-workspace" class="studio-results" hidden>
+        <div class="studio-panel">
+          <h2>추천 구간 <span id="candidate-count"></span></h2>
+          <div id="candidates"></div>
+        </div>
+        <section class="studio-panel studio-preview" aria-label="선택한 후보">
+          <h2 id="clip-title"></h2>
+          <p id="clip-timing"></p>
+          <video id="clip-preview" controls playsinline preload="metadata" aria-label="선택한 후보 미리보기"></video>
+          <p id="clip-state" role="status"></p>
+          <button id="play-candidate" class="secondary studio-fit" type="button">선택 구간 재생</button>
+          <div class="studio-actions">
+            <a id="clip-edit" class="studio-primary">자막 편집</a>
+            <a id="clip-download" hidden>MP4 다운로드</a>
+            <a id="clip-srt" hidden>SRT 다운로드</a>
+            <a id="clip-sns" hidden>YouTube 업로드</a>
+          </div>
+          <p id="clip-reason"></p>
+          <details>
+            <summary>전사 내용과 추천 근거</summary>
+            <p id="clip-scores"></p><p id="clip-transcript"></p>
+            <div id="clip-extract"></div>
+          </details>
+        </section>
+      </div>
+      <details class="studio-panel" id="transcript" hidden>
+        <summary>전체 전사와 표시 자막</summary>
+        <p class="hint">원본 영상 기준 시간입니다. 검토가 필요한 자막은 확인 후 사용하세요.</p>
+        <p id="subtitle-state" role="status"></p>
+        <a id="subtitle-download" hidden>SRT 다운로드</a>
+        <div id="subtitle-cues"></div>
+        <details><summary>원본 전사 보기</summary><div id="segments"></div></details>
+      </details>
+    </section>
+    <section id="projects" class="studio-section" aria-labelledby="project-title">
+      <div class="studio-section-heading">
+        <div><h2 id="project-title">내 프로젝트</h2><p>이전 분석과 쇼츠 작업을 이어서 열 수 있어요.</p></div>
+      </div>
+      <p id="project-state" role="status"></p>
+      <ul id="project-list" class="project-list"></ul>
+      <button id="project-more" type="button" class="secondary studio-fit" hidden>프로젝트 더 보기</button>
+    </section>
   </main>
-  <footer>SHORTFORM STUDIO <span>로컬 개발용 · 외부 공개 전 인증 필요</span></footer>
+  <footer class="studio-footer"><a href="/verification">검증 도구</a><a href="/sns">YouTube 채널 연결</a></footer>
 </body>
 </html>

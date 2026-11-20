@@ -104,7 +104,7 @@ $("extract-form").addEventListener("submit", async (event) => {
     const data = await response.json();
     if (version !== generation) return;
     if (uuid.test(data.job_id || "") && (response.ok || response.status === 503)) {
-      history.pushState(null, "", `/?job=${data.job_id}`);
+      history.pushState(null, "", `/extract?job=${data.job_id}`);
       restore();
     } else if (response.status === 422) {
       message("submit-message", "영상 링크와 시작 시간을 확인해 주세요.");

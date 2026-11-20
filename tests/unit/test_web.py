@@ -18,3 +18,11 @@ def test_job_query_renders_page_without_creating_job():
     response = TestClient(app).get("/?job=invalid")
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert 'id="extract-form"' in response.text
+
+
+def test_studio_is_home_and_extraction_has_a_separate_entry_point():
+    client = TestClient(app)
+    assert 'id="analysis-form"' in client.get("/").text
+    assert 'id="project-list"' in client.get("/recommendations").text
+    assert 'id="extract-form"' in client.get("/extract").text

@@ -21,7 +21,10 @@
     const retry=document.createElement('button');retry.type='button';retry.textContent='업로드 상태 다시 조회';retry.hidden=true;
     const clear=document.createElement('button');clear.type='button';clear.textContent='링크 입력으로 전환';clear.hidden=true;
     const note=document.createElement('p');note.className='hint';note.textContent='MP4/WebM · 최대 500MiB·20분. 전송 후 영상 검사만 수행하며 AI 분석은 실행 버튼을 누를 때 시작합니다.';
-    block.append(title,file,button,note,status,retry,clear);form.prepend(block);
+    block.append(title,file,button,note,status,retry,clear);
+    const uploadOptions=document.getElementById('local-upload-options');
+    if(uploadOptions){uploadOptions.append(block);uploadOptions.open=Boolean(assetId)||location.hash==='#local-upload-options';}
+    else form.prepend(block);
     const submit=document.getElementById('submit') || document.getElementById('analyze');
     function lock(value){url.required=!value;url.disabled=value;submit.disabled=value;clear.hidden=!value;}
     function remember(id){assetId=id;const next=new URL(location.href);if(id)next.searchParams.set('upload',id);else next.searchParams.delete('upload');history.replaceState(null,'',next);}

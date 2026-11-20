@@ -31,10 +31,12 @@ pytestmark = [
         ("transcription", "PROVIDER_ACCESS_DENIED"),
         ("proposal", "RATE_LIMITED"),
         ("scoring", "TIMEOUT"),
+        ("scoring", "PROVIDER_ACCESS_DENIED"),
         ("publish", "DISPATCH_FAILED"),
     ],
 )
 def test_analysis_failure_is_terminal_without_duplicate_provider_calls(stage, code):
+    transcript_saved = stage in ("proposal", "scoring")
     rid = uuid4()
     fault = Faults(rid)
     with fault.connection() as redis:
@@ -47,7 +49,13 @@ def test_analysis_failure_is_terminal_without_duplicate_provider_calls(stage, co
         result = wait(client, f"/analyses/{aid}")
         assert result["status"] == "failed" and result["error"]["code"] == code
         assert result["candidates"] == [] and "private-fixture-sentinel" not in str(result)
-        assert client.get(f"/analyses/{aid}/subtitles.srt").status_code == 409
+        transcript = client.get(f"/analyses/{aid}/transcript")
+        subtitles = client.get(f"/analyses/{aid}/subtitles.srt")
+        expected = 200 if transcript_saved else 409
+        assert transcript.status_code == subtitles.status_code == expected
+        if transcript_saved:
+            assert len(transcript.json()["segments"]) == 36
+            assert "한국어" in subtitles.text
         assert client.post("/analyses", json=body).json()["analysis_id"] == aid
         with Session(AnalysisRepository().engine) as session:
             calls = list(
@@ -65,12 +73,35 @@ def test_analysis_failure_is_terminal_without_duplicate_provider_calls(stage, co
         expect(page.locator("#analysis-state")).to_contain_text(code)
         page.reload()
         expect(page.locator("#analysis-state")).to_contain_text(code)
+        if transcript_saved:
+            expect(page.locator("#transcript")).to_have_attribute("open", "")
+            expect(page.locator("#segments p")).to_have_count(36)
+        else:
+            expect(page.locator("#transcript")).to_be_hidden()
         assert not posts and page.locator(".edit-candidate").count() == 0
     with Faults(aid).connection() as redis:
         events = redis.hgetall(f"failure:{aid}:events")
         assert events["publish"] == "1"
         if stage != "publish":
             assert events[stage] == "1" and events["analysis-claim"] == "1"
+
+
+def test_download_failure_offers_file_upload_without_resubmitting():
+    with httpx.Client(base_url=BASE, timeout=20) as client:
+        response = client.post("/analyses", json={"url": "https://fixture.example/missing.mp4"})
+        assert response.status_code == 202, response.text
+        aid = response.json()["analysis_id"]
+        result = wait(client, f"/analyses/{aid}")
+        assert result["status"] == "failed" and result["error"]["code"] == "DOWNLOAD_FAILED"
+        assert result["stage"] == "download"
+    with observed_browser("test_download_recovery") as page:
+        posts = []
+        page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
+        page.goto(BASE + f"/recommendations?analysis={aid}")
+        expect(page.locator("#analysis-state")).to_contain_text("원본 영상을 가져오지 못했습니다")
+        page.get_by_role("link", name="영상 파일로 다시 시작").click()
+        expect(page.get_by_label("업로드할 영상 파일")).to_be_visible()
+        assert not posts
 
 
 @pytest.fixture(scope="module")

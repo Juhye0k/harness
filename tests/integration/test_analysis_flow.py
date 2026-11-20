@@ -165,7 +165,7 @@ def test_transcription_browser_refresh_does_not_resubmit():
         page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(BASE + "/recommendations")
-        expect(page.get_by_label("작업 선택")).to_have_value("transcription")
+        page.get_by_label("작업 선택").select_option("transcription")
         page.get_by_label("영상 링크").fill("https://fixture.example/analysis.mp4")
         page.get_by_role("button", name="음성 전사 시작").click()
         expect(page.locator("#segments p")).to_have_count(36, timeout=90000)
@@ -176,7 +176,7 @@ def test_transcription_browser_refresh_does_not_resubmit():
             page.get_by_role("link", name="SRT 다운로드").click()
         assert download.value.failure() is None
         assert download.value.suggested_filename.endswith(".srt")
-        page.locator("#transcript summary").click()
+        page.get_by_text("원본 전사 보기", exact=True).click()
         expect(page.locator("#segments p").first).to_be_visible()
         page.set_viewport_size({"width": 390, "height": 844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -206,7 +206,8 @@ def test_recommendation_browser_refresh_select_download():
         page.reload()
         expect(page.get_by_role("heading", name="1. 첫 이야기")).to_be_visible()
         assert len(posts) == 1
-        page.get_by_role("button", name="이 구간 추출하기").first.click()
+        page.get_by_text("전사 내용과 추천 근거", exact=True).click()
+        page.get_by_role("button", name="이 구간 추출하기").click()
         expect(page.get_by_role("heading", name="추천 구간 영상이 준비됐어요")).to_be_visible(
             timeout=90000
         )
@@ -215,11 +216,67 @@ def test_recommendation_browser_refresh_select_download():
             page.get_by_role("button", name="MP4 다운로드").click()
         assert download.value.failure() is None
         page.goto(analysis_url)
+        page.get_by_text("전사 내용과 추천 근거", exact=True).click()
         expect(page.get_by_role("link", name="추출 상태 · 미리보기 · 다운로드 →")).to_be_visible()
         assert len(posts) == 2
         page.set_viewport_size({"width": 390, "height": 844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         assert not errors
+        browser.close()
+
+
+@pytest.mark.parametrize("outcome", ["succeeded", "failed"])
+def test_analysis_waiting_percent_tracks_stage_and_restores_on_reload(outcome):
+    analysis_id = str(uuid4())
+    data = {
+        "analysis_id": analysis_id,
+        "status": "queued",
+        "stage": "queued",
+        "analysis_basis": "전사 기반",
+        "candidates": [],
+        "config": {"mode": "recommendation"},
+    }
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        posts = []
+        page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
+        page.route(f"**/analyses/{analysis_id}", lambda r: r.fulfill(json=data))
+        page.route(
+            f"**/analyses/{analysis_id}/transcript", lambda r: r.fulfill(json={"segments": []})
+        )
+        page.route(
+            f"**/analyses/{analysis_id}/subtitles?*",
+            lambda r: r.fulfill(json={"cues": [], "quality_pass": False}),
+        )
+        page.goto(BASE + f"/recommendations?analysis={analysis_id}")
+        progress = page.get_by_role("progressbar", name="단계 기준 분석 진행률")
+        expect(progress).to_have_attribute("value", "0")
+        expect(page.locator("#candidate-workspace")).to_be_hidden()
+        data.update(status="running", stage="transcription")
+        expect(progress).to_have_attribute("value", "45")
+        expect(page.locator("#analysis-state")).to_contain_text("음성 전사")
+        data.update(stage="scoring")
+        expect(page.locator("#analysis-percent")).to_have_text("90%")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.reload()
+        expect(progress).to_have_attribute("value", "90")
+        if outcome == "succeeded":
+            data.update(status=outcome, stage="complete", outcome="NO_SUITABLE_CANDIDATES")
+            expect(page.locator("#analysis-state")).to_contain_text("100% 완료")
+        else:
+            data.update(
+                status=outcome,
+                error={
+                    "code": "PROVIDER_RATE_LIMIT",
+                    "message": "AI 제공자의 요청 한도를 초과했습니다.",
+                },
+            )
+            expect(page.locator("#analysis-state")).to_contain_text("후보 채점 단계에서 실패")
+            expect(page.locator("#analysis-state")).to_contain_text("요청 한도를 초과")
+            expect(page.locator("#transcript")).to_be_visible()
+        expect(progress).to_be_hidden()
+        assert not posts
         browser.close()
 
 
@@ -253,6 +310,7 @@ def test_recommendation_query_failure_and_safe_text():
         page.route(f"**/analyses/{analysis_id}", lambda route: route.abort())
         page.goto(BASE + f"/recommendations?analysis={analysis_id}")
         expect(page.locator("#analysis-state")).to_contain_text("분석 실패를 의미하지 않습니다")
+        expect(page.get_by_role("progressbar")).to_be_visible()
         page.unroute(f"**/analyses/{analysis_id}")
         page.route(f"**/analyses/{analysis_id}", lambda route: route.fulfill(json=data))
         page.get_by_role("button", name="상태 다시 조회").click()

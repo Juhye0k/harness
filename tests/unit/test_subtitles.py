@@ -165,7 +165,7 @@ def test_no_speech_and_srt_time_format():
 @pytest.mark.parametrize("state", ["queued", "running", "failed"])
 @pytest.mark.parametrize("suffix", ["subtitles", "subtitles.srt"])
 def test_subtitle_endpoints_never_create_or_read_incomplete_transcript(state, suffix):
-    repo = SimpleNamespace(get=lambda _: SimpleNamespace(status=state))
+    repo = SimpleNamespace(get=lambda _: SimpleNamespace(status=state, stage="transcription"))
     app.dependency_overrides[analyses.repository] = lambda: repo
     try:
         with TestClient(app) as client:

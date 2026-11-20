@@ -23,6 +23,16 @@ from app.domain.video import VideoError
 
 router = APIRouter(tags=["recommendations"])
 
+RECOMMENDATION_STAGES = {"proposal", "scoring"}
+ANALYSIS_ERROR_MESSAGES = {
+    "DOWNLOAD_FAILED": (
+        "링크에서 원본 영상을 가져오지 못했습니다. "
+        "공개 단일 영상 링크나 보유한 영상 파일로 다시 시작하세요."
+    ),
+    "PROVIDER_ACCESS_DENIED": "AI 제공자가 이 요청의 접근을 거부했습니다. (HTTP 403)",
+    "PROVIDER_RATE_LIMIT": "AI 제공자의 요청 한도를 초과했습니다. (HTTP 429)",
+}
+
 
 class AnalysisRequest(BaseModel):
     request_id: UUID | None = None
@@ -113,11 +123,8 @@ def get_analysis(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(
         "outcome": job.outcome,
         "error": {
             "code": job.error_code,
-            "message": (
-                "제공자가 요청 접근을 거부했습니다. "
-                "키 인증과 별도로 제공자 권한·요청 제한을 확인하세요."
-                if job.error_code == "PROVIDER_ACCESS_DENIED"
-                else "분석이 완료되지 못했습니다. 오류 코드를 확인하세요."
+            "message": ANALYSIS_ERROR_MESSAGES.get(
+                job.error_code, "분석이 완료되지 못했습니다. 오류 코드를 확인하세요."
             ),
         }
         if job.error_code
@@ -126,11 +133,21 @@ def get_analysis(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(
     }
 
 
+@router.get("/analyses")
+def list_analyses(
+    repo: Annotated[AnalysisRepository, Depends(repository)],
+    limit: int = Query(12, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+):
+    return repo.projects(limit, offset)
+
+
 @router.get("/analyses/{analysis_id}/transcript")
 def get_transcript(analysis_id: UUID, repo: Annotated[AnalysisRepository, Depends(repository)]):
     job = repo.get(analysis_id)
-    if job.status != "succeeded":
-        raise JobError("RESULT_NOT_READY", "완료된 분석의 전사만 조회할 수 있습니다.", 409)
+    recommendation_failed = job.status == "failed" and job.stage in RECOMMENDATION_STAGES
+    if job.status != "succeeded" and not recommendation_failed:
+        raise JobError("RESULT_NOT_READY", "저장된 음성 전사가 아직 없습니다.", 409)
     return {
         "analysis_id": str(job.id),
         "asset_id": str(job.asset_id),

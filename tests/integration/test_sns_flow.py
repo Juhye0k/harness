@@ -209,7 +209,7 @@ def test_browser_explicit_confirmation_reload_and_query_error(connected):
         assert len(posts) == 1
         upload_id = parse_qs(urlsplit(page.url).query)["upload"][0]
         assert not counts(upload_id)
-        expect(page.locator("video")).to_have_js_property("videoWidth", 160)
+        expect(page.locator("#sns-preview")).to_have_js_property("videoWidth", 160)
         page.screenshot(path=str(ARTIFACTS / "sns-review.png"), full_page=True)
         page.reload()
         expect(page.get_by_role("button", name="확인한 내용으로 YouTube에 업로드")).to_be_disabled()

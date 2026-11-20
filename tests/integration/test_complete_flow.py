@@ -42,19 +42,39 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
         page.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
         try:
             page.goto(BASE + "/")
-            page.get_by_role("link", name="AI 하이라이트 추천 →").click()
-            page.get_by_label("작업 선택").select_option("recommendation")
+            expect(page.get_by_label("작업 선택")).to_have_value("recommendation")
             page.get_by_label("영상 링크").fill("https://fixture.example/analysis.mp4")
             page.get_by_role("button", name="하이라이트 추천받기").dblclick()
             expect(page.locator(".edit-candidate")).to_have_count(2, timeout=90000)
             assert len([url for url in posts if url.endswith("/analyses")]) == 1
             aid = parse_qs(urlsplit(page.url).query)["analysis"][0]
+            page.goto(BASE + "/")
+            project = page.locator(f'#project-list a[href$="analysis={aid}"]')
+            expect(project).to_contain_text("2개 후보")
+            page.set_viewport_size({"width": 390, "height": 844})
+            assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
+            page.screenshot(path=str(evidence / "studio-mobile.png"))
+            page.set_viewport_size({"width": 1440, "height": 1000})
+            page.screenshot(path=str(evidence / "studio-desktop.png"))
+            project.click()
             before = context.request.get(f"{BASE}/analyses/{aid}/transcript").json()
             analysis = context.request.get(f"{BASE}/analyses/{aid}").json()
             candidate = next(c for c in analysis["candidates"] if c["start_ms"] > 0)
             cid = candidate["id"]
             revisions = f"{BASE}/analyses/{aid}/candidates/{cid}/caption-revisions"
-            page.locator(f'.edit-candidate[href$="candidate={cid}"]').click()
+            selected = page.locator(f'.candidate-select[data-id="{cid}"]')
+            selected.click()
+            expect(selected).to_have_attribute("aria-pressed", "true")
+            expect(page.locator("#clip-title")).to_have_text(candidate["title"])
+            page.locator("#play-candidate").click()
+            page.wait_for_function(
+                "(start) => { const video = document.querySelector('#clip-preview'); "
+                "return !video.paused && video.currentTime > start + 0.1; }",
+                arg=candidate["start_ms"] / 1000,
+            )
+            page.reload()
+            expect(selected).to_have_attribute("aria-pressed", "true")
+            page.locator("#clip-edit").click()
             first_cue = page.locator("#caption-rows textarea").first
             reviewed = page.get_by_label("선택 후보의 모든 원 구간을 검토했고", exact=False)
             render = page.get_by_role("button", name="확정한 자막으로 영상 만들기")
@@ -164,7 +184,13 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
             page.screenshot(path=str(evidence / "editor-mobile.png"))
             page.set_viewport_size({"width": 1440, "height": 1000})
-            page.get_by_role("link", name="이 영상으로 YouTube 업로드 →").click()
+            page.locator("#back").click()
+            expect(selected).to_have_attribute("aria-pressed", "true")
+            expect(page.locator("#clip-download")).to_have_attribute(
+                "href", f"/jobs/{job_id}/download"
+            )
+            expect(page.locator("#clip-srt")).to_be_visible()
+            page.get_by_role("link", name="YouTube 업로드", exact=True).click()
 
             # Exercise OAuth's real state/cookie exchange without visiting an external account.
             def fixture_oauth(route):
@@ -180,16 +206,28 @@ def test_input_to_edited_portrait_download_and_confirmed_upload():
             page.get_by_role("button", name="YouTube 계정 연결", exact=False).click()
             expect(page.locator("#upload-form")).to_be_visible()
             expect(page.locator("#job")).to_have_value(job_id)
+            expect(page.get_by_label("YouTube 제목", exact=True)).to_have_value(candidate["title"])
+            expect(page.locator("#sns-back")).to_have_attribute(
+                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}"
+            )
             page.get_by_label("YouTube 제목", exact=True).fill("편집한 자막 E2E")
             page.get_by_label("아동용 콘텐츠인가요?").select_option("false")
             page.get_by_role("button", name="업로드 내용 미리 확인").click()
-            expect(page).to_have_url(re.compile(r"/sns\?upload=[a-f0-9-]{36}$"))
-            upload_id = parse_qs(urlsplit(page.url).query)["upload"][0]
+            expect(page).to_have_url(re.compile(r"/sns\?.*[?&]upload=[a-f0-9-]{36}$"))
+            upload_query = parse_qs(urlsplit(page.url).query)
+            upload_id = upload_query["upload"][0]
+            assert upload_query["job"] == [job_id]
+            assert upload_query["analysis"] == [aid]
+            assert upload_query["candidate"] == [cid]
+            assert upload_query["revision"] == [rid]
             expect(page.locator("#confirm")).to_be_disabled()
             with Redis.from_url(get_settings().redis_url, decode_responses=True) as redis:
                 assert not redis.hgetall("sns-fixture:" + upload_id)
             page.reload()
             expect(page.locator("#confirm")).to_be_disabled()
+            expect(page.locator("#sns-back")).to_have_attribute(
+                "href", f"/editor?analysis={aid}&candidate={cid}&revision={rid}"
+            )
             page.get_by_role("checkbox").check()
             page.get_by_role("button", name="확인한 내용으로 YouTube에 업로드").dblclick()
             expect(page.locator("#upload-state")).to_contain_text(

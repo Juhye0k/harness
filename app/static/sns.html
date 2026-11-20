@@ -3,20 +3,26 @@
 <head>
 <script src="/static/auth.js"></script>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
   <title>YouTube 업로드 · Shortform</title>
   <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/studio.css">
   <script src="/static/sns.js" defer></script>
 </head>
-<body>
-<header><a href="/" class="brand">Shortform<span>MAKE YOUR MOMENT</span></a><span class="badge">YouTube 업로드</span><a href="/verification">검증 결과</a></header>
-<main class="sns-page">
-  <section class="intro">
-    <p class="eyebrow">마지막으로 확인하세요</p><h1>완성한 영상을<br> YouTube로</h1>
-    <p>계정과 영상, 제목, 공개 범위를 확인한 뒤 직접 업로드합니다. 기본은 비공개예요.</p>
-    <p>업로드 완료는 YouTube의 영상 처리·공개 완료를 의미하지 않습니다.</p>
+<body class="studio">
+<header class="studio-header"><a href="/" class="brand"><b aria-hidden="true">▶</b> Shortform</a><a id="sns-back" href="/#projects">프로젝트 목록</a></header>
+<main class="studio-main sns-page">
+  <section class="studio-section-heading">
+    <div><h1>YouTube에 게시</h1><p>영상과 채널, 제목, 공개 범위를 확인하세요. 기본은 비공개입니다.</p></div>
   </section>
-  <section class="card">
+  <section class="studio-panel">
     <p id="notice" role="status">설정을 확인하고 있어요.</p>
+    <div id="chosen-output" hidden>
+      <h2>선택한 완성 영상</h2>
+      <p id="chosen-output-title"></p>
+      <video id="chosen-output-preview" controls playsinline preload="metadata" aria-label="게시할 영상"></video>
+      <p id="chosen-output-state" role="status"></p>
+    </div>
     <button id="reload" class="secondary" hidden>상태 다시 조회</button>
     <section id="account-panel" hidden>
       <h2>1. 업로드 계정</h2>
@@ -28,8 +34,7 @@
     </section>
     <form id="upload-form" hidden>
       <h2>2. 영상과 업로드 설정</h2>
-      <label for="job">완성한 영상 작업 번호</label><input id="job" required autocomplete="off">
-      <p class="hint">추출 결과에서 이동하면 자동으로 입력됩니다.</p>
+      <div id="job-field"><label for="job">완성한 영상 작업 번호</label><input id="job" required autocomplete="off"></div>
       <label for="title">YouTube 제목</label><input id="title" required maxlength="100">
       <label for="privacy">공개 범위</label>
       <select id="privacy"><option value="private" selected>비공개</option><option value="unlisted">일부 공개</option><option value="public">공개</option></select>
@@ -53,5 +58,5 @@
     </section>
   </section>
 </main>
-<footer><span>SHORTFORM</span><a href="/">영상 추출로 돌아가기</a></footer>
+<footer class="studio-footer"><a href="/#projects">내 프로젝트</a></footer>
 </body></html>

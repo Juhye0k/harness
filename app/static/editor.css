@@ -13,6 +13,17 @@
 .editor-page #editor-transcript { max-height: 300px; overflow-y: auto; }
 .editor-page #caption-rows { max-height: 650px; overflow-y: auto; }
 .editor-page #save-captions, .editor-page #render-final { width: 100%; }
+.editor-page main { max-width: 1280px; }
+.editor-page .editor-columns { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); align-items: start; gap: 24px; }
+.editor-page .editor-columns > div { min-width: 0; }
+.editor-page .editor-player { position: sticky; top: 16px; }
+.editor-page .caption-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.editor-page .caption-row > label:first-child, .editor-page .cue-text-label { grid-column: 1 / -1; }
+.editor-page #final-result video { background: #13251e; border-radius: 12px; }
+@media(max-width: 1000px) {
+  .editor-page .editor-columns { grid-template-columns: minmax(0, 1fr); }
+  .editor-page .editor-player { position: static; }
+}
 @media(max-width: 900px) {
   .editor-page .caption-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .editor-page .caption-row > label:first-child, .editor-page .caption-row .cue-text-label { grid-column: 1 / -1; }

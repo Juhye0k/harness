@@ -106,7 +106,11 @@ async function pollJob(id, version=epoch) {
       $('final-result').hidden=false;
       const src=job.download_url;
       if($('final-preview').getAttribute('src')!==src)$('final-preview').src=src;
-      $('final-download').href=src;$('final-srt').href=`/jobs/${id}/subtitles.srt`;$('final-sns').href=`/sns?job=${id}`;
+      $('final-download').href=src;$('final-srt').href=`/jobs/${id}/subtitles.srt`;
+      $('final-sns').href='/sns?'+new URLSearchParams({
+        job:id,analysis:data.analysis_id,candidate:params.get('candidate'),
+        revision:revision.revision_id
+      });
     }else if(job.status==='failed'){
       $('render-state').textContent=`출력 실패: ${job.error?.message || job.error?.code}. 자동 재실행하지 않습니다.`;
     }else{
@@ -128,7 +132,7 @@ async function start(){
   if(!uuid.test(params.get('analysis')||'') || !uuid.test(params.get('candidate')||'')){$('editor-message').textContent='추천 결과에서 편집할 구간을 선택하세요.';return;}
   try{
     data=await api(base+'/editor');
-    $('back').href=`/recommendations?analysis=${data.analysis_id}`;
+    $('back').href='/recommendations?'+new URLSearchParams({analysis:data.analysis_id,candidate:params.get('candidate')});
     $('candidate-title').textContent=`${data.title} · ${data.start_ms/1000}~${data.end_ms/1000}초`;
     $('editor-panel').hidden=false;$('final-panel').hidden=false;
     const video=$('source-preview');video.src=`/analyses/${data.analysis_id}/source-video`;

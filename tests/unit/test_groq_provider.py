@@ -258,7 +258,7 @@ def test_transcript_get_does_not_read_incomplete_job(monkeypatch, state):
 
     from app.api import analyses
 
-    repo = SimpleNamespace(get=lambda id: SimpleNamespace(status=state))
+    repo = SimpleNamespace(get=lambda id: SimpleNamespace(status=state, stage="transcription"))
     app.dependency_overrides[analyses.repository] = lambda: repo
     try:
         with TestClient(app) as client:

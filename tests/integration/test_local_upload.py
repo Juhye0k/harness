@@ -213,7 +213,7 @@ def test_browser_upload_extract_and_analysis(tmp_path):
         page.on(
             "request", lambda req: posts.append(req.url) if req.method in {"POST", "PUT"} else None
         )
-        page.goto(base + "/")
+        page.goto(base + "/extract")
         page.get_by_label("업로드할 영상 파일").set_input_files(str(path))
         page.get_by_role("button", name="선택한 파일 업로드", exact=True).click()
         expect(

@@ -1,6 +1,6 @@
 """Short transactions, persistent claims, no external call while holding a media lock."""
 
-from sqlalchemy import select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,7 @@ from app.models import (
     VideoJob,
     utcnow,
 )
-from app.services.access import ownership_values
+from app.services.access import current_user, ownership_values
 
 
 class AnalysisRepository:
@@ -50,6 +50,40 @@ class AnalysisRepository:
                 raise JobError("ANALYSIS_NOT_FOUND", "분석을 찾을 수 없습니다.", 404)
             s.expunge(job)
             return job
+
+    def projects(self, limit, offset):
+        candidates = select(HighlightCandidate).where(
+            HighlightCandidate.analysis_id == AnalysisJob.id
+        )
+        title = (
+            candidates.with_only_columns(HighlightCandidate.data["title"].as_string())
+            .order_by(HighlightCandidate.rank, HighlightCandidate.id)
+            .limit(1)
+            .scalar_subquery()
+        )
+        count = candidates.with_only_columns(func.count(HighlightCandidate.id)).scalar_subquery()
+        statement = (
+            select(
+                AnalysisJob.id.label("analysis_id"),
+                AnalysisJob.created_at,
+                AnalysisJob.status,
+                AnalysisJob.config["mode"].as_string().label("mode"),
+                title.label("title"),
+                count.label("candidate_count"),
+            )
+            .join(Asset, Asset.id == AnalysisJob.asset_id)
+            .where(
+                Asset.user_id == current_user.get(),
+                Asset.deleted_at.is_(None),
+                or_(Asset.expires_at.is_(None), Asset.expires_at > utcnow()),
+            )
+            .order_by(AnalysisJob.created_at.desc(), AnalysisJob.id.desc())
+            .limit(limit + 1)
+            .offset(offset)
+        )
+        with Session(self.engine) as session:
+            rows = session.execute(statement).mappings().all()
+        return {"items": [dict(row) for row in rows[:limit]], "has_more": len(rows) > limit}
 
     def dispatch(self, job_id, publish):
         with Session(self.engine, expire_on_commit=False) as s, s.begin():
