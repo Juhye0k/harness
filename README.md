@@ -1,6 +1,6 @@
 # Shortform Harness
 
-FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 후보별 자막 편집·버전 저장·세로 MP4 출력·다운로드·YouTube 연결은 [FLOW-001](wiki/05-development/complete-flow.md)로 로컬 구현했습니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 인식 정확도는 미검증입니다. 승인된 합성 영상의 실제 비공개 Shorts 업로드와 Studio 분류를 확인했으며 이번 편집 흐름의 대역 검증과는 별도입니다.
+FastAPI + PostgreSQL + Redis + Celery 기반 숏폼 서비스입니다. **10초 추출과 한국어 전사 기반 하이라이트 추천·선택 추출**을 제공합니다. 후보별 자막 편집·버전 저장·세로 MP4 출력·다운로드·YouTube 연결은 [FLOW-001](wiki/05-development/complete-flow.md)로 로컬 구현했습니다. 추천 AI와 YouTube 업로드는 기본 비활성화입니다. 실제 편집본 한 건의 비공개 Shorts 업로드와 Studio 분류를 확인했습니다. 같은 원본의 재추천에서는 후보가 1개 나왔으며, 게시 제목은 사전 승인안과 달랐습니다. [실제 검증과 남은 과제](wiki/07-governance/status.md).
 
 **[프로젝트 위키 시작하기](https://github.com/Juhye0k/short-form/wiki)** — 문제 정의, 단계별 계획, 구조·기술 선택, 개발 하네스와 운영 절차를 카테고리별로 관리합니다.
 
